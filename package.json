@@ -10,7 +10,8 @@
     "test": "vitest run",
     "tauri": "tauri",
     "app:dev": "tauri dev",
-    "app:build": "node scripts/app-build.mjs"
+    "app:build": "node scripts/app-build.mjs",
+    "app:teste": "node scripts/app-teste.mjs"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "5.1.0",

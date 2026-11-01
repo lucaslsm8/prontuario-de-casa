@@ -14,6 +14,7 @@ use tauri::{Manager, State};
 const ARQUIVO_BANCO: &str = "arquivo.db";
 
 struct Estado {
+    servico: String,
     dir: PathBuf,
     pasta_padrao_backup: PathBuf,
     banco: Mutex<Option<Banco>>,
@@ -22,10 +23,10 @@ struct Estado {
 
 type R<T> = Result<T, String>;
 
-fn abrir_banco(dir: &Path) -> R<Banco> {
+fn abrir_banco(servico: &str, dir: &Path) -> R<Banco> {
     let caminho = dir.join(ARQUIVO_BANCO);
     let novo = !caminho.exists();
-    let chave = cripto::chave_do_aparelho(dir, novo).map_err(|e| e.to_string())?;
+    let chave = cripto::chave_do_aparelho(servico, dir, novo).map_err(|e| e.to_string())?;
     Banco::abrir(&caminho, &chave)
 }
 
@@ -262,8 +263,8 @@ async fn apagar_tudo(st: State<'_, Estado>) -> R<()> {
     for sufixo in ["", "-wal", "-shm"] {
         let _ = std::fs::remove_file(st.dir.join(format!("{ARQUIVO_BANCO}{sufixo}")));
     }
-    cripto::apagar_chave(&st.dir);
-    *g = Some(abrir_banco(&st.dir)?);
+    cripto::apagar_chave(&st.servico, &st.dir);
+    *g = Some(abrir_banco(&st.servico, &st.dir)?);
     if let Ok(mut e) = st.erro.lock() {
         *e = None;
     }
@@ -326,15 +327,16 @@ pub fn run() {
     let builder = builder.plugin(tauri_plugin_updater::Builder::new().build()).plugin(tauri_plugin_process::init());
     builder
         .setup(|app| {
+            let servico = app.config().identifier.clone();
             let dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&dir)?;
             let docs = app.path().document_dir().unwrap_or_else(|_| dir.clone());
             let pasta_padrao_backup = docs.join("Arquivo da família");
-            let (banco, erro) = match abrir_banco(&dir) {
+            let (banco, erro) = match abrir_banco(&servico, &dir) {
                 Ok(b) => (Some(b), None),
                 Err(e) => (None, Some(e)),
             };
-            app.manage(Estado { dir, pasta_padrao_backup, banco: Mutex::new(banco), erro: Mutex::new(erro) });
+            app.manage(Estado { servico, dir, pasta_padrao_backup, banco: Mutex::new(banco), erro: Mutex::new(erro) });
             notificacao::registrar();
             let ag = lembretes::Agendador::novo();
             app.manage(ag.clone());

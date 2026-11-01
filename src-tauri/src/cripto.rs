@@ -104,16 +104,16 @@ fn de_hex(s: &str) -> Option<[u8; 32]> {
     Some(out)
 }
 
-const SERVICO: &str = "br.familia.arquivosaude";
 const CONTA: &str = "chave-do-banco";
 
 /// Chave do banco deste aparelho. Windows/macOS: cofre do sistema.
 /// Outros (Linux, Android nesta etapa): arquivo na pasta privada do app.
-pub fn chave_do_aparelho(dir: &Path, criar: bool) -> R<[u8; 32]> {
+/// `servico` é o identificador do app (`br.familia.arquivosaude` no app real), para um app de teste não tocar na chave do app real.
+pub fn chave_do_aparelho(servico: &str, dir: &Path, criar: bool) -> R<[u8; 32]> {
     #[cfg(any(windows, target_os = "macos"))]
     {
         let _ = dir;
-        let e = keyring::Entry::new(SERVICO, CONTA).map_err(|e| ErroCripto(format!("cofre do sistema indisponível: {e}")))?;
+        let e = keyring::Entry::new(servico, CONTA).map_err(|e| ErroCripto(format!("cofre do sistema indisponível: {e}")))?;
         match e.get_password() {
             Ok(s) => de_hex(&s).ok_or_else(|| ErroCripto("chave do banco inválida no cofre do sistema".into())),
             Err(keyring::Error::NoEntry) if criar => {
@@ -127,7 +127,7 @@ pub fn chave_do_aparelho(dir: &Path, criar: bool) -> R<[u8; 32]> {
     }
     #[cfg(not(any(windows, target_os = "macos")))]
     {
-        let _ = (SERVICO, CONTA);
+        let _ = (servico, CONTA);
         let arq = dir.join("chave.bin");
         if let Ok(s) = std::fs::read_to_string(&arq) {
             return de_hex(s.trim()).ok_or_else(|| ErroCripto("chave do banco inválida".into()));
@@ -147,11 +147,11 @@ pub fn chave_do_aparelho(dir: &Path, criar: bool) -> R<[u8; 32]> {
 }
 
 /// Remove a chave do aparelho (usado em "Apagar todos os dados").
-pub fn apagar_chave(dir: &Path) {
+pub fn apagar_chave(servico: &str, dir: &Path) {
     #[cfg(any(windows, target_os = "macos"))]
     {
         let _ = dir;
-        if let Ok(e) = keyring::Entry::new(SERVICO, CONTA) {
+        if let Ok(e) = keyring::Entry::new(servico, CONTA) {
             let _ = e.delete_credential();
         }
     }
