@@ -3,6 +3,7 @@ import * as seed from './seed';
 import { EM_TAURI, HOJE, MODO_EXEMPLO, MODO_REAL, horaAgora } from './tempo';
 import { useLembretes } from './useLembretes';
 import { useViradaDoDia } from './useViradaDoDia';
+import { avisarMudanca } from './sincronizacao';
 import { persistencia, novoId, type Evento, type InfoBackup, type Inicio } from './persistencia';
 import { fmtHlc, proximoHlc, type Hlc } from './hlc';
 import { migrarLog, novoAparelhoId, ordenarLog, resolverEu, ultimoHlc, type Identidade } from './log';
@@ -368,6 +369,7 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
       sessao.ultimo = h;
       const ev: Evento = { id: novoId(), em: new Date().toISOString(), autor: autor(), aparelho: h.aparelho, hlc: fmtHlc(h), tipo: type, dados };
       persistencia.gravar(ev).catch((e) => mostrarToast({ texto: `Não foi possível salvar: ${String(e)}` }));
+      avisarMudanca();
     };
     /** "Eu" deste aparelho: marca na tela e guarda na identidade local (kv cifrado). */
     const definirEu = (pessoaId: string) => {
@@ -537,6 +539,14 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
         await recarregar();
       },
       recarregar,
+      /** Eventos criados por este aparelho, já com HLC, na ordem local (o que a sincronização sobe). */
+      async meusEventos(): Promise<Evento[]> {
+        const id = sessao.identidade?.aparelhoId;
+        if (!MODO_REAL || !id) return [];
+        const ini = await persistencia.iniciar();
+        return migrarLog(ini.eventos, id).filter((e) => e.aparelho === id);
+      },
+      aparelhoId: () => sessao.identidade?.aparelhoId ?? null,
 
       // Só para o navegador de telas em desenvolvimento.
       carregarExemplo: () => dispatch({ type: 'reset', state: estadoExemplo() }),

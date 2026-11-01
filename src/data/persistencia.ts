@@ -51,7 +51,23 @@ export interface Persistencia {
   apagarTudo(): Promise<void>;
   /** Substitui os lembretes agendados no sistema (só em memória no Rust). */
   agendarLembretes(lista: Lembrete[]): Promise<void>;
+  /** A família deste aparelho, ou null se ainda não entrou em nenhuma. */
+  familiaInfo(): Promise<InfoFamilia | null>;
+  /** Cria a família no repositório do GitHub com o token informado. */
+  familiaCriar(repo: string, token: string): Promise<InfoFamilia>;
+  /** Entra numa família pelo código de convite. */
+  familiaEntrar(convite: string): Promise<InfoFamilia>;
+  /** Sai da família neste aparelho. */
+  familiaSair(): Promise<void>;
+  /** Código de convite da família atual. */
+  familiaConvite(): Promise<string>;
+  /** Sobe os eventos deste aparelho; devolve quantos pacotes foram enviados. */
+  syncEnviar(aparelho: string, eventos: Evento[]): Promise<number>;
+  /** Baixa os pacotes dos outros aparelhos; devolve quantos eventos chegaram. */
+  syncReceber(aparelho: string): Promise<number>;
 }
+
+export interface InfoFamilia { familiaId: string; repo: string }
 
 // ── App instalado ───────────────────────────────────────────────────────────
 
@@ -81,6 +97,13 @@ function tauri(): Persistencia {
     },
     apagarTudo: () => call('apagar_tudo'),
     agendarLembretes: (lista) => call('agendar_lembretes', { lista }),
+    familiaInfo: () => call<InfoFamilia | null>('familia_info'),
+    familiaCriar: (repo, token) => call<InfoFamilia>('familia_criar', { repo, token }),
+    familiaEntrar: (convite) => call<InfoFamilia>('familia_entrar', { convite }),
+    familiaSair: () => call('familia_sair'),
+    familiaConvite: () => call<string>('familia_convite'),
+    syncEnviar: (aparelho, eventos) => call<number>('sync_enviar', { aparelho, eventos }),
+    syncReceber: (aparelho) => call<number>('sync_receber', { aparelho }),
   };
 }
 
@@ -128,6 +151,13 @@ function memoria(): Persistencia {
     escolherArquivoBackup: async () => (d.copia ? 'familia-dev.fsaude' : null),
     apagarTudo: async () => { const copia = d.copia; d = vazio(); d.copia = copia; salvar(); },
     agendarLembretes: async () => {},
+    familiaInfo: async () => null,
+    familiaCriar: async () => { throw new Error('A família só funciona no app instalado.'); },
+    familiaEntrar: async () => { throw new Error('A família só funciona no app instalado.'); },
+    familiaSair: async () => {},
+    familiaConvite: async () => { throw new Error('A família só funciona no app instalado.'); },
+    syncEnviar: async () => 0,
+    syncReceber: async () => 0,
   };
 }
 

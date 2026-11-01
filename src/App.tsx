@@ -30,6 +30,7 @@ import { MedicoesPessoa, NovaMedicao } from './mobile/Medicoes';
 import { Busca, HistoricoPessoa } from './mobile/Busca';
 import { useAtualizarAgendaAoAbrir } from './data/agendaConectada';
 import { useVerificarAtualizacaoAoAbrir } from './data/atualizacao';
+import { useSincronizacao } from './data/sincronizacao';
 
 function RotasMobile({ frame }: { frame: boolean }) {
   const { state } = useStore();
@@ -257,6 +258,7 @@ export default function App() {
   useBloqueioPorInatividade(layout);
   useAtualizarAgendaAoAbrir();
   useVerificarAtualizacaoAoAbrir();
+  useSincronizacao();
 
   if (status === 'carregando') return <Abertura><span style={{ fontSize: 15, color: 'var(--text-2)' }}>Abrindo…</span></Abertura>;
   if (status === 'erro') return <TelaErro erro={erro ?? 'Erro desconhecido.'} />;
