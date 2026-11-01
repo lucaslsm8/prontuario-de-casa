@@ -1,9 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
 import * as seed from './seed';
-import { HOJE, MODO_EXEMPLO, MODO_REAL, horaAgora } from './tempo';
+import { EM_TAURI, HOJE, MODO_EXEMPLO, MODO_REAL, horaAgora } from './tempo';
 import { useLembretes } from './useLembretes';
 import { useViradaDoDia } from './useViradaDoDia';
-import { persistencia, novoId, type Evento, type InfoBackup } from './persistencia';
+import { persistencia, novoId, type Evento, type InfoBackup, type Inicio } from './persistencia';
+import { fmtHlc, proximoHlc, type Hlc } from './hlc';
+import { migrarLog, novoAparelhoId, ordenarLog, resolverEu, ultimoHlc, type Identidade } from './log';
 import type { PatchPessoa } from './perfil';
 import { medicoesDoPatch, perfilDasMedicoes } from './medicoes';
 import type { Categoria, Config, Consulta, Dose, Exame, Pessoa, Plano, Remedio, Compartilhamento, Vacina, Prevencao, Sintoma, Procedimento, Pesagem, Medicao, Anexo } from './types';
@@ -285,11 +287,35 @@ function reducer(s: State, a: Action): State {
 
 const paraAcao = (ev: Evento) => ({ type: ev.tipo, ...ev.dados }) as Mudanca;
 
-/** Reconstrói o estado aplicando o log inteiro, na ordem. */
-export function projetar(eventos: Evento[]): State {
-  return eventos.reduce((s, ev) => {
-    try { return reducer(s, paraAcao(ev)); } catch { return s; }
+/** Reconstrói o estado aplicando o log na ordem do HLC. Com `euId`, "souEu" passa a ser só essa pessoa. */
+export function projetar(eventos: Evento[], euId?: string | null): State {
+  const s = ordenarLog(eventos).reduce((acc, ev) => {
+    try { return reducer(acc, paraAcao(ev)); } catch { return acc; }
   }, estadoBase());
+  return euId === undefined ? s : marcarEu(s, euId);
+}
+
+/** "souEu" é deste aparelho (identidade local), não do evento que criou a pessoa. */
+export function marcarEu(s: State, euId: string | null): State {
+  return { ...s, pessoas: s.pessoas.map((p) => ({ ...p, souEu: p.id === euId || undefined })) };
+}
+
+/** Identidade e último carimbo deste aparelho na sessão (só no modo real). */
+const sessao: { identidade: Identidade | null; ultimo: Hlc | null } = { identidade: null, ultimo: null };
+
+const plataforma = (): 'pc' | 'cel' | 'web' => (!EM_TAURI ? 'web' : /Android/i.test(navigator.userAgent) ? 'cel' : 'pc');
+
+/** Abre o log lido do banco: dá HLC aos eventos antigos, resolve "eu" e guarda a identidade se mudou. */
+async function abrirLog(ini: Inicio): Promise<State> {
+  const aparelhoId = ini.identidade?.aparelhoId ?? novoAparelhoId(plataforma());
+  const eventos = migrarLog(ini.eventos, aparelhoId);
+  const bruto = projetar(eventos);
+  const pessoaId = resolverEu(bruto.pessoas, ini.identidade ?? null);
+  const identidade: Identidade = { aparelhoId, pessoaId };
+  if (ini.identidade?.aparelhoId !== aparelhoId || ini.identidade?.pessoaId !== pessoaId) await persistencia.definirIdentidade(identidade);
+  sessao.identidade = identidade;
+  sessao.ultimo = ultimoHlc(eventos);
+  return marcarEu(bruto, pessoaId);
 }
 
 /** O que da configuração é preferência do usuário (vai para o log). */
@@ -319,14 +345,16 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
       dispatch(m);
       if (!MODO_REAL) return;
       const { type, ...dados } = m;
-      const ev: Evento = { id: novoId(), em: new Date().toISOString(), autor: autor(), tipo: type, dados };
+      const h = proximoHlc(sessao.ultimo, Date.now(), sessao.identidade?.aparelhoId ?? 'web-000000');
+      sessao.ultimo = h;
+      const ev: Evento = { id: novoId(), em: new Date().toISOString(), autor: autor(), aparelho: h.aparelho, hlc: fmtHlc(h), tipo: type, dados };
       persistencia.gravar(ev).catch((e) => mostrarToast({ texto: `Não foi possível salvar: ${String(e)}` }));
     };
     const erroTexto = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
     const recarregar = async () => {
       const ini = await persistencia.iniciar();
-      const s = projetar(ini.eventos);
+      const s = await abrirLog(ini);
       dispatch({ type: 'reset', state: { ...s, temSenha: ini.temSenha, config: mesclarConfig(s.config, { backup: backupParaConfig(ini.backup), update: { ...s.config.update, instalada: ini.versao } }) } });
     };
 
@@ -356,7 +384,12 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
       addConsulta: (consulta: Consulta) => emitir({ type: 'addConsulta', consulta }),
       addExame: (exame: Exame) => emitir({ type: 'addExame', exame }),
       addPlano: (plano: Plano) => emitir({ type: 'addPlano', plano }),
-      addPessoa: (pessoa: Pessoa) => emitir({ type: 'addPessoa', pessoa }),
+      addPessoa: (pessoa: Pessoa) => {
+        emitir({ type: 'addPessoa', pessoa });
+        if (!pessoa.souEu || !MODO_REAL || !sessao.identidade) return;
+        sessao.identidade = { ...sessao.identidade, pessoaId: pessoa.id };
+        persistencia.definirIdentidade(sessao.identidade).catch((e) => mostrarToast({ texto: `Não foi possível salvar: ${String(e)}` }));
+      },
       addVacina: (vacina: Vacina) => emitir({ type: 'addVacina', vacina }),
       addPrevencao: (prevencao: Prevencao) => emitir({ type: 'addPrevencao', prevencao }),
       /** "Apliquei hoje": registra e oferece desfazer (evento novo, append-only). */
@@ -513,7 +546,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           setStatus('erro');
           return;
         }
-        const s = projetar(ini.eventos);
+        const s = await abrirLog(ini);
+        if (!vivo) return;
         const config = mesclarConfig(s.config, { backup: backupParaConfig(ini.backup), update: { ...s.config.update, instalada: ini.versao } });
         const temEu = s.pessoas.some((p) => p.souEu);
         dispatch({ type: 'reset', state: { ...s, config, temSenha: ini.temSenha, bloqueado: ini.temSenha && temEu } });

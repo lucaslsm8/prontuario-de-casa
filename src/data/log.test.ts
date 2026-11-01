@@ -46,3 +46,21 @@ describe('log', () => {
     expect(resolverEu([pessoa('bia')], null)).toBeNull();
   });
 });
+
+import { projetar } from './store';
+
+describe('projeção pelo HLC', () => {
+  const add = (id: string, hlc: string, souEu?: boolean): Evento => ({ id: `e-${id}`, em: '', hlc, tipo: 'addPessoa', dados: { pessoa: pessoa(id, souEu) } });
+  const editar = (id: string, curto: string, hlc: string): Evento => ({ id: `ed-${curto}`, em: '', hlc, tipo: 'editarPessoa', dados: { pessoaId: id, patch: { curto } } });
+
+  it('aplica na ordem do HLC, não na ordem em que os eventos chegaram', () => {
+    const s = projetar([editar('ana', 'Depois', '0000000000003-0000-cel-b'), add('ana', '0000000000001-0000-pc-a'), editar('ana', 'Antes', '0000000000002-0000-pc-a')]);
+    expect(s.pessoas[0].curto).toBe('Depois');
+  });
+
+  it('com euId, "souEu" vem da identidade do aparelho, não do evento', () => {
+    const log = [add('ana', '0000000000001-0000-pc-a', true), add('bia', '0000000000002-0000-cel-b', true)];
+    expect(projetar(log, 'bia').pessoas.map((p) => [p.id, !!p.souEu])).toEqual([['ana', false], ['bia', true]]);
+    expect(projetar(log, null).pessoas.some((p) => p.souEu)).toBe(false);
+  });
+});
