@@ -1,0 +1,7 @@
+- Novo nome: Prontuário de Casa, com ícone e tela de senha novos
+- Visual com segunda cor e fundo texturizado
+- Agenda conectada ao Google Agenda, atualiza ao abrir
+- Álbum de fotos no perfil dos pets
+- Horários: "22" vira 22:00; opção "Não avisar" para repor remédio
+- Telefones 0800 e 4004 ficam certos no campo de central
+- Atualizações automáticas pelo GitHub

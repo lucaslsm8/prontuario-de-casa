@@ -69,10 +69,10 @@ Testes do Rust (criptografia, banco, backup): `cd src-tauri && cargo test`.
 
 ## Publicar uma versão
 
-1. Suba a versão em `package.json`, `src-tauri/Cargo.toml` e `src-tauri/tauri.conf.json` (ex.: `0.3.0`) e faça o commit.
+1. Suba a versão em `package.json`, `src-tauri/Cargo.toml` e `src-tauri/tauri.conf.json` (ex.: `0.3.0`), escreva o que mudou em [`.github/notas-da-versao.md`](.github/notas-da-versao.md) (uma linha por item, com `- `; é o texto do aviso de atualização no app) e faça o commit.
 2. `git tag v0.3.0 && git push origin main v0.3.0`.
 3. O workflow [`release.yml`](.github/workflows/release.yml) compila no Windows, assina e cria um **rascunho** de release com o instalador e o `latest.json`.
-4. No GitHub, escreva o que mudou (uma linha por item, com `- `) e publique o rascunho. A partir daí o app instalado encontra a versão nova.
+4. No GitHub, confira o rascunho e publique. A partir daí o app instalado encontra a versão nova.
 
 Uma vez só: em Settings › Secrets and variables › Actions, crie o segredo `TAURI_SIGNING_PRIVATE_KEY` com o conteúdo de `%USERPROFILE%\.tauri\prontuario-de-casa.key`. Guarde essa chave num lugar seguro: sem ela não dá para publicar atualizações que o app aceite.
 

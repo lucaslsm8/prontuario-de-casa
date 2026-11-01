@@ -1,5 +1,6 @@
 # Publica uma versão: ao enviar uma tag "v*" (ex.: v0.3.0), compila no Windows, assina
 # e cria o release no GitHub com o instalador e o latest.json que o app instalado consulta.
+# As notas (aviso de atualização no app) vêm de .github/notas-da-versao.md: edite antes de criar a tag.
 #
 # Precisa do segredo TAURI_SIGNING_PRIVATE_KEY (conteúdo de ~/.tauri/prontuario-de-casa.key)
 # em Settings › Secrets and variables › Actions. Sem ele, o app não aceita a atualização.
@@ -16,9 +17,9 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
@@ -33,6 +34,15 @@ jobs:
 
       - run: npm test
 
+      - name: Notas da versão
+        shell: bash
+        run: |
+          {
+            echo 'NOTAS<<FIM'
+            cat .github/notas-da-versao.md
+            echo 'FIM'
+          } >> "$GITHUB_ENV"
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -41,8 +51,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: Prontuário de Casa ${{ github.ref_name }}
-          releaseBody: |
-            - Descreva aqui o que mudou (uma linha por item; aparece no aviso de atualização).
+          releaseBody: ${{ env.NOTAS }}
           releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
