@@ -20,5 +20,10 @@ export function proximoHlc(ultimo: Hlc | null, agora: number, aparelho: string):
   return { ms: ultimo.ms, c: ultimo.c + 1, aparelho };
 }
 
-/** Confere o formato antes de confiar num HLC vindo de outro aparelho. */
-export const hlcValido = (s: unknown): s is string => typeof s === 'string' && /^\d{13}-\d{4}-[a-z0-9]+(-[a-z0-9]+)*$/.test(s);
+/** Quanto um HLC recebido pode estar à frente do relógio deste aparelho. */
+const FUTURO_MAX = 24 * 60 * 60 * 1000;
+
+/** Confere o formato antes de confiar num HLC vindo de outro aparelho, e recusa carimbo mais de 1 dia no futuro
+ *  (um relógio muito adiantado puxaria o HLC de todos os aparelhos para a frente). */
+export const hlcValido = (s: unknown, agora: number = Date.now()): s is string =>
+  typeof s === 'string' && /^\d{13}-\d{4}-[a-z0-9]+(-[a-z0-9]+)*$/.test(s) && Number(s.slice(0, 13)) <= agora + FUTURO_MAX;

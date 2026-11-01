@@ -17,11 +17,11 @@ export function novoAparelhoId(plataforma: 'pc' | 'cel' | 'web', aleatorio: () =
 
 const maior = (a: Hlc | null, b: Hlc) => (!a || fmtHlc(b) > fmtHlc(a) ? b : a);
 
-/** Dá `aparelho` e `hlc` a quem não tem (ou tem HLC inválido), na ordem em que está, a partir de `em`. Eventos antigos recebem HLC terminado em `legado`, igual em qualquer aparelho. Não altera os originais. */
-export function migrarLog(eventos: Evento[], aparelhoId: string): Evento[] {
+/** Dá `aparelho` e `hlc` a quem não tem (ou tem HLC inválido ou mais de 1 dia no futuro), na ordem em que está, a partir de `em`. Eventos antigos recebem HLC terminado em `legado`, igual em qualquer aparelho. Não altera os originais. */
+export function migrarLog(eventos: Evento[], aparelhoId: string, agora: number = Date.now()): Evento[] {
   let ultimo: Hlc | null = null;
   return eventos.map((ev) => {
-    if (hlcValido(ev.hlc)) {
+    if (hlcValido(ev.hlc, agora)) {
       ultimo = maior(ultimo, lerHlc(ev.hlc));
       return ev;
     }
@@ -39,6 +39,19 @@ export const ordenarLog = (eventos: Evento[]) =>
     if (ha !== hb) return ha < hb ? -1 : 1;
     return !ha ? 0 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   });
+
+/** Kv do Rust (comando sync_cursor): id do último evento que subiu e os aparelhos da família já lidos. */
+export interface CursorEnvio { ultimoId: string | null; recebidos: string[] }
+
+/** O que sobe na próxima rodada, do log já migrado e na ordem local: os eventos que não vieram de um aparelho
+ *  já lido (os deste aparelho e os de backups restaurados de aparelhos de fora da família), depois de `ultimoId`.
+ *  Se `ultimoId` não está no log (backup antigo restaurado fora da família), manda todos: duplicatas são ignoradas. */
+export function eventosParaEnviar(eventos: Evento[], cursor: CursorEnvio): Evento[] {
+  const lidos = new Set(cursor.recebidos);
+  const meus = eventos.filter((e) => !e.aparelho || !lidos.has(e.aparelho));
+  const i = cursor.ultimoId === null ? -1 : meus.findIndex((e) => e.id === cursor.ultimoId);
+  return meus.slice(i + 1);
+}
 
 export const ultimoHlc = (eventos: Evento[]): Hlc | null => eventos.reduce<Hlc | null>((u, e) => (e.hlc ? maior(u, lerHlc(e.hlc)) : u), null);
 

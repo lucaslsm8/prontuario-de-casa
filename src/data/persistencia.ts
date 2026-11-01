@@ -4,7 +4,7 @@
 
 import { EM_TAURI } from './tempo';
 import type { Lembrete } from './lembretes';
-import type { Identidade } from './log';
+import type { CursorEnvio, Identidade } from './log';
 
 export interface Evento {
   id: string;
@@ -61,7 +61,9 @@ export interface Persistencia {
   familiaSair(): Promise<void>;
   /** Código de convite da família atual. */
   familiaConvite(): Promise<string>;
-  /** Sobe os eventos deste aparelho; devolve quantos pacotes foram enviados. */
+  /** Onde parou o envio (último evento que subiu) e os aparelhos já lidos. */
+  syncCursor(): Promise<CursorEnvio>;
+  /** Sobe o recorte montado por `eventosParaEnviar`; devolve quantos eventos subiram. */
   syncEnviar(aparelho: string, eventos: Evento[]): Promise<number>;
   /** Baixa os pacotes dos outros aparelhos; devolve quantos eventos chegaram. */
   syncReceber(aparelho: string): Promise<number>;
@@ -102,6 +104,7 @@ function tauri(): Persistencia {
     familiaEntrar: (convite) => call<InfoFamilia>('familia_entrar', { convite }),
     familiaSair: () => call('familia_sair'),
     familiaConvite: () => call<string>('familia_convite'),
+    syncCursor: () => call<CursorEnvio>('sync_cursor'),
     syncEnviar: (aparelho, eventos) => call<number>('sync_enviar', { aparelho, eventos }),
     syncReceber: (aparelho) => call<number>('sync_receber', { aparelho }),
   };
@@ -156,6 +159,7 @@ function memoria(): Persistencia {
     familiaEntrar: async () => { throw new Error('A família só funciona no app instalado.'); },
     familiaSair: async () => {},
     familiaConvite: async () => { throw new Error('A família só funciona no app instalado.'); },
+    syncCursor: async () => ({ ultimoId: null, recebidos: [] }),
     syncEnviar: async () => 0,
     syncReceber: async () => 0,
   };

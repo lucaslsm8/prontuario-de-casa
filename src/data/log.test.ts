@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { migrarLog, novoAparelhoId, ordenarLog, resolverEu, ultimoHlc } from './log';
+import { eventosParaEnviar, migrarLog, novoAparelhoId, ordenarLog, resolverEu, ultimoHlc } from './log';
 import type { Evento } from './persistencia';
 import type { Pessoa } from './types';
 import { projetar } from './store';
@@ -24,9 +24,9 @@ describe('log', () => {
   });
 
   it('migrarLog mantém o HLC de quem já tem e continua depois dele', () => {
-    const m = migrarLog([ev('a', '2026-10-30T10:00:00.000Z', { hlc: '9999999999999-0000-cel-bbbbbb', aparelho: 'cel-bbbbbb' }), ev('b', '2026-10-30T11:00:00.000Z')], 'pc-aaaaaa');
-    expect(m[0].hlc).toBe('9999999999999-0000-cel-bbbbbb');
-    expect(m[1].hlc).toBe('9999999999999-0001-legado');
+    const m = migrarLog([ev('a', '2026-10-30T10:00:00.000Z', { hlc: '1793480000000-0000-cel-bbbbbb', aparelho: 'cel-bbbbbb' }), ev('b', '2026-10-30T11:00:00.000Z')], 'pc-aaaaaa', 1793480000000);
+    expect(m[0].hlc).toBe('1793480000000-0000-cel-bbbbbb');
+    expect(m[1].hlc).toBe('1793480000000-0001-legado');
   });
 
   it('ordenarLog ordena por HLC, sem HLC fica na ordem em que veio', () => {
@@ -53,6 +53,22 @@ describe('log', () => {
   });
   it('migrarLog trata HLC inválido como evento antigo', () => {
     expect(migrarLog([ev('a', '2026-10-30T10:00:00.000Z', { hlc: 'lixo' })], 'pc-a')[0].hlc).toBe(`${Date.parse('2026-10-30T10:00:00.000Z')}-0000-legado`);
+  });
+  it('migrarLog trata HLC muito no futuro (relógio adiantado de outro aparelho) como evento antigo', () => {
+    const agora = Date.parse('2026-10-30T12:00:00.000Z');
+    const m = migrarLog([ev('a', '2026-10-30T10:00:00.000Z', { hlc: '9999999999999-0000-cel-bbbbbb', aparelho: 'cel-bbbbbb' })], 'pc-a', agora);
+    expect(m[0].hlc).toBe(`${Date.parse('2026-10-30T10:00:00.000Z')}-0000-legado`);
+    expect(m[0].aparelho).toBe('cel-bbbbbb');
+  });
+  it('eventosParaEnviar: tudo que não veio de aparelho já lido, depois do último enviado', () => {
+    const log = [ev('1', '', { aparelho: 'pc-a' }), ev('2', '', { aparelho: 'cel-b' }), ev('3', '', { aparelho: 'pc-x' }), ev('4', '', { aparelho: 'pc-a' })];
+    const ids = (c: { ultimoId: string | null; recebidos: string[] }) => eventosParaEnviar(log, c).map((e) => e.id);
+    // Os próprios e os de um backup de aparelho de fora da família (pc-x); os de cel-b já vieram dele.
+    expect(ids({ ultimoId: null, recebidos: ['cel-b'] })).toEqual(['1', '3', '4']);
+    expect(ids({ ultimoId: '3', recebidos: ['cel-b'] })).toEqual(['4']);
+    expect(ids({ ultimoId: '4', recebidos: ['cel-b'] })).toEqual([]);
+    // Último enviado que não está mais no log (backup antigo restaurado fora da família): manda tudo de novo.
+    expect(ids({ ultimoId: 'sumiu', recebidos: [] })).toEqual(['1', '2', '3', '4']);
   });
 });
 

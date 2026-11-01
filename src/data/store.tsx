@@ -6,7 +6,7 @@ import { useViradaDoDia } from './useViradaDoDia';
 import { avisarMudanca } from './sincronizacao';
 import { persistencia, novoId, type Evento, type InfoBackup, type Inicio } from './persistencia';
 import { fmtHlc, proximoHlc, type Hlc } from './hlc';
-import { migrarLog, novoAparelhoId, ordenarLog, resolverEu, ultimoHlc, type Identidade } from './log';
+import { eventosParaEnviar, migrarLog, novoAparelhoId, ordenarLog, resolverEu, ultimoHlc, type Identidade } from './log';
 import type { PatchPessoa } from './perfil';
 import { medicoesDoPatch, perfilDasMedicoes } from './medicoes';
 import type { Categoria, Config, Consulta, Dose, Exame, Pessoa, Plano, Remedio, Compartilhamento, Vacina, Prevencao, Sintoma, Procedimento, Pesagem, Medicao, Anexo } from './types';
@@ -540,12 +540,12 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
         await recarregar();
       },
       recarregar,
-      /** Eventos criados por este aparelho, já com HLC, na ordem local (o que a sincronização sobe). */
-      async meusEventos(): Promise<Evento[]> {
+      /** O que a sincronização sobe agora: já com HLC, na ordem local, depois do último enviado (src/data/log.ts). */
+      async eventosParaEnviar(): Promise<Evento[]> {
         const id = sessao.identidade?.aparelhoId;
         if (!MODO_REAL || !id) return [];
-        const ini = await persistencia.iniciar();
-        return migrarLog(ini.eventos, id).filter((e) => e.aparelho === id);
+        const [ini, cursor] = await Promise.all([persistencia.iniciar(), persistencia.syncCursor()]);
+        return eventosParaEnviar(migrarLog(ini.eventos, id), cursor);
       },
       aparelhoId: () => sessao.identidade?.aparelhoId ?? null,
 

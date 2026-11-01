@@ -33,4 +33,11 @@ describe('HLC', () => {
     expect(hlcValido('0000000000003-0000-legado')).toBe(true);
     for (const ruim of ['', 'abc', '179348-0007-pc', '1793480000000-7-pc-a', '1793480000000-0007-', 42, undefined]) expect(hlcValido(ruim)).toBe(false);
   });
+  it('hlcValido recusa carimbo mais de 1 dia no futuro', () => {
+    const agora = 1793480000000;
+    const dia = 24 * 60 * 60 * 1000;
+    expect(hlcValido(`${agora + dia}-0000-pc-a`, agora)).toBe(true);
+    expect(hlcValido(`${agora + dia + 1}-0000-pc-a`, agora)).toBe(false);
+    expect(hlcValido('9999999999999-0000-pc-a', agora)).toBe(false);
+  });
 });

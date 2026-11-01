@@ -1,9 +1,53 @@
-import { describe, expect, it } from 'vitest';
-import { mensagemErro } from './sincronizacao';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const p = vi.hoisted(() => ({ familiaInfo: vi.fn(), syncEnviar: vi.fn(), syncReceber: vi.fn() }));
+vi.mock('./tempo', async (orig) => ({ ...(await orig<typeof import('./tempo')>()), MODO_REAL: true }));
+vi.mock('./persistencia', async (orig) => ({ ...(await orig<typeof import('./persistencia')>()), persistencia: p }));
+
+import { carregarFamilia, definirFamilia, infoSync as info, mensagemErro, sincronizar } from './sincronizacao';
+
+const familia = { familiaId: 'f1', repo: 'a/b' };
+const store = () => ({ api: { aparelhoId: () => 'pc-a', eventosParaEnviar: vi.fn(async () => []), recarregar: vi.fn(async () => {}), toast: vi.fn() } });
 
 describe('sincronização', () => {
+  beforeEach(() => { vi.resetAllMocks(); definirFamilia(familia); });
+
   it('erros de token viram aviso de token; o resto vira texto simples', () => {
     expect(mensagemErro('TOKEN: o token do GitHub não tem acesso ou venceu')).toEqual({ texto: 'o token do GitHub não tem acesso ou venceu', token: true });
     expect(mensagemErro(new Error('sem conexão com o GitHub'))).toEqual({ texto: 'sem conexão com o GitHub', token: false });
+  });
+
+  it('sincronizar devolve ok ou o erro (quem entra na família precisa saber)', async () => {
+    p.syncEnviar.mockResolvedValue(0);
+    p.syncReceber.mockResolvedValue(3);
+    const s = store();
+    expect(await sincronizar(s)).toEqual({ ok: true });
+    expect(s.api.recarregar).toHaveBeenCalled();
+    p.syncReceber.mockRejectedValue('sem conexão com o GitHub');
+    expect(await sincronizar(s)).toEqual({ ok: false, erro: 'sem conexão com o GitHub' });
+    expect(info().estado).toBe('erro');
+  });
+
+  it('pedido durante outra rodada recebe o resultado da rodada seguinte', async () => {
+    let soltar = () => {};
+    p.syncEnviar.mockImplementationOnce(() => new Promise((r) => { soltar = () => r(0); })).mockResolvedValue(0);
+    p.syncReceber.mockResolvedValueOnce(0).mockRejectedValueOnce(new Error('o GitHub respondeu 500'));
+    const s = store();
+    const primeira = sincronizar(s);
+    const segunda = sincronizar(s);
+    await Promise.resolve();
+    soltar();
+    expect(await primeira).toEqual({ ok: true });
+    expect(await segunda).toEqual({ ok: false, erro: 'o GitHub respondeu 500' });
+  });
+
+  it('carregarFamilia com erro mantém a família e marca o erro', async () => {
+    p.familiaInfo.mockRejectedValue(new Error('banco ocupado'));
+    await carregarFamilia();
+    expect(info().familia).toEqual(familia);
+    expect(info()).toMatchObject({ estado: 'erro', erro: 'banco ocupado' });
+    p.familiaInfo.mockResolvedValue(null);
+    await carregarFamilia();
+    expect(info().familia).toBeNull();
   });
 });

@@ -29,46 +29,64 @@ export function mensagemErro(e: unknown): { texto: string; token: boolean } {
 
 export async function carregarFamilia() {
   if (!MODO_REAL) return;
-  mudar({ familia: await persistencia.familiaInfo().catch(() => null) });
+  try {
+    mudar({ familia: await persistencia.familiaInfo() });
+  } catch (e) {
+    // Erro ao ler não é "sem família": mantém a que estava e mostra o erro.
+    const { texto, token } = mensagemErro(e);
+    mudar({ estado: 'erro', erro: texto, token });
+  }
 }
 export const definirFamilia = (familia: InfoFamilia | null) => mudar({ familia, estado: 'parado', erro: undefined, token: undefined, ultima: undefined });
+/** O estado atual, fora do React (testes). */
+export const infoSync = () => info;
 
 type Store = ReturnType<typeof useStore>;
+export interface ResultadoSync { ok: boolean; erro?: string }
 
-/** Sobe o que este aparelho criou, baixa o que os outros criaram e, se chegou algo, reprojeta o estado. */
-export async function sincronizar(store: Pick<Store, 'api'>, { manual = false } = {}) {
+let emAndamento = false;
+/** Pedidos que chegaram durante uma rodada: rodam juntos numa rodada a mais e recebem o resultado dela. */
+let pendente: { manual: boolean; avisar: ((r: ResultadoSync) => void)[] } | null = null;
+let reprojetarPendente = false;
+
+/** Sobe o que ainda não subiu, baixa o que os outros criaram e, se chegou algo, reprojeta o estado. */
+export async function sincronizar(store: { api: Pick<Store['api'], 'aparelhoId' | 'eventosParaEnviar' | 'recarregar' | 'toast'> }, { manual = false } = {}): Promise<ResultadoSync> {
   const { api } = store;
   const aparelho = api.aparelhoId();
-  if (!info.familia || !aparelho) return;
-  if (info.estado === 'sincronizando') {
-    // Pedido durante outra rodada: roda mais uma quando esta terminar.
-    novaRodada = true;
-    if (manual) novaRodadaManual = true;
-    return;
+  if (!info.familia || !aparelho) return { ok: false, erro: 'Este aparelho não está numa família.' };
+  if (emAndamento) {
+    pendente ??= { manual: false, avisar: [] };
+    pendente.manual ||= manual;
+    const p = pendente;
+    return new Promise((r) => p.avisar.push(r));
   }
+  emAndamento = true;
   mudar({ estado: 'sincronizando', erro: undefined, token: undefined });
+  let r: ResultadoSync;
   try {
-    await persistencia.syncEnviar(aparelho, await api.meusEventos());
+    await persistencia.syncEnviar(aparelho, await api.eventosParaEnviar());
     const chegaram = await persistencia.syncReceber(aparelho);
     if (chegaram > 0) reprojetarPendente = true;
     // Se o recarregamento falhar, a próxima rodada tenta de novo mesmo sem eventos novos.
     if (reprojetarPendente) { await api.recarregar(); reprojetarPendente = false; }
     mudar({ estado: 'ok', ultima: new Date().toISOString(), via: 'GitHub' });
     if (manual) api.toast({ texto: chegaram ? `${chegaram === 1 ? '1 mudança chegou' : `${chegaram} mudanças chegaram`} da família` : 'Tudo sincronizado' });
+    r = { ok: true };
   } catch (e) {
     const { texto, token } = mensagemErro(e);
     mudar({ estado: 'erro', erro: texto, token });
     if (manual) api.toast({ texto: `Não foi possível sincronizar: ${texto}` });
+    r = { ok: false, erro: texto };
   }
-  if (novaRodada) {
-    const m = novaRodadaManual;
-    novaRodada = false; novaRodadaManual = false;
-    await sincronizar(store, { manual: m });
+  emAndamento = false;
+  const p = pendente;
+  pendente = null;
+  if (p) {
+    const r2 = await sincronizar(store, { manual: p.manual });
+    p.avisar.forEach((f) => f(r2));
   }
+  return r;
 }
-let novaRodada = false;
-let novaRodadaManual = false;
-let reprojetarPendente = false;
 
 let aposMudanca: (() => void) | null = null;
 let espera: ReturnType<typeof setTimeout> | undefined;
