@@ -1,9 +1,11 @@
 mod backup;
 mod banco;
 mod cripto;
+mod familia;
 mod lembretes;
 mod notificacao;
 mod pacote;
+mod remoto;
 
 use banco::Banco;
 use serde::Serialize;
