@@ -45,11 +45,11 @@ describe('eventos genéricos', () => {
     const s = projetar([...base, ev('removerRegistro', { colecao: 'naoExiste', id: 'x' }, 3)]);
     expect(s.remedios.length).toBe(1);
   });
-  it('removerPessoa leva tudo dela, mas não remove quem usa o app', () => {
+  it('removerPessoa leva tudo dela (a proteção de quem usa o app fica na api)', () => {
     const anexo = { id: 'a1', donoId: 'r1', tipo: 'receita', nome: 'r.jpg', mime: 'image/jpeg', dados: 'data:,', tamanho: 0, em: '' };
     const s = projetar([...base, ev('addAnexo', { anexo }, 3), ev('dose', { dose: { remedioId: 'r1', previstoPara: '2026-10-28T08:00', status: 'tomada', registradoEm: '08:01' } }, 4), ev('removerPessoa', { id: 'bia' }, 5)]);
     expect([s.pessoas.map((p) => p.id), s.remedios.length, s.doses.length, s.anexos.length]).toEqual([['ana'], 0, 0, 0]);
-    expect(projetar([...base, ev('removerPessoa', { id: 'ana' }, 3)]).pessoas.length).toBe(2);
+    expect(projetar([...base, ev('removerPessoa', { id: 'ana' }, 3)]).pessoas.map((p) => p.id)).toEqual(['bia']);
   });
   it('fotos do pet (anexo com donoId = pet) saem junto com ele', () => {
     const foto = { id: 'f1', donoId: 'bia', tipo: 'foto', nome: 'praia.jpg', mime: 'image/jpeg', dados: 'data:,', tamanho: 0, em: '' };

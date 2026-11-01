@@ -120,6 +120,7 @@ type Mudanca =
 type Local =
   | { type: 'reset'; state: State }
   | { type: 'bloquear'; valor: boolean }
+  | { type: 'eu'; pessoaId: string | null }
   | { type: 'sistema'; patch: Partial<Config>; temSenha?: boolean };
 
 type Action = Mudanca | Local;
@@ -138,6 +139,8 @@ function reducer(s: State, a: Action): State {
   switch (a.type) {
     case 'reset':
       return a.state;
+    case 'eu':
+      return marcarEu(s, a.pessoaId);
     case 'bloquear':
       return { ...s, bloqueado: a.valor };
     case 'sistema':
@@ -212,8 +215,7 @@ function reducer(s: State, a: Action): State {
       return { ...s2, pessoas: s2.pessoas.map((p) => (p.id === pid ? { ...p, ...perfilDasMedicoes(p, s2.medicoes) } : p)) };
     }
     case 'removerPessoa': {
-      // Remove a pessoa (ou pet) e tudo que é dela. Quem está usando o app não se remove.
-      if (s.pessoas.find((p) => p.id === a.id)?.souEu) return s;
+      // Remove a pessoa (ou pet) e tudo que é dela. A proteção de quem usa o app fica na api.
       const dela = <T extends { pessoaId: string }>(xs: T[]) => xs.filter((x) => x.pessoaId !== a.id);
       const remedios = dela(s.remedios);
       const exames = dela(s.exames);
@@ -287,10 +289,20 @@ function reducer(s: State, a: Action): State {
 
 const paraAcao = (ev: Evento) => ({ type: ev.tipo, ...ev.dados }) as Mudanca;
 
-/** Reconstrói o estado aplicando o log na ordem do HLC. Com `euId`, "souEu" passa a ser só essa pessoa. */
-export function projetar(eventos: Evento[], euId?: string | null): State {
+/** Preferências que valem para a família inteira; o resto do `config` é de cada aparelho. */
+const CONFIG_DA_FAMILIA: readonly string[] = ['agenda'];
+
+/** Evento → ação; `config` de outro aparelho só traz as preferências da família. */
+function acaoDoEvento(ev: Evento, aparelhoId?: string): Mudanca {
+  const a = paraAcao(ev);
+  if (a.type !== 'config' || !aparelhoId || !ev.aparelho || ev.aparelho === aparelhoId) return a;
+  return { ...a, patch: Object.fromEntries(Object.entries(a.patch).filter(([k]) => CONFIG_DA_FAMILIA.includes(k))) as Partial<Config> };
+}
+
+/** Reconstrói o estado aplicando o log na ordem do HLC. Com `euId`, "souEu" passa a ser só essa pessoa. `config` de outro aparelho (`aparelhoId` é o deste) só traz as preferências da família. */
+export function projetar(eventos: Evento[], euId?: string | null, aparelhoId?: string): State {
   const s = ordenarLog(eventos).reduce((acc, ev) => {
-    try { return reducer(acc, paraAcao(ev)); } catch { return acc; }
+    try { return reducer(acc, acaoDoEvento(ev, aparelhoId)); } catch { return acc; }
   }, estadoBase());
   return euId === undefined ? s : marcarEu(s, euId);
 }
@@ -309,7 +321,7 @@ const plataforma = (): 'pc' | 'cel' | 'web' => (!EM_TAURI ? 'web' : /Android/i.t
 async function abrirLog(ini: Inicio): Promise<State> {
   const aparelhoId = ini.identidade?.aparelhoId ?? novoAparelhoId(plataforma());
   const eventos = migrarLog(ini.eventos, aparelhoId);
-  const bruto = projetar(eventos);
+  const bruto = projetar(eventos, undefined, aparelhoId);
   const pessoaId = resolverEu(bruto.pessoas, ini.identidade ?? null);
   const identidade: Identidade = { aparelhoId, pessoaId };
   if (ini.identidade?.aparelhoId !== aparelhoId || ini.identidade?.pessoaId !== pessoaId) {
@@ -357,6 +369,13 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
       const ev: Evento = { id: novoId(), em: new Date().toISOString(), autor: autor(), aparelho: h.aparelho, hlc: fmtHlc(h), tipo: type, dados };
       persistencia.gravar(ev).catch((e) => mostrarToast({ texto: `Não foi possível salvar: ${String(e)}` }));
     };
+    /** "Eu" deste aparelho: marca na tela e guarda na identidade local (kv cifrado). */
+    const definirEu = (pessoaId: string) => {
+      dispatch({ type: 'eu', pessoaId });
+      if (!MODO_REAL || !sessao.identidade) return;
+      sessao.identidade = { ...sessao.identidade, pessoaId };
+      persistencia.definirIdentidade(sessao.identidade).catch((e) => mostrarToast({ texto: `Não foi possível salvar: ${String(e)}` }));
+    };
     const erroTexto = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
     const recarregar = async () => {
@@ -391,12 +410,13 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
       addConsulta: (consulta: Consulta) => emitir({ type: 'addConsulta', consulta }),
       addExame: (exame: Exame) => emitir({ type: 'addExame', exame }),
       addPlano: (plano: Plano) => emitir({ type: 'addPlano', plano }),
+      /** Quem cria o próprio perfil (primeiro uso) vira o "eu" deste aparelho; o log não guarda souEu. */
       addPessoa: (pessoa: Pessoa) => {
-        emitir({ type: 'addPessoa', pessoa });
-        if (!pessoa.souEu || !MODO_REAL || !sessao.identidade) return;
-        sessao.identidade = { ...sessao.identidade, pessoaId: pessoa.id };
-        persistencia.definirIdentidade(sessao.identidade).catch((e) => mostrarToast({ texto: `Não foi possível salvar: ${String(e)}` }));
+        const { souEu, ...semEu } = pessoa;
+        emitir({ type: 'addPessoa', pessoa: semEu as Pessoa });
+        if (souEu) definirEu(pessoa.id);
       },
+      definirEu: (pessoaId: string) => definirEu(pessoaId),
       addVacina: (vacina: Vacina) => emitir({ type: 'addVacina', vacina }),
       addPrevencao: (prevencao: Prevencao) => emitir({ type: 'addPrevencao', prevencao }),
       /** "Apliquei hoje": registra e oferece desfazer (evento novo, append-only). */
@@ -425,7 +445,10 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
         emitir({ type: 'removerRegistro', colecao, id: item.id });
         mostrarToast({ texto, desfazer: () => emitir({ type: 'restaurarRegistro', colecao, item: item as Item }) });
       },
-      removerPessoa: (id: string) => emitir({ type: 'removerPessoa', id }),
+      removerPessoa: (id: string) => {
+        if (ref.current.pessoas.find((p) => p.id === id)?.souEu) return; // quem usa o app não se remove
+        emitir({ type: 'removerPessoa', id });
+      },
       addAnexos: (lista: Anexo[]) => { for (const anexo of lista) emitir({ type: 'addAnexo', anexo }); },
       /** Remove o anexo e oferece desfazer (o mesmo anexo volta como evento novo). */
       removerAnexo: (anexo: Anexo) => {
