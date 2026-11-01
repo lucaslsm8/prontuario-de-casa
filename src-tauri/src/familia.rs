@@ -35,7 +35,7 @@ impl Familia {
     }
     pub fn chave_bytes(&self) -> R<[u8; 32]> {
         let mut out = [0u8; 32];
-        if self.chave.len() != 64 {
+        if self.chave.len() != 64 || !self.chave.bytes().all(|b| b.is_ascii_hexdigit()) {
             return Err("chave da família inválida".into());
         }
         for i in 0..32 {
@@ -111,5 +111,23 @@ mod testes {
         conferir_familia_json(&m, "f1", false).unwrap();
         assert!(conferir_familia_json(&m, "f2", true).is_err());
         assert!(conferir_familia_json(&m, "f2", false).is_err());
+    }
+
+    #[test]
+    fn chave_invalida_vira_erro_sem_panico() {
+        let mut f = Familia::nova("lucas/prontuario-sync", "github_pat_x");
+        // 64 bytes com caracteres multibyte: fatiar em i*2 cairia no meio de um caractere.
+        f.chave = "é".repeat(32);
+        assert_eq!(f.chave.len(), 64);
+        assert!(f.chave_bytes().is_err());
+        assert!(ler_convite(&convite(&f)).is_err());
+        f.chave = "€".repeat(21) + "a";
+        assert_eq!(f.chave.len(), 64);
+        assert!(f.chave_bytes().is_err());
+        // u8::from_str_radix aceita "+f": a chave precisa ser só dígitos hex.
+        f.chave = "+f".repeat(32);
+        assert_eq!(f.chave.len(), 64);
+        assert!(f.chave_bytes().is_err());
+        assert!(ler_convite(&convite(&f)).is_err());
     }
 }
