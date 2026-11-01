@@ -18,6 +18,15 @@ Escolhi isso em vez de CRDT genérico (Automerge, cr-sqlite) porque o modelo de 
 
 Nenhum servidor de terceiros recebe dados legíveis. Um relay próprio com criptografia ponta a ponta pode entrar depois, se a pasta não bastar.
 
+**Feito (Etapa 2, 01/11/2026): sincronização pelo GitHub.** Repositório privado do usuário no GitHub (criado por ele, token fine-grained só desse repositório com Contents read/write, guardado no kv cifrado; `familia_criar` e `familia_entrar` recusam repositório público). Layout: `familia.json` em claro (só `familiaId` e `versao`) e pacotes `eventos/<aparelho>/<n>.bin` cifrados com XChaCha20-Poly1305, AAD `familiaId|aparelhoId|n`, até 200 eventos ou ~1 MB. O convite é texto `PCASA1:` (chave da família e token), mostrado só depois de "Mostrar convite"; o QR fica para a Etapa 4. O envio roda ao abrir o app, a cada 5 min, 5 s depois de uma mudança e no botão "Sincronizar agora". Recebimento: `INSERT OR IGNORE` por id; um pacote que não decifra é pulado; erro de rede ou do GitHub interrompe a rodada e tenta de novo depois; pacotes são lidos só em sequência. Se a resposta de uma gravação se perde, o envio reconhece os mesmos ids já no repositório e conta como enviado. O estado fica no kv por família: `sync_envio:<familiaId>` (último pacote enviado e quantos eventos já subiram) e `sync_lidos:<familiaId>` (último pacote lido de cada aparelho). "Sair da família" só limpa `familia`, então entrar de novo na mesma família retoma a numeração. Restaurar um backup num aparelho que já está na família mescla (adiciona os eventos que faltam) em vez de substituir. Só `agenda` do `config` vale entre aparelhos. Testes manuais com dois aparelhos: `npm run app:teste -- a` e `-- b` (identificador próprio, dados e entrada do Gerenciador de Credenciais separados).
+
+**Pendências da sincronização:**
+- Wi-Fi local (Etapa 5): descoberta na rede e envio direto entre aparelhos.
+- Compactação dos pacotes.
+- Remover aparelho e troca de chave da família (Etapa 4).
+- Lista de aparelhos na tela de Privacidade e backup.
+- Telas de família no Android (Etapas 3 e 4), incluindo o convite em QR.
+
 Bibliotecas previstas (Rust, no `src-tauri`): `mdns-sd`, `snow` (Noise), `ed25519-dalek`/`x25519-dalek`, `age`.
 
 ## Armazenamento (feito no marco 2)

@@ -19,7 +19,9 @@ Stack: **Tauri 2** (gera o `.exe` do Windows e, depois, o APK) + **React 18 / Ty
 
 - **Atualizações** pelo GitHub Releases: o app instalado procura versão nova ao abrir (dá para desligar) e em Privacidade e backup › Atualizações. O instalador é assinado; o app confere a assinatura antes de instalar e pode fazer um backup antes.
 
-**Ainda não:** app Android e sincronização entre aparelhos. Plano em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md).
+- **Sincronização pelo GitHub** (desktop): os aparelhos da família trocam eventos por um repositório privado seu, tudo cifrado. Veja [Sincronizar a família](#sincronizar-a-família).
+
+**Ainda não:** app Android e sincronização pela rede local (Wi-Fi). Plano em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md).
 
 ## Rodar no navegador (mais rápido para revisar o design)
 
@@ -75,6 +77,22 @@ Testes do Rust (criptografia, banco, backup): `cd src-tauri && cargo test`.
 4. No GitHub, confira o rascunho e publique. A partir daí o app instalado encontra a versão nova.
 
 Uma vez só: em Settings › Secrets and variables › Actions, crie o segredo `TAURI_SIGNING_PRIVATE_KEY` com o conteúdo de `%USERPROFILE%\.tauri\prontuario-de-casa.key`. Guarde essa chave num lugar seguro: sem ela não dá para publicar atualizações que o app aceite.
+
+## Sincronizar a família
+
+A sincronização usa um repositório **privado** no GitHub que você cria. Os eventos vão cifrados; o GitHub só guarda arquivos ilegíveis.
+
+**Primeiro aparelho (Criar família):**
+1. No GitHub, crie um repositório **privado** vazio (ex.: `prontuario-sync`).
+2. Em Settings › Developer settings › Fine-grained tokens, gere um token só para esse repositório, com **Contents: Read and write**.
+3. Em Privacidade e backup › Família e aparelhos, clique em "Criar família" e cole `dono/nome` e o token. O token fica cifrado neste aparelho.
+
+**Outros aparelhos (Convidar aparelho → Entrar na família):**
+1. No aparelho que já está na família, em Privacidade e backup › Família e aparelhos, clique em "Convidar aparelho" e depois "Mostrar convite". Copie o texto (`PCASA1:…`).
+2. No outro aparelho, na tela de boas-vindas, use "Entrar na família" (ou "Entrar com convite" em Privacidade e backup) e cole o convite.
+3. Escolha em "Quem é você?" a pessoa que usa aquele aparelho e crie a senha.
+
+O convite dá acesso à família: passe só para os seus aparelhos e apague o texto depois de usar.
 
 ## Estrutura
 
