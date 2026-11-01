@@ -3,6 +3,7 @@ mod banco;
 mod cripto;
 mod lembretes;
 mod notificacao;
+mod pacote;
 
 use banco::Banco;
 use serde::Serialize;
