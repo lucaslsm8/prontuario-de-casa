@@ -3,6 +3,7 @@ import { HashRouter, Link, Navigate, Route, Routes, useLocation, useNavigate, us
 import { temEu, useStore } from './data/store';
 import { MODO_EXEMPLO, MODO_REAL } from './data/tempo';
 import { Lock } from './ui';
+import { QuemEVoce } from './ui/Familia';
 import { MobileShell } from './mobile/Shell';
 import { Inicio } from './mobile/Inicio';
 import { BoasVindas, CadastroMembro } from './mobile/Onboarding';
@@ -265,7 +266,9 @@ export default function App() {
 
   return (
     <HashRouter>
-      {!temEu(state) ? (
+      {!temEu(state) && MODO_REAL && state.pessoas.some((p) => p.tipo !== 'pet') ? (
+        <QuemEVoce />
+      ) : !temEu(state) ? (
         layout === 'desktop' ? <DPrimeiroUso /> : <RotasOnboarding frame={frame} />
       ) : layout === 'mobile' ? (
         <RotasMobile frame={frame} />

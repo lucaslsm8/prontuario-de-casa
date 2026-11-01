@@ -13,6 +13,7 @@ import { CarteirinhaBalcao } from '../mobile/Familia';
 import { useAbrir } from './Shell';
 import { GaleriaAnexos } from '../ui/Anexos';
 import { AcoesRegistro } from './Acoes';
+import { CardFamilia } from '../ui/Familia';
 import { AgendaIcs } from '../ui/AgendaIcs';
 import { FaixaNumeros } from '../ui/Numeros';
 import { IcAgenda, IcCheck, IcEstoque, IcExame, IcRemedio } from '../ui/Icones';
@@ -434,6 +435,8 @@ export function DPrivacidade() {
           </div>
         </div>
       </div>
+
+      <CardFamilia />
 
       <CardAtualizacoes />
 

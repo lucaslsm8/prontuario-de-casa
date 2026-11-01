@@ -4,6 +4,7 @@ import { temEu, useStore } from '../data/store';
 import { PARENTESCO, useFormPessoa } from '../data/formularios';
 import { RestaurarBackup, SenhaApp } from '../ui/Backup';
 import { Lock } from '../ui';
+import { EntrarNaFamilia } from '../ui/Familia';
 import { CartasBoasVindas } from '../mobile/Onboarding';
 import { DCampo, DChips, DGrade, DSangue } from './Formulario';
 import { CampoData } from '../ui/CampoData';
@@ -64,7 +65,7 @@ export function DPrimeiroUso() {
 
 function BoasVindasD() {
   const nav = useNavigate();
-  const [restaurar, setRestaurar] = useState(false);
+  const [folha, setFolha] = useState<null | 'restaurar' | 'familia'>(null);
   const passos: [string, string, string?][] = [
     ['1', 'Você'],
     ['2', 'Alguém da casa', '(opcional)'],
@@ -86,9 +87,11 @@ function BoasVindasD() {
       </ol>
       <div className="pu__acoes">
         <button type="button" className="btn btn--ink btn--h48 pu__comecar" onClick={() => nav('/cadastro?passo=1')} autoFocus>Começar</button>
-        <button type="button" className="btn btn--link btn--h40d" onClick={() => setRestaurar(true)}>Restaurar um backup</button>
+        <button type="button" className="btn btn--link btn--h40d" onClick={() => setFolha('familia')}>Entrar na família</button>
+        <button type="button" className="btn btn--link btn--h40d" onClick={() => setFolha('restaurar')}>Restaurar um backup</button>
       </div>
-      {restaurar && <RestaurarBackup desktop primeiroUso onClose={() => setRestaurar(false)} />}
+      {folha === 'restaurar' && <RestaurarBackup desktop primeiroUso onClose={() => setFolha(null)} />}
+      {folha === 'familia' && <EntrarNaFamilia desktop onClose={() => setFolha(null)} />}
     </>
   );
 }
