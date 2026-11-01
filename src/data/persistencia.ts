@@ -4,6 +4,7 @@
 
 import { EM_TAURI } from './tempo';
 import type { Lembrete } from './lembretes';
+import type { Identidade } from './log';
 
 export interface Evento {
   id: string;
@@ -30,11 +31,15 @@ export interface Inicio {
   backup: InfoBackup;
   erro?: string | null;
   versao: string;
+  /** null/ausente: aparelho que nunca guardou identidade (instalação nova ou versão antiga). */
+  identidade?: Identidade | null;
 }
 
 export interface Persistencia {
   iniciar(): Promise<Inicio>;
   gravar(ev: Evento): Promise<void>;
+  /** Guarda "quem sou eu" deste aparelho (kv cifrado, fora do log). */
+  definirIdentidade(identidade: Identidade): Promise<void>;
   definirSenha(senha: string): Promise<void>;
   verificarSenha(senha: string): Promise<boolean>;
   backupConfigurar(o: { senha?: string; pasta?: string; freq?: 'semanal' | 'manual'; nome?: string }): Promise<InfoBackup>;
@@ -59,6 +64,7 @@ function tauri(): Persistencia {
   return {
     iniciar: () => call<Inicio>('iniciar'),
     gravar: (evento) => call('gravar_evento', { evento }),
+    definirIdentidade: (identidade) => call('definir_identidade', { identidade }),
     definirSenha: (senha) => call('definir_senha', { senha }),
     verificarSenha: (senha) => call<boolean>('verificar_senha', { senha }),
     backupConfigurar: (o) => call<InfoBackup>('backup_configurar', o),
@@ -83,7 +89,7 @@ function tauri(): Persistencia {
 
 function memoria(): Persistencia {
   const KEY = 'arquivo-dev';
-  type Dev = { eventos: Evento[]; senha?: string; backup: InfoBackup; copia?: { eventos: Evento[]; senha: string } };
+  type Dev = { eventos: Evento[]; senha?: string; identidade?: Identidade; backup: InfoBackup; copia?: { eventos: Evento[]; senha: string } };
   const vazio = (): Dev => ({ eventos: [], backup: { pasta: 'Documentos / Arquivo da família', freq: 'semanal', temSenha: false } });
   const ler = (): Dev => {
     try { return JSON.parse(localStorage.getItem(KEY) ?? '') as Dev; } catch { return vazio(); }
@@ -98,8 +104,9 @@ function memoria(): Persistencia {
     return d.backup;
   };
   return {
-    iniciar: async () => ({ eventos: d.eventos, temSenha: !!d.senha, backup: d.backup, versao: '0.3.0-dev' }),
+    iniciar: async () => ({ eventos: d.eventos, temSenha: !!d.senha, backup: d.backup, versao: '0.3.0-dev', identidade: d.identidade ?? null }),
     gravar: async (ev) => { if (!d.eventos.some((e) => e.id === ev.id)) d.eventos.push(ev); salvar(); },
+    definirIdentidade: async (i) => { d.identidade = i; salvar(); },
     definirSenha: async (s) => { d.senha = s; salvar(); },
     verificarSenha: async (s) => !d.senha || d.senha === s,
     backupConfigurar: async (o) => {

@@ -47,6 +47,8 @@ struct Inicio {
     backup: InfoBackup,
     erro: Option<String>,
     versao: String,
+    /// "Quem sou eu" neste aparelho ({ aparelhoId, pessoaId }), no kv cifrado. Fora do log.
+    identidade: Option<Value>,
 }
 
 #[tauri::command]
@@ -54,7 +56,7 @@ async fn iniciar(app: tauri::AppHandle, st: State<'_, Estado>) -> R<Inicio> {
     let versao = app.package_info().version.to_string();
     let erro = st.erro.lock().ok().and_then(|e| e.clone());
     if let Some(erro) = erro {
-        return Ok(Inicio { eventos: vec![], tem_senha: false, backup: InfoBackup::vazio(&st), erro: Some(erro), versao });
+        return Ok(Inicio { eventos: vec![], tem_senha: false, backup: InfoBackup::vazio(&st), erro: Some(erro), versao, identidade: None });
     }
     com_banco(&st, |b| {
         Ok(Inicio {
@@ -63,6 +65,7 @@ async fn iniciar(app: tauri::AppHandle, st: State<'_, Estado>) -> R<Inicio> {
             backup: info_backup(b, &st.pasta_padrao_backup)?,
             erro: None,
             versao,
+            identidade: b.kv_get("identidade")?,
         })
     })
 }
@@ -70,6 +73,11 @@ async fn iniciar(app: tauri::AppHandle, st: State<'_, Estado>) -> R<Inicio> {
 #[tauri::command]
 async fn gravar_evento(st: State<'_, Estado>, evento: Value) -> R<()> {
     com_banco(&st, |b| b.gravar(&evento))
+}
+
+#[tauri::command]
+async fn definir_identidade(st: State<'_, Estado>, identidade: Value) -> R<()> {
+    com_banco(&st, |b| b.kv_set("identidade", &identidade))
 }
 
 // ── Senha / PIN de desbloqueio ──────────────────────────────────────────────
@@ -337,6 +345,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             iniciar,
             gravar_evento,
+            definir_identidade,
             definir_senha,
             verificar_senha,
             backup_configurar,
