@@ -153,7 +153,8 @@ async fn sync_cursor(st: State<'_, Estado>) -> R<CursorSync> {
     com_banco(&st, |b| {
         let p: sincronia::Pendencia = ler_kv(b, &format!("sync_envio:{}", f.familia_id))?;
         let lidos: std::collections::BTreeMap<String, u32> = ler_kv(b, &format!("sync_lidos:{}", f.familia_id))?;
-        Ok(CursorSync { ultimo_id: p.ultimo_id, recebidos: lidos.into_keys().collect() })
+        let vistos: std::collections::BTreeSet<String> = ler_kv(b, &format!("sync_vistos:{}", f.familia_id))?;
+        Ok(CursorSync { ultimo_id: p.ultimo_id, recebidos: sincronia::recebidos(&lidos, &vistos) })
     })
 }
 
@@ -172,8 +173,9 @@ async fn sync_enviar(st: State<'_, Estado>, aparelho: String, eventos: Vec<Value
         sincronia::enviar(&r, &f, &aparelho, &eventos, p.n + 1)
     })
     .await?;
-    if enviados > 0 {
-        let nova = sincronia::Pendencia { n: ultimo, ultimo_id };
+    // Avançou o número (pacote enviado ou número já ocupado no remoto): grava, mantendo o último id se nada subiu.
+    if ultimo > 0 {
+        let nova = sincronia::Pendencia { n: ultimo, ultimo_id: ultimo_id.or(p.ultimo_id) };
         com_banco(&st, |b| b.kv_set(&chave_envio, &serde_json::to_value(nova).map_err(|e| e.to_string())?))?;
     }
     Ok(enviados)
@@ -185,6 +187,9 @@ async fn sync_receber(st: State<'_, Estado>, aparelho: String) -> R<usize> {
     let f = exigir_familia(&st)?;
     let chave_lidos = format!("sync_lidos:{}", f.familia_id);
     let mut lidos: std::collections::BTreeMap<String, u32> = com_banco(&st, |b| ler_kv(b, &chave_lidos))?;
+    // Aparelhos vistos em eventos aceitos (inclusive de fora da família): os eventos deles não sobem daqui de novo.
+    let chave_vistos = format!("sync_vistos:{}", f.familia_id);
+    let mut vistos: std::collections::BTreeSet<String> = com_banco(&st, |b| ler_kv(b, &chave_vistos))?;
     let (f2, ap) = (f.clone(), aparelho.clone());
     let donos = rede(move || sincronia::donos(&remoto::GitHub::new(&f2.repo, &f2.token), &ap)).await?;
     let mut entraram = 0;
@@ -202,10 +207,17 @@ async fn sync_receber(st: State<'_, Estado>, aparelho: String) -> R<usize> {
             };
             entraram += com_banco(&st, |b| {
                 let mut c = 0;
-                for ev in sincronia::aceitaveis(&evs, &dono, &aparelho, &donos) {
+                let antes = vistos.len();
+                for ev in sincronia::aceitaveis(&evs, &aparelho) {
                     if b.gravar_novo(ev)? {
                         c += 1;
                     }
+                    if let Some(de) = ev.get("aparelho").and_then(Value::as_str) {
+                        vistos.insert(de.to_string());
+                    }
+                }
+                if vistos.len() != antes {
+                    b.kv_set(&chave_vistos, &serde_json::to_value(&vistos).map_err(|e| e.to_string())?)?;
                 }
                 Ok(c)
             })?;
