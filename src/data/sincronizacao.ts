@@ -36,14 +36,23 @@ export const definirFamilia = (familia: InfoFamilia | null) => mudar({ familia, 
 type Store = ReturnType<typeof useStore>;
 
 /** Sobe o que este aparelho criou, baixa o que os outros criaram e, se chegou algo, reprojeta o estado. */
-export async function sincronizar({ api }: Pick<Store, 'api'>, { manual = false } = {}) {
+export async function sincronizar(store: Pick<Store, 'api'>, { manual = false } = {}) {
+  const { api } = store;
   const aparelho = api.aparelhoId();
-  if (!info.familia || !aparelho || info.estado === 'sincronizando') return;
+  if (!info.familia || !aparelho) return;
+  if (info.estado === 'sincronizando') {
+    // Pedido durante outra rodada: roda mais uma quando esta terminar.
+    novaRodada = true;
+    if (manual) novaRodadaManual = true;
+    return;
+  }
   mudar({ estado: 'sincronizando', erro: undefined, token: undefined });
   try {
     await persistencia.syncEnviar(aparelho, await api.meusEventos());
     const chegaram = await persistencia.syncReceber(aparelho);
-    if (chegaram > 0) await api.recarregar();
+    if (chegaram > 0) reprojetarPendente = true;
+    // Se o recarregamento falhar, a próxima rodada tenta de novo mesmo sem eventos novos.
+    if (reprojetarPendente) { await api.recarregar(); reprojetarPendente = false; }
     mudar({ estado: 'ok', ultima: new Date().toISOString(), via: 'GitHub' });
     if (manual) api.toast({ texto: chegaram ? `${chegaram === 1 ? '1 mudança chegou' : `${chegaram} mudanças chegaram`} da família` : 'Tudo sincronizado' });
   } catch (e) {
@@ -51,7 +60,15 @@ export async function sincronizar({ api }: Pick<Store, 'api'>, { manual = false 
     mudar({ estado: 'erro', erro: texto, token });
     if (manual) api.toast({ texto: `Não foi possível sincronizar: ${texto}` });
   }
+  if (novaRodada) {
+    const m = novaRodadaManual;
+    novaRodada = false; novaRodadaManual = false;
+    await sincronizar(store, { manual: m });
+  }
 }
+let novaRodada = false;
+let novaRodadaManual = false;
+let reprojetarPendente = false;
 
 let aposMudanca: (() => void) | null = null;
 let espera: ReturnType<typeof setTimeout> | undefined;

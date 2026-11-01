@@ -383,7 +383,8 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
     const recarregar = async () => {
       const ini = await persistencia.iniciar();
       const s = await abrirLog(ini);
-      dispatch({ type: 'reset', state: { ...s, temSenha: ini.temSenha, config: mesclarConfig(s.config, { backup: backupParaConfig(ini.backup), update: { ...s.config.update, instalada: ini.versao } }) } });
+      // Mantém o bloqueio atual: o bloqueio por inatividade pode ter entrado durante a sincronização.
+      dispatch({ type: 'reset', state: { ...s, bloqueado: ref.current.bloqueado, temSenha: ini.temSenha, config: mesclarConfig(s.config, { backup: backupParaConfig(ini.backup), update: { ...s.config.update, instalada: ini.versao } }) } });
     };
 
     return {
