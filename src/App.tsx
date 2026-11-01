@@ -3,7 +3,7 @@ import { HashRouter, Link, Navigate, Route, Routes, useLocation, useNavigate, us
 import { temEu, useStore } from './data/store';
 import { MODO_EXEMPLO, MODO_REAL } from './data/tempo';
 import { Lock } from './ui';
-import { QuemEVoce } from './ui/Familia';
+import { ProtejaEsteAparelho, QuemEVoce } from './ui/Familia';
 import { MobileShell } from './mobile/Shell';
 import { Inicio } from './mobile/Inicio';
 import { BoasVindas, CadastroMembro } from './mobile/Onboarding';
@@ -15,7 +15,7 @@ import { EditarPerfilMobile } from './mobile/EditarPerfil';
 import { NovoPet } from './mobile/NovoPet';
 import { NovaPesagem, RegistrarPrevencao, RegistrarProcedimento, RegistrarSintoma, RegistrarVacina } from './mobile/RegistrosPet';
 import { Atualizacoes, Configuracoes, Desbloqueio, Instalando, LembreteDose, Privacidade } from './mobile/Config';
-import { DesktopShell } from './desktop/Shell';
+import { BloqueioDesktop, DesktopShell } from './desktop/Shell';
 import { REGISTROS_PET, type RegistroPet } from './desktop/Formularios';
 import { DInicio } from './desktop/Inicio';
 import { DPessoa } from './desktop/Pessoa';
@@ -106,6 +106,17 @@ function DesbloqueioDemo() {
   const nav = useNavigate();
   useEffect(() => { api.bloquear(true); nav('/', { replace: true }); }, [api, nav]);
   return null;
+}
+
+/** Bloqueado sem "eu" (aparelho que entrou na família e ainda não escolheu quem é): só o desbloqueio, sem nomes. */
+function RotasBloqueio({ frame }: { frame: boolean }) {
+  return (
+    <Routes>
+      <Route element={<MobileShell frame={frame} />}>
+        <Route path="*" element={<Desbloqueio />} />
+      </Route>
+    </Routes>
+  );
 }
 
 /** Primeiro uso no celular: boas-vindas, cadastro em 3 passos e restaurar backup. */
@@ -256,6 +267,8 @@ export default function App() {
   const { layout, frame, setForcado, forcado } = useLayout();
   const { state, status, erro } = useStore();
   const [devAberto, setDevAberto] = useState(false);
+  // Depois do "Quem é você?" num aparelho sem senha: oferece criar a senha antes de liberar o app.
+  const [pedirSenha, setPedirSenha] = useState(false);
   useBloqueioPorInatividade(layout);
   useAtualizarAgendaAoAbrir();
   useVerificarAtualizacaoAoAbrir();
@@ -266,8 +279,12 @@ export default function App() {
 
   return (
     <HashRouter>
-      {!temEu(state) && MODO_REAL && state.pessoas.some((p) => p.tipo !== 'pet') ? (
-        <QuemEVoce />
+      {state.bloqueado && !temEu(state) ? (
+        layout === 'desktop' ? <BloqueioDesktop /> : <RotasBloqueio frame={frame} />
+      ) : !temEu(state) && MODO_REAL && state.pessoas.some((p) => p.tipo !== 'pet') ? (
+        <QuemEVoce onEscolhido={() => setPedirSenha(!state.temSenha)} />
+      ) : pedirSenha && !state.temSenha ? (
+        <ProtejaEsteAparelho desktop={layout === 'desktop'} onFim={() => setPedirSenha(false)} />
       ) : !temEu(state) ? (
         layout === 'desktop' ? <DPrimeiroUso /> : <RotasOnboarding frame={frame} />
       ) : layout === 'mobile' ? (

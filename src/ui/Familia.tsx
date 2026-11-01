@@ -5,8 +5,8 @@ import { persistencia } from '../data/persistencia';
 import { definirFamilia, sincronizar, useInfoSync } from '../data/sincronizacao';
 import { quando } from '../data/format';
 import { ehPet } from '../data/pets';
-import { Folha } from './Backup';
-import { Label } from './index';
+import { Folha, SenhaApp } from './Backup';
+import { Label, Lock } from './index';
 
 const texto = { fontSize: 14, lineHeight: 1.5, color: 'var(--text-2)' } as const;
 const erroTxt = { fontSize: 13, color: 'var(--danger)' } as const;
@@ -86,20 +86,30 @@ export function EntrarNaFamilia({ desktop, onClose }: { desktop?: boolean; onClo
   const [convite, setConvite] = useState('');
   const [erro, setErro] = useState('');
   const [ocupado, setOcupado] = useState(false);
+  // Já entrou, mas a primeira sincronização falhou: a folha fica aberta até baixar os dados da família,
+  // para ninguém se cadastrar de novo num aparelho vazio (duplicaria a pessoa na família).
+  const [entrou, setEntrou] = useState(false);
+  const baixar = async () => {
+    const r = await sincronizar(store, { manual: true });
+    if (r.ok) return onClose();
+    setErro(`Entrou na família, mas não foi possível baixar os dados: ${r.erro ?? 'erro desconhecido'}`);
+  };
   const entrar = async () => {
     setOcupado(true); setErro('');
     try {
-      definirFamilia(await persistencia.familiaEntrar(convite));
-      await sincronizar(store, { manual: true });
-      onClose();
+      if (!entrou) {
+        definirFamilia(await persistencia.familiaEntrar(convite));
+        setEntrou(true);
+      }
+      await baixar();
     } catch (e) { setErro(e instanceof Error ? e.message : String(e)); } finally { setOcupado(false); }
   };
   return (
-    <Folha desktop={desktop} onClose={onClose} titulo="Entrar na família">
+    <Folha desktop={desktop} onClose={entrou ? () => {} : onClose} titulo="Entrar na família">
       <span style={texto}>Em um aparelho que já está na família, abra Privacidade e backup › Convidar aparelho e copie o convite. Cole aqui.</span>
-      <textarea className="input input--desk input--area input--mono" placeholder="PCASA1:…" value={convite} onChange={(e) => setConvite(e.target.value)} autoFocus aria-label="Convite" />
+      <textarea className="input input--desk input--area input--mono" placeholder="PCASA1:…" value={convite} onChange={(e) => setConvite(e.target.value)} readOnly={entrou} autoFocus aria-label="Convite" />
       {erro && <span style={erroTxt} role="alert">{erro}</span>}
-      <button type="button" className={`btn btn--ink ${desktop ? 'btn--h40d' : 'btn--h50'}`} disabled={!convite.trim() || ocupado} onClick={entrar}>{ocupado ? 'Baixando os dados da família…' : 'Entrar'}</button>
+      <button type="button" className={`btn btn--ink ${desktop ? 'btn--h40d' : 'btn--h50'}`} disabled={!convite.trim() || ocupado} onClick={entrar}>{ocupado ? 'Baixando os dados da família…' : entrou ? 'Tentar de novo' : 'Entrar'}</button>
     </Folha>
   );
 }
@@ -108,8 +118,15 @@ function Convite({ onClose }: { onClose: () => void }) {
   const { api } = useStore();
   const [convite, setConvite] = useState<string | null>(null);
   const [erro, setErro] = useState('');
-  const mostrar = async () => { try { setConvite(await persistencia.familiaConvite()); } catch (e) { setErro(String(e)); } };
-  const copiar = async () => { if (convite) { await navigator.clipboard.writeText(convite); api.toast({ texto: 'Convite copiado' }); } };
+  const mostrar = async () => { setErro(''); try { setConvite(await persistencia.familiaConvite()); } catch (e) { setErro(e instanceof Error ? e.message : String(e)); } };
+  const copiar = async () => {
+    if (!convite) return;
+    setErro('');
+    try {
+      await navigator.clipboard.writeText(convite);
+      api.toast({ texto: 'Convite copiado' });
+    } catch (e) { setErro(`Não foi possível copiar: ${e instanceof Error ? e.message : String(e)}`); }
+  };
   return (
     <Folha desktop onClose={onClose} titulo="Convidar aparelho" alerta>
       <span style={texto}>O convite leva a chave da família e o token do GitHub: quem tiver o texto entra na família. Passe só para os seus aparelhos e os da família, por um canal seu, e apague depois de usar.</span>
@@ -128,22 +145,27 @@ function Convite({ onClose }: { onClose: () => void }) {
 
 function SairDaFamilia({ onClose }: { onClose: () => void }) {
   const [ocupado, setOcupado] = useState(false);
+  const [erro, setErro] = useState('');
   const sair = async () => {
-    setOcupado(true);
-    await persistencia.familiaSair();
-    definirFamilia(null);
-    onClose();
+    setOcupado(true); setErro('');
+    try {
+      await persistencia.familiaSair();
+      definirFamilia(null);
+      onClose();
+    } catch (e) { setErro(e instanceof Error ? e.message : String(e)); } finally { setOcupado(false); }
   };
   return (
     <Folha desktop onClose={onClose} titulo="Sair da família?" alerta>
       <span style={texto}>Este aparelho para de sincronizar. Os dados que já estão aqui continuam aqui; os outros aparelhos não perdem nada.</span>
-      <button type="button" className="btn btn--h40d" style={{ background: 'var(--danger)', color: '#fff' }} disabled={ocupado} onClick={sair}>Sair da família</button>
+      {erro && <span style={erroTxt} role="alert">{erro}</span>}
+      <button type="button" className="btn btn--h40d" style={{ background: 'var(--danger)', color: 'var(--surface)' }} disabled={ocupado} onClick={sair}>Sair da família</button>
     </Folha>
   );
 }
 
-/** Depois de entrar na família (ou restaurar dados de outra pessoa): escolher quem usa este aparelho. */
-export function QuemEVoce() {
+/** Depois de entrar na família (ou restaurar dados de outra pessoa): escolher quem usa este aparelho.
+ *  Só aparece desbloqueado (App.tsx mostra o bloqueio antes, sem os nomes). */
+export function QuemEVoce({ onEscolhido }: { onEscolhido?: () => void }) {
   const { state, api } = useStore();
   const pessoas = state.pessoas.filter((p) => !ehPet(p));
   return (
@@ -156,12 +178,37 @@ export function QuemEVoce() {
         </div>
         <div className="card">
           {pessoas.map((p) => (
-            <button key={p.id} type="button" className="row" style={{ padding: '14px 20px', fontSize: 15, minHeight: 48 }} onClick={() => api.definirEu(p.id)}>
+            <button key={p.id} type="button" className="row" style={{ padding: '14px 20px', fontSize: 15, minHeight: 48 }} onClick={() => { api.definirEu(p.id); onEscolhido?.(); }}>
               <span>{p.nome}</span><span className="muted">›</span>
             </button>
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Depois do "Quem é você?" num aparelho sem senha: o mesmo passo "Proteja o app" do primeiro uso. */
+export function ProtejaEsteAparelho({ desktop, onFim }: { desktop?: boolean; onFim: () => void }) {
+  const [folha, setFolha] = useState(false);
+  return (
+    <div className="pu" style={{ placeItems: 'center', display: 'grid', gridTemplateColumns: '1fr', minHeight: '100vh' }}>
+      <div className="stack" style={{ gap: 18, width: 'min(420px, 100% - 32px)' }}>
+        <span className="pu__selo"><Lock large /></span>
+        <div className="stack" style={{ gap: 8 }}>
+          <h2 className="pu__titulo" style={{ margin: 0 }}>Proteja o app</h2>
+          <span style={texto}>
+            {desktop
+              ? 'Com uma senha, o app pede para entrar ao abrir e depois de alguns minutos sem uso. Os dados já ficam criptografados neste computador.'
+              : 'Com um PIN, o app pede para entrar ao abrir e depois de um tempo sem uso. Os dados já ficam criptografados neste aparelho.'}
+          </span>
+        </div>
+        <div className="hstack" style={{ gap: 8, justifyContent: 'flex-end' }}>
+          <button type="button" className="btn btn--outline btn--h40d" style={{ minHeight: 44 }} onClick={onFim}>Agora não</button>
+          <button type="button" className="btn btn--ink btn--h40d" style={{ minHeight: 44 }} onClick={() => setFolha(true)} autoFocus>{desktop ? 'Criar senha' : 'Criar PIN'}</button>
+        </div>
+      </div>
+      {folha && <SenhaApp desktop={desktop} onClose={() => setFolha(false)} onPronto={onFim} />}
     </div>
   );
 }

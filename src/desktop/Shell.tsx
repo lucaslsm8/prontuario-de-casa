@@ -168,8 +168,8 @@ function ModalAtualizacao() {
   );
 }
 
-/** Bloqueio por senha no desktop (não desenhado; segue o visual da M11). */
-function BloqueioDesktop() {
+/** Bloqueio por senha no desktop (não desenhado; segue o visual da M11). Também antes do "Quem é você?" (App.tsx). */
+export function BloqueioDesktop() {
   const { state, api } = useStore();
   const [senha, setSenha] = useState('');
   const [errou, setErrou] = useState(false);

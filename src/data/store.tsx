@@ -590,8 +590,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const s = await abrirLog(ini);
         if (!vivo) return;
         const config = mesclarConfig(s.config, { backup: backupParaConfig(ini.backup), update: { ...s.config.update, instalada: ini.versao } });
-        const temEu = s.pessoas.some((p) => p.souEu);
-        dispatch({ type: 'reset', state: { ...s, config, temSenha: ini.temSenha, bloqueado: ini.temSenha && temEu } });
+        // Com senha, abre sempre bloqueado, tenha ou não "eu" (o "Quem é você?" só aparece depois de desbloquear).
+        dispatch({ type: 'reset', state: { ...s, config, temSenha: ini.temSenha, bloqueado: ini.temSenha } });
         setStatus('pronto');
         // Backup semanal automático, se estiver na hora.
         const feito = await persistencia.backupSeDevido().catch(() => null);
