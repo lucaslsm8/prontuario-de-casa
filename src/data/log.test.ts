@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { migrarLog, novoAparelhoId, ordenarLog, resolverEu, ultimoHlc } from './log';
 import type { Evento } from './persistencia';
 import type { Pessoa } from './types';
+import { projetar } from './store';
 
 const ev = (id: string, em: string, extra: Partial<Evento> = {}): Evento => ({ id, em, tipo: 'x', dados: {}, ...extra });
 const pessoa = (id: string, souEu?: boolean): Pessoa => ({ id, nome: id, curto: id, cor: '#ccc', alergias: [], condicoes: [], souEu });
@@ -47,7 +48,6 @@ describe('log', () => {
   });
 });
 
-import { projetar } from './store';
 
 describe('projeção pelo HLC', () => {
   const add = (id: string, hlc: string, souEu?: boolean): Evento => ({ id: `e-${id}`, em: '', hlc, tipo: 'addPessoa', dados: { pessoa: pessoa(id, souEu) } });

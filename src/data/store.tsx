@@ -312,7 +312,14 @@ async function abrirLog(ini: Inicio): Promise<State> {
   const bruto = projetar(eventos);
   const pessoaId = resolverEu(bruto.pessoas, ini.identidade ?? null);
   const identidade: Identidade = { aparelhoId, pessoaId };
-  if (ini.identidade?.aparelhoId !== aparelhoId || ini.identidade?.pessoaId !== pessoaId) await persistencia.definirIdentidade(identidade);
+  if (ini.identidade?.aparelhoId !== aparelhoId || ini.identidade?.pessoaId !== pessoaId) {
+    try {
+      await persistencia.definirIdentidade(identidade);
+    } catch (e) {
+      // Segue com a identidade em memória; a próxima abertura tenta de novo (a comparação continuará diferente).
+      console.warn('Não foi possível guardar a identidade do aparelho', e);
+    }
+  }
   sessao.identidade = identidade;
   sessao.ultimo = ultimoHlc(eventos);
   return marcarEu(bruto, pessoaId);

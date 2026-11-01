@@ -29,7 +29,7 @@ export function migrarLog(eventos: Evento[], aparelhoId: string): Evento[] {
   });
 }
 
-/** Ordem de aplicação: por HLC. Eventos sem HLC (testes, navegador) mantêm a ordem em que vieram. */
+/** Ordem de aplicação: por HLC. Se nenhum evento tem HLC (testes, navegador), a ordem original é mantida; numa mistura, os sem HLC vêm primeiro. */
 export const ordenarLog = (eventos: Evento[]) => [...eventos].sort((a, b) => ((a.hlc ?? '') < (b.hlc ?? '') ? -1 : (a.hlc ?? '') > (b.hlc ?? '') ? 1 : 0));
 
 export const ultimoHlc = (eventos: Evento[]): Hlc | null => eventos.reduce<Hlc | null>((u, e) => (e.hlc ? maior(u, lerHlc(e.hlc)) : u), null);
