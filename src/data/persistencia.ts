@@ -96,7 +96,7 @@ function memoria(): Persistencia {
     return d.backup;
   };
   return {
-    iniciar: async () => ({ eventos: d.eventos, temSenha: !!d.senha, backup: d.backup, versao: '0.2.0-dev' }),
+    iniciar: async () => ({ eventos: d.eventos, temSenha: !!d.senha, backup: d.backup, versao: '0.3.0-dev' }),
     gravar: async (ev) => { if (!d.eventos.some((e) => e.id === ev.id)) d.eventos.push(ev); salvar(); },
     definirSenha: async (s) => { d.senha = s; salvar(); },
     verificarSenha: async (s) => !d.senha || d.senha === s,

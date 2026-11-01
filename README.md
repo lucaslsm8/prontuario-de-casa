@@ -52,8 +52,8 @@ npm run app:build    # gera os instaladores
 ```
 
 Os instaladores saem em `src-tauri/target/release/bundle/`:
-- `nsis/Prontuário de Casa_0.2.0_x64-setup.exe` (instalador `.exe`, instala para o usuário atual, em pt-BR)
-- `msi/Prontuário de Casa_0.2.0_x64_pt-BR.msi`
+- `nsis/Prontuário de Casa_0.3.0_x64-setup.exe` (instalador `.exe`, instala para o usuário atual, em pt-BR)
+- `msi/Prontuário de Casa_0.3.0_x64_pt-BR.msi`
 
 O executável sem instalador fica em `src-tauri/target/release/arquivo-saude.exe`.
 
