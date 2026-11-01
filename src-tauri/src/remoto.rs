@@ -91,11 +91,13 @@ impl Remoto for GitHub {
 }
 
 /// Remoto em memória, para testes.
+#[cfg(test)]
 #[derive(Default)]
 pub struct Memoria {
     pub arquivos: std::sync::Mutex<std::collections::BTreeMap<String, Vec<u8>>>,
 }
 
+#[cfg(test)]
 impl Remoto for Memoria {
     fn listar(&self, pasta: &str) -> R<Vec<String>> {
         let prefixo = format!("{pasta}/");

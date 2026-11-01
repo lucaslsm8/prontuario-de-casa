@@ -9,6 +9,7 @@ mod remoto;
 mod sincronia;
 
 use banco::Banco;
+use remoto::Remoto;
 use serde::Serialize;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
@@ -40,6 +41,145 @@ fn com_banco<T>(st: &State<Estado>, f: impl FnOnce(&mut Banco) -> R<T>) -> R<T> 
         Some(b) => f(b),
         None => Err(st.erro.lock().ok().and_then(|e| e.clone()).unwrap_or_else(|| "banco indisponível".into())),
     }
+}
+
+// ── Família e sincronização ─────────────────────────────────────────────────
+// A rede roda em spawn_blocking, fora do lock do banco: o app continua gravando enquanto sincroniza.
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct InfoFamilia {
+    familia_id: String,
+    repo: String,
+}
+
+fn info_de(f: &familia::Familia) -> InfoFamilia {
+    InfoFamilia { familia_id: f.familia_id.clone(), repo: f.repo.clone() }
+}
+
+fn ler_familia(b: &Banco) -> R<Option<familia::Familia>> {
+    match b.kv_get("familia")? {
+        Some(v) if !v.is_null() => serde_json::from_value(v).map(Some).map_err(|e| e.to_string()),
+        _ => Ok(None),
+    }
+}
+
+fn exigir_familia(st: &State<Estado>) -> R<familia::Familia> {
+    com_banco(st, |b| ler_familia(b))?.ok_or_else(|| "este aparelho não está numa família".into())
+}
+
+async fn rede<T: Send + 'static>(f: impl FnOnce() -> R<T> + Send + 'static) -> R<T> {
+    tauri::async_runtime::spawn_blocking(f).await.map_err(|_| "falha na sincronização".to_string())?
+}
+
+fn guardar_familia(st: &State<Estado>, f: &familia::Familia) -> R<()> {
+    com_banco(st, |b| {
+        b.kv_set("familia", &serde_json::to_value(f).map_err(|e| e.to_string())?)?;
+        b.kv_set("sync_envio", &serde_json::to_value(sincronia::Pendencia::default()).map_err(|e| e.to_string())?)?;
+        b.kv_set("sync_lidos", &json!({}))
+    })
+}
+
+#[tauri::command]
+async fn familia_info(st: State<'_, Estado>) -> R<Option<InfoFamilia>> {
+    Ok(com_banco(&st, |b| ler_familia(b))?.as_ref().map(info_de))
+}
+
+#[tauri::command]
+async fn familia_criar(st: State<'_, Estado>, repo: String, token: String) -> R<InfoFamilia> {
+    let repo = repo.trim().trim_start_matches("https://github.com/").trim_end_matches('/').to_string();
+    if !familia::repo_valido(&repo) {
+        return Err("use o formato dono/nome do repositório (ex.: lucas/prontuario-sync)".into());
+    }
+    let f = familia::Familia::nova(&repo, &token);
+    let g = f.clone();
+    rede(move || {
+        let r = remoto::GitHub::new(&g.repo, &g.token);
+        r.conferir()?;
+        familia::conferir_familia_json(&r, &g.familia_id, true)
+    })
+    .await?;
+    guardar_familia(&st, &f)?;
+    Ok(info_de(&f))
+}
+
+#[tauri::command]
+async fn familia_entrar(st: State<'_, Estado>, convite: String) -> R<InfoFamilia> {
+    let f = familia::ler_convite(&convite)?;
+    let g = f.clone();
+    rede(move || {
+        let r = remoto::GitHub::new(&g.repo, &g.token);
+        r.conferir()?;
+        familia::conferir_familia_json(&r, &g.familia_id, false)
+    })
+    .await?;
+    guardar_familia(&st, &f)?;
+    Ok(info_de(&f))
+}
+
+#[tauri::command]
+async fn familia_sair(st: State<'_, Estado>) -> R<()> {
+    com_banco(&st, |b| {
+        for k in ["familia", "sync_envio", "sync_lidos"] {
+            b.kv_set(k, &Value::Null)?;
+        }
+        Ok(())
+    })
+}
+
+#[tauri::command]
+async fn familia_convite(st: State<'_, Estado>) -> R<String> {
+    Ok(familia::convite(&exigir_familia(&st)?))
+}
+
+#[tauri::command]
+async fn sync_enviar(st: State<'_, Estado>, aparelho: String, eventos: Vec<Value>) -> R<usize> {
+    let f = exigir_familia(&st)?;
+    let p: sincronia::Pendencia = com_banco(&st, |b| Ok(b.kv_get("sync_envio")?.and_then(|v| serde_json::from_value(v).ok()).unwrap_or_default()))?;
+    let pacotes = sincronia::preparar_envio(&eventos, p.enviados, p.n + 1);
+    if pacotes.is_empty() {
+        return Ok(0);
+    }
+    let (ultimo, enviados) = rede(move || {
+        let r = remoto::GitHub::new(&f.repo, &f.token);
+        sincronia::enviar(&r, &f, &aparelho, &pacotes)
+    })
+    .await?;
+    let nova = sincronia::Pendencia { n: ultimo, enviados: p.enviados + enviados };
+    com_banco(&st, |b| b.kv_set("sync_envio", &serde_json::to_value(nova).map_err(|e| e.to_string())?))?;
+    Ok(enviados)
+}
+
+#[tauri::command]
+async fn sync_receber(st: State<'_, Estado>, aparelho: String) -> R<usize> {
+    let f = exigir_familia(&st)?;
+    let mut lidos: std::collections::BTreeMap<String, u32> =
+        com_banco(&st, |b| Ok(b.kv_get("sync_lidos")?.and_then(|v| serde_json::from_value(v).ok()).unwrap_or_default()))?;
+    let (f2, ap, l2) = (f.clone(), aparelho.clone(), lidos.clone());
+    let novos = rede(move || sincronia::novos_pacotes(&remoto::GitHub::new(&f2.repo, &f2.token), &ap, &l2)).await?;
+    let mut entraram = 0;
+    for (dono, n) in novos {
+        let g = f.clone();
+        let d = dono.clone();
+        // Pacote que não decifra (outra chave, corrompido): pula e segue; os outros continuam chegando.
+        let evs = match rede(move || sincronia::baixar_pacote(&remoto::GitHub::new(&g.repo, &g.token), &g, &d, n)).await {
+            Ok(evs) => evs,
+            Err(e) if e.starts_with("TOKEN:") || e.starts_with("sem conexão") => return Err(e),
+            Err(_) => vec![],
+        };
+        entraram += com_banco(&st, |b| {
+            let mut c = 0;
+            for ev in &evs {
+                if b.gravar_novo(ev)? {
+                    c += 1;
+                }
+            }
+            Ok(c)
+        })?;
+        lidos.insert(dono, n);
+        com_banco(&st, |b| b.kv_set("sync_lidos", &serde_json::to_value(&lidos).map_err(|e| e.to_string())?))?;
+    }
+    Ok(entraram)
 }
 
 // ── Início ──────────────────────────────────────────────────────────────────
@@ -253,6 +393,11 @@ async fn backup_restaurar(st: State<'_, Estado>, caminho: String, senha: String)
     let bytes = std::fs::read(&caminho).map_err(|e| format!("Não foi possível ler o arquivo: {e}"))?;
     let evs = backup::abrir(&bytes, &senha)?;
     com_banco(&st, |b| {
+        // Num aparelho da família, o log é a união de todos: restaurar só acrescenta o que falta.
+        if ler_familia(b)?.is_some() {
+            b.mesclar(&evs)?;
+            return b.eventos();
+        }
         b.substituir(&evs)?;
         Ok(evs)
     })
@@ -361,7 +506,14 @@ pub fn run() {
             apagar_tudo,
             agendar_lembretes,
             exportar_arquivo,
-            baixar_agenda
+            baixar_agenda,
+            familia_info,
+            familia_criar,
+            familia_entrar,
+            familia_sair,
+            familia_convite,
+            sync_enviar,
+            sync_receber
         ])
         .run(tauri::generate_context!())
         .expect("erro ao iniciar o Prontuário de Casa");
