@@ -1,0 +1,24 @@
+import { describe, expect, it } from 'vitest';
+import { fmtHlc, lerHlc, proximoHlc } from './hlc';
+
+describe('HLC', () => {
+  it('formata com zeros à esquerda e lê de volta (aparelho com hífen)', () => {
+    const h = { ms: 1793480000000, c: 7, aparelho: 'pc-3f9a1c' };
+    expect(fmtHlc(h)).toBe('1793480000000-0007-pc-3f9a1c');
+    expect(lerHlc('1793480000000-0007-pc-3f9a1c')).toEqual(h);
+  });
+  it('avança com o relógio e conta dentro do mesmo milissegundo', () => {
+    const a = proximoHlc(null, 1000, 'pc-a');
+    expect(a).toEqual({ ms: 1000, c: 0, aparelho: 'pc-a' });
+    expect(proximoHlc(a, 1000, 'pc-a')).toEqual({ ms: 1000, c: 1, aparelho: 'pc-a' });
+    expect(proximoHlc(a, 2000, 'pc-a')).toEqual({ ms: 2000, c: 0, aparelho: 'pc-a' });
+  });
+  it('nunca volta quando o relógio do aparelho atrasa', () => {
+    const a = { ms: 5000, c: 3, aparelho: 'pc-a' };
+    expect(proximoHlc(a, 4000, 'pc-a')).toEqual({ ms: 5000, c: 4, aparelho: 'pc-a' });
+  });
+  it('a ordem das strings é a ordem dos eventos', () => {
+    const s = [fmtHlc({ ms: 20, c: 0, aparelho: 'b' }), fmtHlc({ ms: 3, c: 9, aparelho: 'a' }), fmtHlc({ ms: 20, c: 0, aparelho: 'a' })];
+    expect([...s].sort()).toEqual(['0000000000003-0009-a', '0000000000020-0000-a', '0000000000020-0000-b']);
+  });
+});
