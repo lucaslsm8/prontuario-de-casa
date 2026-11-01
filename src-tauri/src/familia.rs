@@ -38,8 +38,9 @@ impl Familia {
         if self.chave.len() != 64 || !self.chave.bytes().all(|b| b.is_ascii_hexdigit()) {
             return Err("chave da família inválida".into());
         }
-        for i in 0..32 {
-            out[i] = u8::from_str_radix(&self.chave[i * 2..i * 2 + 2], 16).map_err(|_| "chave da família inválida".to_string())?;
+        for (dst, par) in out.iter_mut().zip(self.chave.as_bytes().chunks(2)) {
+            let par = std::str::from_utf8(par).map_err(|_| "chave da família inválida".to_string())?;
+            *dst = u8::from_str_radix(par, 16).map_err(|_| "chave da família inválida".to_string())?;
         }
         Ok(out)
     }

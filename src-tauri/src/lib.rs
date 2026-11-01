@@ -73,11 +73,7 @@ async fn rede<T: Send + 'static>(f: impl FnOnce() -> R<T> + Send + 'static) -> R
 }
 
 fn guardar_familia(st: &State<Estado>, f: &familia::Familia) -> R<()> {
-    com_banco(st, |b| {
-        b.kv_set("familia", &serde_json::to_value(f).map_err(|e| e.to_string())?)?;
-        b.kv_set("sync_envio", &serde_json::to_value(sincronia::Pendencia::default()).map_err(|e| e.to_string())?)?;
-        b.kv_set("sync_lidos", &json!({}))
-    })
+    com_banco(st, |b| b.kv_set("familia", &serde_json::to_value(f).map_err(|e| e.to_string())?))
 }
 
 #[tauri::command]
@@ -87,6 +83,9 @@ async fn familia_info(st: State<'_, Estado>) -> R<Option<InfoFamilia>> {
 
 #[tauri::command]
 async fn familia_criar(st: State<'_, Estado>, repo: String, token: String) -> R<InfoFamilia> {
+    if com_banco(&st, |b| ler_familia(b))?.is_some() {
+        return Err("este aparelho já está numa família; saia dela antes de criar outra".into());
+    }
     let repo = repo.trim().trim_start_matches("https://github.com/").trim_end_matches('/').to_string();
     if !familia::repo_valido(&repo) {
         return Err("use o formato dono/nome do repositório (ex.: lucas/prontuario-sync)".into());
@@ -106,6 +105,11 @@ async fn familia_criar(st: State<'_, Estado>, repo: String, token: String) -> R<
 #[tauri::command]
 async fn familia_entrar(st: State<'_, Estado>, convite: String) -> R<InfoFamilia> {
     let f = familia::ler_convite(&convite)?;
+    if let Some(atual) = com_banco(&st, |b| ler_familia(b))? {
+        if atual.familia_id != f.familia_id {
+            return Err("este aparelho já está numa família; saia dela antes de entrar em outra".into());
+        }
+    }
     let g = f.clone();
     rede(move || {
         let r = remoto::GitHub::new(&g.repo, &g.token);
@@ -119,12 +123,8 @@ async fn familia_entrar(st: State<'_, Estado>, convite: String) -> R<InfoFamilia
 
 #[tauri::command]
 async fn familia_sair(st: State<'_, Estado>) -> R<()> {
-    com_banco(&st, |b| {
-        for k in ["familia", "sync_envio", "sync_lidos"] {
-            b.kv_set(k, &Value::Null)?;
-        }
-        Ok(())
-    })
+    // O estado de sincronia fica nas chaves por família: entrar de novo na mesma família retoma de onde parou.
+    com_banco(&st, |b| b.kv_set("familia", &Value::Null))
 }
 
 #[tauri::command]
@@ -135,7 +135,8 @@ async fn familia_convite(st: State<'_, Estado>) -> R<String> {
 #[tauri::command]
 async fn sync_enviar(st: State<'_, Estado>, aparelho: String, eventos: Vec<Value>) -> R<usize> {
     let f = exigir_familia(&st)?;
-    let p: sincronia::Pendencia = com_banco(&st, |b| Ok(b.kv_get("sync_envio")?.and_then(|v| serde_json::from_value(v).ok()).unwrap_or_default()))?;
+    let chave_envio = format!("sync_envio:{}", f.familia_id);
+    let p: sincronia::Pendencia = com_banco(&st, |b| Ok(b.kv_get(&chave_envio)?.and_then(|v| serde_json::from_value(v).ok()).unwrap_or_default()))?;
     let pacotes = sincronia::preparar_envio(&eventos, p.enviados, p.n + 1);
     if pacotes.is_empty() {
         return Ok(0);
@@ -146,30 +147,31 @@ async fn sync_enviar(st: State<'_, Estado>, aparelho: String, eventos: Vec<Value
     })
     .await?;
     let nova = sincronia::Pendencia { n: ultimo, enviados: p.enviados + enviados };
-    com_banco(&st, |b| b.kv_set("sync_envio", &serde_json::to_value(nova).map_err(|e| e.to_string())?))?;
+    com_banco(&st, |b| b.kv_set(&chave_envio, &serde_json::to_value(nova).map_err(|e| e.to_string())?))?;
     Ok(enviados)
 }
 
 #[tauri::command]
 async fn sync_receber(st: State<'_, Estado>, aparelho: String) -> R<usize> {
     let f = exigir_familia(&st)?;
+    let chave_lidos = format!("sync_lidos:{}", f.familia_id);
     let mut lidos: std::collections::BTreeMap<String, u32> =
-        com_banco(&st, |b| Ok(b.kv_get("sync_lidos")?.and_then(|v| serde_json::from_value(v).ok()).unwrap_or_default()))?;
+        com_banco(&st, |b| Ok(b.kv_get(&chave_lidos)?.and_then(|v| serde_json::from_value(v).ok()).unwrap_or_default()))?;
     let (f2, ap, l2) = (f.clone(), aparelho.clone(), lidos.clone());
     let novos = rede(move || sincronia::novos_pacotes(&remoto::GitHub::new(&f2.repo, &f2.token), &ap, &l2)).await?;
     let mut entraram = 0;
     for (dono, n) in novos {
         let g = f.clone();
         let d = dono.clone();
-        // Pacote que não decifra (outra chave, corrompido): pula e segue; os outros continuam chegando.
-        let evs = match rede(move || sincronia::baixar_pacote(&remoto::GitHub::new(&g.repo, &g.token), &g, &d, n)).await {
-            Ok(evs) => evs,
-            Err(e) if e.starts_with("TOKEN:") || e.starts_with("sem conexão") => return Err(e),
-            Err(_) => vec![],
+        // Erro de rede ou pacote ausente: aborta e tenta no próximo ciclo. Só o que não decifra é pulado.
+        let evs = match rede(move || sincronia::baixar_ou_pular(&remoto::GitHub::new(&g.repo, &g.token), &g, &d, n)).await? {
+            sincronia::Baixado::Eventos(evs) => evs,
+            sincronia::Baixado::Ilegivel => vec![],
         };
         entraram += com_banco(&st, |b| {
             let mut c = 0;
-            for ev in &evs {
+            // evento sem id é descartado: um malformado não pode travar o recebimento para sempre
+            for ev in evs.iter().filter(|e| e.get("id").is_some()) {
                 if b.gravar_novo(ev)? {
                     c += 1;
                 }
@@ -177,7 +179,7 @@ async fn sync_receber(st: State<'_, Estado>, aparelho: String) -> R<usize> {
             Ok(c)
         })?;
         lidos.insert(dono, n);
-        com_banco(&st, |b| b.kv_set("sync_lidos", &serde_json::to_value(&lidos).map_err(|e| e.to_string())?))?;
+        com_banco(&st, |b| b.kv_set(&chave_lidos, &serde_json::to_value(&lidos).map_err(|e| e.to_string())?))?;
     }
     Ok(entraram)
 }

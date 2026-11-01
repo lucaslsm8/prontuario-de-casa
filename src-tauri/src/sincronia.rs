@@ -68,21 +68,30 @@ pub fn novos_pacotes(remoto: &dyn Remoto, aparelho: &str, lidos: &BTreeMap<Strin
         ns.sort_unstable();
         ns.dedup();
         // só a sequência sem buracos a partir de ja + 1: quem avança `lidos` nunca pula um pacote ainda não listado
-        let mut esperado = ja + 1;
-        for n in ns {
+        for (n, esperado) in ns.into_iter().zip(ja + 1..) {
             if n != esperado {
                 break;
             }
             out.push((dono.clone(), n));
-            esperado += 1;
         }
     }
     Ok(out)
 }
 
-pub fn baixar_pacote(remoto: &dyn Remoto, f: &Familia, dono: &str, n: u32) -> R<Vec<Value>> {
+pub enum Baixado {
+    Eventos(Vec<Value>),
+    /// Baixou, mas não decifra (outra chave, corrompido): quem chama pula o pacote.
+    Ilegivel,
+}
+
+/// Erro de rede ou pacote ausente = Err (tenta de novo no próximo ciclo); só falha ao decifrar vira `Ilegivel`.
+pub fn baixar_ou_pular(remoto: &dyn Remoto, f: &Familia, dono: &str, n: u32) -> R<Baixado> {
     let bytes = remoto.baixar(&pacote::nome(dono, n))?.ok_or_else(|| format!("{} sumiu do repositório", pacote::nome(dono, n)))?;
-    pacote::desempacotar(&f.chave_bytes()?, &f.familia_id, dono, n, &bytes)
+    let chave = f.chave_bytes()?;
+    Ok(match pacote::desempacotar(&chave, &f.familia_id, dono, n, &bytes) {
+        Ok(evs) => Baixado::Eventos(evs),
+        Err(_) => Baixado::Ilegivel,
+    })
 }
 
 #[cfg(test)]
@@ -109,7 +118,13 @@ mod testes {
         let mut lidos = BTreeMap::new();
         let novos = novos_pacotes(&m, "cel-b", &lidos).unwrap();
         assert_eq!(novos, [("pc-a".to_string(), 1), ("pc-a".to_string(), 2)]);
-        let recebidos: Vec<Value> = novos.iter().flat_map(|(d, n)| baixar_pacote(&m, &f, d, *n).unwrap()).collect();
+        let recebidos: Vec<Value> = novos
+            .iter()
+            .flat_map(|(d, n)| match baixar_ou_pular(&m, &f, d, *n).unwrap() {
+                Baixado::Eventos(e) => e,
+                Baixado::Ilegivel => panic!("deveria abrir"),
+            })
+            .collect();
         assert_eq!(recebidos, evs(&["1", "2", "3"]));
         lidos.insert("pc-a".to_string(), 2);
         assert!(novos_pacotes(&m, "cel-b", &lidos).unwrap().is_empty());
@@ -121,7 +136,13 @@ mod testes {
         let m = Memoria::default();
         let f = Familia::nova("a/b", "t");
         enviar(&m, &f, "pc-a", &preparar_envio(&evs(&["1"]), 0, 1)).unwrap();
-        assert!(baixar_pacote(&m, &Familia::nova("a/b", "t"), "pc-a", 1).is_err());
+        assert!(matches!(baixar_ou_pular(&m, &Familia::nova("a/b", "t"), "pc-a", 1), Ok(Baixado::Ilegivel)));
+    }
+
+    #[test]
+    fn pacote_ausente_e_erro_e_nao_pulo() {
+        let m = Memoria::default();
+        assert!(baixar_ou_pular(&m, &Familia::nova("a/b", "t"), "pc-a", 1).is_err());
     }
 
     #[test]
