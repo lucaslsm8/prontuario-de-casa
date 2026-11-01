@@ -9,6 +9,8 @@ export interface Evento {
   id: string;
   em: string;              // ISO, hora em que aconteceu
   autor?: string;          // pessoa que fez a mudança
+  aparelho?: string;       // aparelhoId de quem criou o evento
+  hlc?: string;            // relógio lógico híbrido (src/data/hlc.ts); ordena o log
   tipo: string;
   dados: Record<string, unknown>;
 }
