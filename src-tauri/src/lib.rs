@@ -6,6 +6,7 @@ mod lembretes;
 mod notificacao;
 mod pacote;
 mod remoto;
+mod sincronia;
 
 use banco::Banco;
 use serde::Serialize;

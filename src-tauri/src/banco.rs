@@ -75,6 +75,27 @@ impl Banco {
         Ok(())
     }
 
+    /// Como `gravar`, mas diz se o evento era novo (sincronização).
+    pub fn gravar_novo(&self, ev: &Value) -> R<bool> {
+        let id = ev.get("id").and_then(Value::as_str).ok_or("evento sem id")?;
+        let blob = self.cofre.cifrar(&serde_json::to_vec(ev).map_err(e)?, id.as_bytes()).map_err(e)?;
+        let n = self.conn.execute("INSERT OR IGNORE INTO eventos (id, dados) VALUES (?1, ?2)", params![id, blob]).map_err(e)?;
+        Ok(n > 0)
+    }
+
+    /// Junta eventos ao log sem apagar nada (restaurar backup num aparelho da família). Devolve quantos eram novos.
+    pub fn mesclar(&mut self, evs: &[Value]) -> R<usize> {
+        let tx = self.conn.transaction().map_err(e)?;
+        let mut novos = 0;
+        for ev in evs {
+            let id = ev.get("id").and_then(Value::as_str).ok_or("evento sem id")?;
+            let blob = self.cofre.cifrar(&serde_json::to_vec(ev).map_err(e)?, id.as_bytes()).map_err(e)?;
+            novos += tx.execute("INSERT OR IGNORE INTO eventos (id, dados) VALUES (?1, ?2)", params![id, blob]).map_err(e)?;
+        }
+        tx.commit().map_err(e)?;
+        Ok(novos)
+    }
+
     /// Substitui o log inteiro (restaurar backup). Tudo numa transação.
     pub fn substituir(&mut self, evs: &[Value]) -> R<()> {
         let mut blobs = Vec::with_capacity(evs.len());
@@ -168,5 +189,17 @@ mod testes {
         b.substituir(&[json!({"id": "y"}), json!({"id": "z"})]).unwrap();
         let ids: Vec<_> = b.eventos().unwrap().into_iter().map(|v| v["id"].as_str().unwrap().to_string()).collect();
         assert_eq!(ids, ["y", "z"]);
+    }
+
+    #[test]
+    fn mesclar_so_acrescenta() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut b = Banco::abrir(&dir.path().join("t.db"), &aleatorio::<32>()).unwrap();
+        b.gravar(&json!({"id": "x"})).unwrap();
+        assert!(!b.gravar_novo(&json!({"id": "x"})).unwrap());
+        assert!(b.gravar_novo(&json!({"id": "y"})).unwrap());
+        assert_eq!(b.mesclar(&[json!({"id": "y"}), json!({"id": "z"})]).unwrap(), 1);
+        let ids: Vec<_> = b.eventos().unwrap().into_iter().map(|v| v["id"].as_str().unwrap().to_string()).collect();
+        assert_eq!(ids, ["x", "y", "z"]);
     }
 }
