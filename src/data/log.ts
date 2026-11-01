@@ -48,9 +48,9 @@ export interface CursorEnvio { ultimoId: string | null; recebidos: string[] }
  *  Se `ultimoId` não está no log (backup antigo restaurado fora da família), manda todos: duplicatas são ignoradas. */
 export function eventosParaEnviar(eventos: Evento[], cursor: CursorEnvio): Evento[] {
   const lidos = new Set(cursor.recebidos);
-  const meus = eventos.filter((e) => !e.aparelho || !lidos.has(e.aparelho));
-  const i = cursor.ultimoId === null ? -1 : meus.findIndex((e) => e.id === cursor.ultimoId);
-  return meus.slice(i + 1);
+  // O último enviado é procurado no log inteiro: ele pode ser de um aparelho que só depois passou a ser lido.
+  const i = cursor.ultimoId === null ? -1 : eventos.findIndex((e) => e.id === cursor.ultimoId);
+  return eventos.slice(i + 1).filter((e) => !e.aparelho || !lidos.has(e.aparelho));
 }
 
 export const ultimoHlc = (eventos: Evento[]): Hlc | null => eventos.reduce<Hlc | null>((u, e) => (e.hlc ? maior(u, lerHlc(e.hlc)) : u), null);

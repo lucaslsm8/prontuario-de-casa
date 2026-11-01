@@ -64,11 +64,23 @@ export async function sincronizar(store: { api: Pick<Store['api'], 'aparelhoId' 
   mudar({ estado: 'sincronizando', erro: undefined, token: undefined });
   let r: ResultadoSync;
   try {
-    await persistencia.syncEnviar(aparelho, await api.eventosParaEnviar());
-    const chegaram = await persistencia.syncReceber(aparelho);
+    // Erro no envio não impede o recebimento; a rodada termina mostrando o erro do envio.
+    let erroEnvio: unknown = null;
+    try {
+      await persistencia.syncEnviar(aparelho, await api.eventosParaEnviar());
+    } catch (e) { erroEnvio = e; }
+    let chegaram: number;
+    try {
+      chegaram = await persistencia.syncReceber(aparelho);
+    } catch (e) {
+      // Pode ter gravado parte dos pacotes antes de falhar: a próxima rodada boa reprojeta mesmo sem nada novo.
+      reprojetarPendente = true;
+      throw e;
+    }
     if (chegaram > 0) reprojetarPendente = true;
     // Se o recarregamento falhar, a próxima rodada tenta de novo mesmo sem eventos novos.
     if (reprojetarPendente) { await api.recarregar(); reprojetarPendente = false; }
+    if (erroEnvio !== null) throw erroEnvio;
     mudar({ estado: 'ok', ultima: new Date().toISOString(), via: 'GitHub' });
     if (manual) api.toast({ texto: chegaram ? `${chegaram === 1 ? '1 mudança chegou' : `${chegaram} mudanças chegaram`} da família` : 'Tudo sincronizado' });
     r = { ok: true };

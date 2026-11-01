@@ -41,6 +41,26 @@ describe('sincronização', () => {
     expect(await segunda).toEqual({ ok: false, erro: 'o GitHub respondeu 500' });
   });
 
+  it('erro no envio não impede o recebimento; a rodada mostra o erro do envio', async () => {
+    p.syncEnviar.mockRejectedValue(new Error('o GitHub respondeu 500'));
+    p.syncReceber.mockResolvedValue(2);
+    const s = store();
+    expect(await sincronizar(s)).toEqual({ ok: false, erro: 'o GitHub respondeu 500' });
+    expect(p.syncReceber).toHaveBeenCalled();
+    expect(s.api.recarregar).toHaveBeenCalled();
+    expect(info().estado).toBe('erro');
+  });
+
+  it('recebimento que falhou no meio reprojeta na próxima rodada, mesmo sem nada novo', async () => {
+    p.syncEnviar.mockResolvedValue(0);
+    p.syncReceber.mockRejectedValueOnce(new Error('sem conexão com o GitHub')).mockResolvedValueOnce(0);
+    const s = store();
+    expect((await sincronizar(s)).ok).toBe(false);
+    expect(s.api.recarregar).not.toHaveBeenCalled();
+    expect(await sincronizar(s)).toEqual({ ok: true });
+    expect(s.api.recarregar).toHaveBeenCalledTimes(1);
+  });
+
   it('carregarFamilia com erro mantém a família e marca o erro', async () => {
     p.familiaInfo.mockRejectedValue(new Error('banco ocupado'));
     await carregarFamilia();

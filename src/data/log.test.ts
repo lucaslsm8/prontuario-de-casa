@@ -69,6 +69,8 @@ describe('log', () => {
     expect(ids({ ultimoId: '4', recebidos: ['cel-b'] })).toEqual([]);
     // Último enviado que não está mais no log (backup antigo restaurado fora da família): manda tudo de novo.
     expect(ids({ ultimoId: 'sumiu', recebidos: [] })).toEqual(['1', '2', '3', '4']);
+    // O último enviado é de um aparelho que depois passou a ser lido: o recorte continua dele, não recomeça.
+    expect(ids({ ultimoId: '3', recebidos: ['cel-b', 'pc-x'] })).toEqual(['4']);
   });
 });
 

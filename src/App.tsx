@@ -215,7 +215,8 @@ function NaoDesenhadaNoDesktop() {
 function useBloqueioPorInatividade(layout: Layout) {
   const { state, api } = useStore();
   const tempo = layout === 'mobile' ? state.config.bloqueioMobile : state.config.bloqueioDesktop;
-  const ativo = MODO_REAL && state.temSenha && temEu(state) && !state.bloqueado && (layout === 'mobile' || state.config.senhaAoAbrir);
+  // Não depende do "eu": também bloqueia no "Quem é você?" e no "Proteja o app" quando já há senha.
+  const ativo = MODO_REAL && state.temSenha && !state.bloqueado && (layout === 'mobile' || state.config.senhaAoAbrir);
   useEffect(() => {
     if (!ativo) return;
     const ms = (parseInt(tempo, 10) || 1) * (tempo.includes('segundo') ? 1000 : 60000);
