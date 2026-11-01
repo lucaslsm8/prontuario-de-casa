@@ -1,0 +1,65 @@
+/* ── Gráficos de progresso (src/ui/Grafico.tsx) ──────────────────────────── */
+.grafico { position: relative; width: 100%; min-width: 0; }
+.grafico svg { display: block; overflow: visible; touch-action: pan-y; }
+.grafico--vazio { display: grid; place-items: center; font-size: 13px; color: var(--text-3); background: var(--bg); border-radius: var(--r-btn); }
+.grafico__faixa { fill: var(--teal-light); opacity: .7; }
+.grafico__grade { stroke: var(--divider); stroke-width: 1; }
+.grafico__eixo { font-family: var(--font-mono); font-size: 10px; fill: var(--text-3); }
+.grafico__linha { fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.grafico__ponto { fill: #fff; stroke: currentColor; stroke-width: 2; }
+.grafico__foco line { stroke: var(--text-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.grafico__foco circle { fill: currentColor; stroke: #fff; stroke-width: 2; }
+.grafico__dica {
+  position: absolute; top: -6px; transform: translate(-50%, -100%); padding: 4px 8px; border-radius: 4px;
+  background: var(--ink); color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap; pointer-events: none;
+}
+.grafico__nota { display: block; padding-top: 4px; font-size: 12px; color: var(--text-3); }
+.grafico__legenda { display: flex; gap: 14px; font-size: 12px; color: var(--text-2); }
+.grafico__legenda span { display: inline-flex; align-items: center; gap: 6px; }
+.grafico__legenda i { width: 10px; height: 3px; border-radius: 2px; background: currentColor; display: inline-block; }
+
+/* Cartão de uma medição: valor atual, variação e o gráfico. */
+.medida { padding: 16px 18px; gap: 10px; }
+.medida__topo { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.medida__nome { font-size: 13px; color: var(--text-2); }
+.medida__valor { font-size: 26px; font-weight: 600; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.medida__valor small { font-size: 13px; font-weight: 400; color: var(--text-2); margin-left: 4px; }
+.medida__sub { font-size: 12px; color: var(--text-2); }
+.medida__var { font-family: var(--font-mono); font-size: 12px; color: var(--text-2); white-space: nowrap; }
+
+/* Valores do exame (src/ui/Resultados.tsx). */
+.resultados { display: flex; flex-direction: column; font-size: 14px; }
+.resultado { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px 0; border-bottom: 1px solid var(--divider); }
+.resultado:last-child { border-bottom: 0; }
+.resultado__ref { font-size: 12px; color: var(--text-3); }
+.resultado__valor { font-family: var(--font-mono); font-weight: 500; white-space: nowrap; }
+.resultado__valor.is-fora, .medida__valor.is-fora { color: var(--warn-text); }
+.resultado--novo .inline-input { flex: 1; min-width: 0; text-align: left; font-weight: 400; height: 36px; border: 1px solid var(--border-input); border-radius: var(--r-btn); padding: 0 10px; }
+.resultado--novo .inline-input:first-child { flex: 2; }
+
+/* Busca global (src/ui/Busca.tsx). */
+.busca__fundo { align-items: start; padding-top: 12vh; }
+.busca { width: 620px; max-width: calc(100vw - 32px); background: var(--surface); border-radius: var(--r-plan); box-shadow: var(--shadow-modal); overflow: hidden; display: flex; flex-direction: column; animation: dlg-in var(--t) var(--ease); }
+.busca__input { height: 56px; border: 0; border-bottom: 1px solid var(--divider); padding: 0 20px; font: inherit; font-size: 17px; outline: none; background: transparent; color: var(--ink); }
+.busca__lista { display: flex; flex-direction: column; max-height: 52vh; overflow-y: auto; padding: 6px; }
+.phone .busca__lista { max-height: none; padding: 0; background: var(--surface); border: 1px solid var(--border-card); border-radius: var(--r-card); }
+.busca__item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; min-height: 52px; border-radius: var(--r-btn); text-align: left; transition: background var(--t) var(--ease); }
+.busca__item:hover, .busca__item.is-ativo { background: var(--teal-light); }
+.busca__tipo { width: 76px; flex: none; font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; color: var(--text-2); text-transform: uppercase; }
+.busca__titulo { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.busca__sub { font-size: 12px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.busca__vazio { padding: 16px 20px; font-size: 13px; color: var(--text-3); }
+.sidebar__busca { display: flex; align-items: center; justify-content: space-between; height: 38px; padding: 0 12px; border-radius: var(--r-btn); border: 1px solid var(--border-card); color: var(--text-3); font-size: 13px; transition: border-color var(--t) var(--ease); }
+.sidebar__busca:hover { border-color: var(--text-3); }
+.sidebar__busca kbd { font-family: var(--font-mono); font-size: 11px; }
+
+/* Linha do tempo. */
+.tempo { display: flex; flex-direction: column; gap: 18px; }
+.tempo__mes { display: flex; flex-direction: column; gap: 2px; }
+.tempo__mes .label { padding-bottom: 6px; }
+.tempo__item { display: flex; align-items: flex-start; gap: 12px; padding: 8px 4px; text-align: left; border-radius: var(--r-btn); font-size: 14px; position: relative; }
+button.tempo__item:hover { background: var(--teal-light); }
+.tempo__dia { width: 22px; flex: none; color: var(--text-2); padding-top: 1px; }
+.tempo__ponto { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); flex: none; margin-top: 6px; }
+.tempo__tipo { font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em; color: var(--text-2); text-transform: uppercase; margin-right: 4px; }
+.tempo__sub { font-size: 12px; color: var(--text-2); }

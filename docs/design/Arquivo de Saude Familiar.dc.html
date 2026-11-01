@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#E6EBEC;font-family:'IBM Plex Sans',sans-serif;color:#14202A;-webkit-font-smoothing:antialiased}a{color:#1F6E74}a:hover{color:#14484C}*{box-sizing:border-box}</style>
+</helmet>
+<section style="padding:64px 72px 120px;display:flex;flex-direction:column;gap:56px">
+<div style="display:flex;flex-direction:column;gap:10px;max-width:820px">
+<div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5B6B75">Ficha calma · 23 telas mobile + 8 desktop</div>
+<h1 style="margin:0;font-size:40px;font-weight:600;letter-spacing:-.02em">Arquivo de saúde da família</h1>
+<p style="margin:0;font-size:17px;line-height:1.55;color:#5B6B75;text-wrap:pretty">Helena está logada. Roberto compartilha o perfil completo com ela; Pedro compartilha só remédios e plano. Dados ficam no aparelho, com backup criptografado opcional.</p>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:20px">
+<span style="font-size:22px;font-weight:600">Mobile</span>
+<div style="display:flex;flex-wrap:wrap;gap:40px 32px;align-items:flex-start">
+
+<!-- M01 ONBOARDING -->
+<div data-screen-label="M01 Onboarding" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M01 · Boas-vindas</span>
+<div style="width:390px;height:844px;background:#F4F7F7;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column;position:relative">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="flex:1;padding:24px 24px 34px;display:flex;flex-direction:column;gap:32px">
+<div style="position:relative;height:300px">
+<div style="position:absolute;left:24px;right:24px;top:0;height:120px;background:#fff;border:1px solid #DFE6E7;border-radius:18px;transform:rotate(-4deg);padding:16px;display:flex;flex-direction:column;gap:6px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;color:#8C9AA2">PLANO</span><span style="font-family:'IBM Plex Mono',monospace;font-size:16px">0 123 4567 8901</span></div>
+<div style="position:absolute;left:8px;right:40px;top:90px;height:110px;background:#fff;border:1px solid #DFE6E7;border-radius:18px;transform:rotate(3deg);padding:16px;display:flex;flex-direction:column;gap:6px;box-shadow:0 12px 24px -16px rgba(20,40,50,.3)"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;color:#8C9AA2">21:00</span><span style="font-size:17px;font-weight:600">Sinvastatina 20 mg</span><span style="font-size:13px;color:#5B6B75">Roberto</span></div>
+<div style="position:absolute;left:36px;right:12px;top:176px;height:112px;background:#1F6E74;color:#fff;border-radius:18px;transform:rotate(-1.5deg);padding:16px;display:flex;flex-direction:column;gap:6px;box-shadow:0 16px 30px -16px rgba(20,60,70,.5)"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;opacity:.75">05 NOV · 10:00</span><span style="font-size:17px;font-weight:600">Cardiologista</span><span style="font-size:13px;opacity:.8">Levar eletrocardiograma</span></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px"><span style="font-size:32px;font-weight:600;letter-spacing:-.02em;line-height:1.12;text-wrap:pretty">A saúde da sua família, organizada num lugar só.</span><span style="font-size:16px;line-height:1.5;color:#5B6B75;text-wrap:pretty">Remédios com lembrete, consultas, exames e a carteirinha do plano, de cada pessoa da casa.</span></div>
+<div style="margin-top:auto;display:flex;flex-direction:column;gap:12px">
+<sc-if value="{{ showLock }}" hint-placeholder-val="{{ true }}"><div style="display:flex;gap:8px;align-items:center;justify-content:center;font-size:13px;color:#5B6B75"><span style="display:flex;flex-direction:column;align-items:center"><span style="width:7px;height:5px;border:1.4px solid currentColor;border-bottom:none;border-radius:4px 4px 0 0"></span><span style="width:10px;height:8px;background:currentColor;border-radius:2px"></span></span>Tudo fica guardado neste aparelho</div></sc-if>
+<div style="height:54px;border-radius:14px;background:#14202A;color:#fff;display:grid;place-items:center;font-size:16px;font-weight:600">Começar</div>
+<div style="height:48px;display:grid;place-items:center;font-size:15px;font-weight:600;color:#1F6E74">Restaurar um backup</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- M02 CADASTRO -->
+<div data-screen-label="M02 Cadastro de membro" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M02 · Cadastro de membro</span>
+<div style="width:390px;height:844px;background:#F4F7F7;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="flex:1;padding:14px 20px 34px;display:flex;flex-direction:column;gap:22px">
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:15px;color:#1F6E74;font-weight:500"><span>‹ Voltar</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">2 de 3</span></div>
+<div style="display:flex;gap:6px"><span style="flex:1;height:4px;border-radius:2px;background:#1F6E74"></span><span style="flex:1;height:4px;border-radius:2px;background:#1F6E74"></span><span style="flex:1;height:4px;border-radius:2px;background:#D3DBDD"></span></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:26px;font-weight:600;letter-spacing:-.01em">Quem vamos adicionar?</span><span style="font-size:15px;color:#5B6B75">Só o nome é obrigatório. O resto pode vir depois.</span></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:500;color:#5B6B75">Nome</span><div style="height:52px;border-radius:12px;background:#fff;border:1.5px solid #1F6E74;padding:0 16px;display:flex;align-items:center;font-size:16px">Roberto Carlos Almeida</div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:500;color:#5B6B75">Data de nascimento</span><div style="height:52px;border-radius:12px;background:#fff;border:1px solid #DFE6E7;padding:0 16px;display:flex;align-items:center;font-size:16px;font-family:'IBM Plex Mono',monospace">14/02/1965</div></div>
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;font-weight:500;color:#5B6B75">Parentesco com você</span><div style="display:flex;flex-wrap:wrap;gap:8px;font-size:14px;font-weight:500"><span style="height:40px;padding:0 14px;border-radius:99px;background:#14202A;color:#fff;display:grid;place-items:center">Cônjuge</span><span style="height:40px;padding:0 14px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Filho(a)</span><span style="height:40px;padding:0 14px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Pai ou mãe</span><span style="height:40px;padding:0 14px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Outro</span></div></div>
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;font-weight:500;color:#5B6B75">Tipo sanguíneo</span><div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;font-size:14px;font-weight:600;font-family:'IBM Plex Mono',monospace"><span style="height:44px;border-radius:10px;background:#E3F0F0;border:1.5px solid #1F6E74;color:#1F6E74;display:grid;place-items:center">A+</span><span style="height:44px;border-radius:10px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">A−</span><span style="height:44px;border-radius:10px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">B+</span><span style="height:44px;border-radius:10px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">B−</span><span style="height:44px;border-radius:10px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">AB+</span><span style="height:44px;border-radius:10px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">AB−</span><span style="height:44px;border-radius:10px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">O+</span><span style="height:44px;border-radius:10px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">O−</span><span style="grid-column:span 2;height:44px;border-radius:10px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center;font-family:'IBM Plex Sans',sans-serif;font-weight:500">Não sei</span></div></div>
+<div style="margin-top:auto;height:54px;border-radius:14px;background:#14202A;color:#fff;display:grid;place-items:center;font-size:16px;font-weight:600">Continuar</div>
+</div>
+</div>
+</div>
+
+<!-- M03 INÍCIO -->
+<div data-screen-label="M03 Início" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M03 · Início</span>
+<div style="width:390px;height:844px;background:#F4F7F7;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column;position:relative">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="flex:1;padding:14px 20px 0;display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px;color:#5B6B75">Quarta, 28 de outubro</span><span style="font-size:28px;font-weight:600;letter-spacing:-.02em">Olá, Helena</span></div><div style="display:flex"><span style="width:36px;height:36px;border-radius:50%;background:#D6E8E9;border:2px solid #F4F7F7;display:grid;place-items:center;font-size:13px;font-weight:600">R</span><span style="width:36px;height:36px;border-radius:50%;background:#E2E0EE;border:2px solid #F4F7F7;display:grid;place-items:center;font-size:13px;font-weight:600;margin-left:-9px">A</span><span style="width:36px;height:36px;border-radius:50%;background:#EEE7D6;border:2px solid #F4F7F7;display:grid;place-items:center;font-size:13px;font-weight:600;margin-left:-9px">L</span></div></div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+<div style="padding:14px;border-radius:16px;background:#fff;border:1px solid #DFE6E7;display:flex;flex-direction:column;gap:2px"><span style="font-size:24px;font-weight:600">2/3</span><span style="font-size:12px;color:#5B6B75">doses hoje</span></div>
+<div style="padding:14px;border-radius:16px;background:#fff;border:1px solid #DFE6E7;display:flex;flex-direction:column;gap:2px"><span style="font-size:24px;font-weight:600">2</span><span style="font-size:12px;color:#5B6B75">consultas em nov</span></div>
+<div style="padding:14px;border-radius:16px;background:#FBEEE8;display:flex;flex-direction:column;gap:2px"><span style="font-size:24px;font-weight:600;color:#9A4524">1</span><span style="font-size:12px;color:#9A4524">estoque baixo</span></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#5B6B75">Hoje</span>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column">
+<div style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid #E9EEEF"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#8C9AA2">06:30</span><div style="flex:1;display:flex;flex-direction:column"><span style="font-size:15px;font-weight:500;color:#8C9AA2">Levotiroxina 75 mcg</span><span style="font-size:12px;color:#8C9AA2">Você</span></div><span style="height:26px;padding:0 10px;border-radius:99px;background:#E3F0F0;color:#1F6E74;font-size:12px;font-weight:600;display:grid;place-items:center">Tomado</span></div>
+<div style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid #E9EEEF"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#8C9AA2">08:00</span><div style="flex:1;display:flex;flex-direction:column"><span style="font-size:15px;font-weight:500;color:#8C9AA2">Losartana 50 mg</span><span style="font-size:12px;color:#8C9AA2">Roberto</span></div><span style="height:26px;padding:0 10px;border-radius:99px;background:#E3F0F0;color:#1F6E74;font-size:12px;font-weight:600;display:grid;place-items:center">Tomado</span></div>
+<div style="display:flex;align-items:center;gap:12px;padding:13px 14px"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500">21:00</span><div style="flex:1;display:flex;flex-direction:column"><span style="font-size:15px;font-weight:600">Sinvastatina 20 mg</span><span style="font-size:12px;color:#5B6B75">Roberto</span></div><span style="height:40px;padding:0 14px;border-radius:10px;background:#1F6E74;color:#fff;font-size:13px;font-weight:600;display:grid;place-items:center">Marcar</span></div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#5B6B75">Próximos</span>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column">
+<div style="display:flex;gap:14px;padding:13px 14px;border-bottom:1px solid #E9EEEF;align-items:center"><div style="width:44px;display:flex;flex-direction:column;align-items:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5B6B75">NOV</span><span style="font-size:20px;font-weight:600">05</span></div><div style="flex:1;display:flex;flex-direction:column"><span style="font-size:15px;font-weight:600">Cardiologista</span><span style="font-size:12px;color:#5B6B75">Roberto · 10:00 · Dr. Paulo Mendes</span></div></div>
+<div style="display:flex;gap:14px;padding:13px 14px;align-items:center"><div style="width:44px;display:flex;flex-direction:column;align-items:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5B6B75">NOV</span><span style="font-size:20px;font-weight:600">10</span></div><div style="flex:1;display:flex;flex-direction:column"><span style="font-size:15px;font-weight:600">Exame TSH e T4 livre</span><span style="font-size:12px;color:#5B6B75">Você · 07:30 · jejum de 4 h</span></div></div>
+</div>
+</div>
+</div>
+<div style="position:absolute;left:16px;right:16px;bottom:26px;height:62px;border-radius:22px;background:#14202A;display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-size:12px;font-weight:600;color:#A7B4BB"><span style="height:46px;padding:0 14px;border-radius:16px;background:#E3F0F0;color:#14202A;display:grid;place-items:center">Início</span><span style="padding:0 8px">Agenda</span><span style="padding:0 8px">Remédios</span><span style="padding:0 8px">Exames</span><span style="padding:0 8px">Família</span></div>
+</div>
+</div>
+
+<!-- M04 PERFIL -->
+<div data-screen-label="M04 Perfil do membro" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M04 · Perfil do membro + perfil clínico</span>
+<div style="width:390px;height:844px;background:#F4F7F7;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="flex:1;padding:14px 20px 0;display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;justify-content:space-between;font-size:15px;font-weight:500;color:#1F6E74"><span>‹ Família</span><span>Editar</span></div>
+<div style="display:flex;gap:14px;align-items:center"><span style="width:60px;height:60px;border-radius:50%;background:#E2E0EE;display:grid;place-items:center;font-size:22px;font-weight:600">A</span><div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:24px;font-weight:600;letter-spacing:-.01em">Roberto Almeida</span><span style="font-size:13px;color:#5B6B75">61 anos · cônjuge · compartilha tudo com você</span></div></div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));background:#fff;border:1px solid #DFE6E7;border-radius:16px">
+<div style="padding:12px 14px;border-right:1px solid #E9EEEF;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#5B6B75">Sangue</span><span style="font-size:20px;font-weight:600">A+</span></div>
+<div style="padding:12px 14px;border-right:1px solid #E9EEEF;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#5B6B75">Peso</span><span style="font-size:20px;font-weight:600">82 kg</span></div>
+<div style="padding:12px 14px;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#5B6B75">Altura</span><span style="font-size:20px;font-weight:600">1,74 m</span></div>
+</div>
+<div style="padding:14px 16px;border-radius:16px;background:#FBEEE8;display:flex;flex-direction:column;gap:4px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#9A4524">ALERGIA</span><span style="font-size:18px;font-weight:600;color:#7A3519">Penicilina</span><span style="font-size:13px;color:#9A4524">Urticária e falta de ar (2009)</span></div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column">
+<span style="padding:12px 16px 4px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">CONDIÇÕES E HISTÓRICO</span>
+<div style="padding:10px 16px;display:flex;justify-content:space-between;font-size:15px;border-bottom:1px solid #E9EEEF"><span>Hipertensão arterial</span><span style="color:#8C9AA2">2017</span></div>
+<div style="padding:10px 16px;display:flex;justify-content:space-between;font-size:15px;border-bottom:1px solid #E9EEEF"><span>Colesterol alto</span><span style="color:#8C9AA2">2020</span></div>
+<div style="padding:10px 16px 12px;display:flex;justify-content:space-between;font-size:15px"><span>Cirurgia de vesícula</span><span style="color:#8C9AA2">2015</span></div>
+</div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column;font-size:15px">
+<div style="padding:13px 16px;display:flex;justify-content:space-between;border-bottom:1px solid #E9EEEF"><span>Remédios</span><span style="color:#5B6B75">2 em uso ›</span></div>
+<div style="padding:13px 16px;display:flex;justify-content:space-between;border-bottom:1px solid #E9EEEF"><span>Consultas</span><span style="color:#5B6B75">próxima 05/11 ›</span></div>
+<div style="padding:13px 16px;display:flex;justify-content:space-between;border-bottom:1px solid #E9EEEF"><span>Exames</span><span style="color:#5B6B75">12 arquivados ›</span></div>
+<div style="padding:13px 16px;display:flex;justify-content:space-between"><span>Plano de saúde</span><span style="color:#5B6B75">Vitalis ›</span></div>
+</div>
+<div style="height:50px;border-radius:14px;border:1.5px solid #14202A;display:grid;place-items:center;font-size:15px;font-weight:600">Ficha de emergência</div>
+</div>
+</div>
+</div>
+
+<!-- M05 REMÉDIOS -->
+<div data-screen-label="M05 Remédios" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M05 · Remédios</span>
+<div style="width:390px;height:844px;background:#F4F7F7;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column;position:relative">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="flex:1;padding:14px 20px 0;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:28px;font-weight:600;letter-spacing:-.02em">Remédios</span><span style="width:44px;height:44px;border-radius:14px;background:#1F6E74;color:#fff;display:grid;place-items:center;font-size:24px">+</span></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;padding:4px;border-radius:12px;background:#E3E9EA;font-size:14px;font-weight:600"><span style="height:36px;border-radius:9px;background:#fff;display:grid;place-items:center;box-shadow:0 1px 2px rgba(20,40,50,.1)">Em uso · 4</span><span style="height:36px;display:grid;place-items:center;color:#5B6B75">Encerrados</span></div>
+<div style="display:flex;gap:6px;font-size:13px;font-weight:500"><span style="height:34px;padding:0 12px;border-radius:99px;background:#14202A;color:#fff;display:grid;place-items:center">Todos</span><span style="height:34px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Você</span><span style="height:34px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Roberto</span><span style="height:34px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Pedro</span></div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:16px;font-weight:600">Levotiroxina 75 mcg</span><span style="font-size:13px;color:#5B6B75">Você · 1 comp. às 06:30, em jejum</span></div><span style="height:24px;padding:0 8px;border-radius:99px;background:#FBEEE8;color:#9A4524;font-size:11px;font-weight:600;display:grid;place-items:center">Repor</span></div><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;height:5px;border-radius:3px;background:#E9EEEF"><div style="width:14%;height:100%;border-radius:3px;background:#C4643E"></div></div><span style="font-size:12px;font-weight:600;color:#9A4524">4 dias</span></div></div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:16px;font-weight:600">Losartana 50 mg</span><span style="font-size:13px;color:#5B6B75">Roberto · 1 comp. às 08:00</span></div><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;height:5px;border-radius:3px;background:#E9EEEF"><div style="width:40%;height:100%;border-radius:3px;background:#1F6E74"></div></div><span style="font-size:12px;color:#5B6B75">12 dias</span></div></div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:16px;font-weight:600">Sinvastatina 20 mg</span><span style="font-size:13px;color:#5B6B75">Roberto · 1 comp. às 21:00</span></div><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;height:5px;border-radius:3px;background:#E9EEEF"><div style="width:86%;height:100%;border-radius:3px;background:#1F6E74"></div></div><span style="font-size:12px;color:#5B6B75">26 dias</span></div></div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:16px;font-weight:600">Loratadina 10 mg</span><span style="font-size:13px;color:#5B6B75">Pedro · se necessário</span></div><span style="font-size:12px;color:#8C9AA2">sem horário</span></div>
+</div>
+</div>
+<div style="position:absolute;left:16px;right:16px;bottom:26px;height:62px;border-radius:22px;background:#14202A;display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-size:12px;font-weight:600;color:#A7B4BB"><span style="padding:0 8px">Início</span><span style="padding:0 8px">Agenda</span><span style="height:46px;padding:0 14px;border-radius:16px;background:#E3F0F0;color:#14202A;display:grid;place-items:center">Remédios</span><span style="padding:0 8px">Exames</span><span style="padding:0 8px">Família</span></div>
+</div>
+</div>
+
+<!-- M06 NOVO REMÉDIO -->
+<div data-screen-label="M06 Novo remédio" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M06 · Novo remédio + lembrete</span>
+<div style="width:390px;height:844px;background:#F4F7F7;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="flex:1;padding:14px 20px 34px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:15px"><span style="color:#1F6E74;font-weight:500">Cancelar</span><span style="font-weight:600">Novo remédio</span><span style="color:#8C9AA2">Salvar</span></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:500;color:#5B6B75">Remédio e dosagem</span><div style="height:52px;border-radius:12px;background:#fff;border:1.5px solid #1F6E74;padding:0 16px;display:flex;align-items:center;font-size:16px">Amoxicilina 500 mg</div></div>
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;font-weight:500;color:#5B6B75">Para quem</span><div style="display:flex;gap:8px;font-size:14px;font-weight:500"><span style="height:40px;padding:0 16px;border-radius:99px;background:#14202A;color:#fff;display:grid;place-items:center">Você</span><span style="height:40px;padding:0 16px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Roberto</span></div></div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column;font-size:15px">
+<div style="padding:11px 16px;display:flex;justify-content:space-between;border-bottom:1px solid #E9EEEF"><span style="color:#5B6B75">Dose</span><span style="font-weight:500">1 cápsula</span></div>
+<div style="padding:11px 16px;display:flex;justify-content:space-between;border-bottom:1px solid #E9EEEF"><span style="color:#5B6B75">Frequência</span><span style="font-weight:500">De 8 em 8 horas</span></div>
+<div style="padding:11px 16px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #E9EEEF"><span style="color:#5B6B75">Horários</span><div style="display:flex;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500"><span style="height:38px;padding:0 12px;border-radius:10px;background:#E3F0F0;color:#1F6E74;display:grid;place-items:center">07:00</span><span style="height:38px;padding:0 12px;border-radius:10px;background:#E3F0F0;color:#1F6E74;display:grid;place-items:center">15:00</span><span style="height:38px;padding:0 12px;border-radius:10px;background:#E3F0F0;color:#1F6E74;display:grid;place-items:center">23:00</span></div></div>
+<div style="padding:11px 16px;display:flex;justify-content:space-between"><span style="color:#5B6B75">Duração</span><span style="font-weight:500">7 dias · até 04/11</span></div>
+</div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column;font-size:15px">
+<div style="padding:11px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #E9EEEF"><span>Lembrete no horário</span><span style="width:46px;height:28px;border-radius:99px;background:#1F6E74;position:relative"><span style="position:absolute;right:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff"></span></span></div>
+<div style="padding:11px 16px;display:flex;justify-content:space-between;border-bottom:1px solid #E9EEEF"><span style="color:#5B6B75">Estoque atual</span><span style="font-weight:500">21 cápsulas</span></div>
+<div style="padding:11px 16px;display:flex;justify-content:space-between"><span style="color:#5B6B75">Avisar para repor</span><span style="font-weight:500">3 dias antes</span></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:500;color:#5B6B75">Receita (opcional)</span><div style="height:52px;border-radius:12px;border:1.5px dashed #C3CED1;display:grid;place-items:center;font-size:14px;font-weight:500;color:#1F6E74">Fotografar receita</div></div>
+<div style="margin-top:auto;height:54px;border-radius:14px;background:#14202A;color:#fff;display:grid;place-items:center;font-size:16px;font-weight:600">Salvar remédio</div>
+</div>
+</div>
+</div>
+
+<!-- M07 AGENDA -->
+<div data-screen-label="M07 Agenda" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M07 · Agenda de consultas</span>
+<div style="width:390px;height:844px;background:#F4F7F7;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column;position:relative">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="flex:1;padding:14px 20px 0;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:28px;font-weight:600;letter-spacing:-.02em">Agenda</span><span style="width:44px;height:44px;border-radius:14px;background:#1F6E74;color:#fff;display:grid;place-items:center;font-size:24px">+</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:15px;font-weight:600"><span>Novembro 2026</span><span style="color:#5B6B75;font-weight:500">‹  ›</span></div>
+<div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center">
+<div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0;border-radius:12px"><span style="font-size:11px;color:#8C9AA2">SEG</span><span style="font-size:16px;font-weight:500">2</span><span style="width:5px;height:5px"></span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0;border-radius:12px"><span style="font-size:11px;color:#8C9AA2">TER</span><span style="font-size:16px;font-weight:500">3</span><span style="width:5px;height:5px"></span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0;border-radius:12px"><span style="font-size:11px;color:#8C9AA2">QUA</span><span style="font-size:16px;font-weight:500">4</span><span style="width:5px;height:5px;border-radius:50%;background:#C4643E"></span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0;border-radius:12px;background:#14202A;color:#fff"><span style="font-size:11px;opacity:.7">QUI</span><span style="font-size:16px;font-weight:600">5</span><span style="width:5px;height:5px;border-radius:50%;background:#7FC4C8"></span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0;border-radius:12px"><span style="font-size:11px;color:#8C9AA2">SEX</span><span style="font-size:16px;font-weight:500">6</span><span style="width:5px;height:5px"></span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0;border-radius:12px"><span style="font-size:11px;color:#8C9AA2">SÁB</span><span style="font-size:16px;font-weight:500;color:#8C9AA2">7</span><span style="width:5px;height:5px"></span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0;border-radius:12px"><span style="font-size:11px;color:#8C9AA2">DOM</span><span style="font-size:16px;font-weight:500;color:#8C9AA2">8</span><span style="width:5px;height:5px"></span></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">QUINTA, 5 DE NOVEMBRO</span>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;gap:14px"><div style="display:flex;flex-direction:column;align-items:center;gap:2px;width:48px"><span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:500">10:00</span><span style="font-size:11px;color:#8C9AA2">45 min</span></div><div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:16px;font-weight:600">Cardiologista</span><span style="font-size:13px;color:#5B6B75">Dr. Paulo Mendes · Roberto</span><span style="font-size:13px;color:#5B6B75">Clínica Coração Paulista, Av. Paulista 1200</span></div></div>
+<div style="border-radius:12px;background:#F4F7F7;padding:12px;display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600;color:#5B6B75">Levar</span><span style="font-size:14px">✓  Eletrocardiograma de 12/09</span><span style="font-size:14px">○  Lista de remédios em uso</span><span style="font-size:14px">○  Carteirinha Vitalis</span></div>
+<div style="display:flex;gap:8px;font-size:13px;font-weight:600;color:#1F6E74"><span style="height:36px;padding:0 12px;border-radius:10px;background:#E3F0F0;display:grid;place-items:center">Lembrar 1 dia antes</span><span style="height:36px;padding:0 12px;border-radius:10px;background:#E3F0F0;display:grid;place-items:center">Como chegar</span></div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">TERÇA, 10 DE NOVEMBRO</span>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;padding:14px 16px;display:flex;gap:14px"><span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:500;width:48px;text-align:center">07:30</span><div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:16px;font-weight:600">Exame TSH e T4 livre</span><span style="font-size:13px;color:#5B6B75">Você · Laboratório Central · jejum 4 h</span></div></div>
+</div>
+</div>
+<div style="position:absolute;left:16px;right:16px;bottom:26px;height:62px;border-radius:22px;background:#14202A;display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-size:12px;font-weight:600;color:#A7B4BB"><span style="padding:0 8px">Início</span><span style="height:46px;padding:0 14px;border-radius:16px;background:#E3F0F0;color:#14202A;display:grid;place-items:center">Agenda</span><span style="padding:0 8px">Remédios</span><span style="padding:0 8px">Exames</span><span style="padding:0 8px">Família</span></div>
+</div>
+</div>
+
+<!-- M08 EXAMES -->
+<div data-screen-label="M08 Exames" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M08 · Exames</span>
+<div style="width:390px;height:844px;background:#F4F7F7;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column;position:relative">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="flex:1;padding:14px 20px 0;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:28px;font-weight:600;letter-spacing:-.02em">Exames</span><span style="width:44px;height:44px;border-radius:14px;background:#1F6E74;color:#fff;display:grid;place-items:center;font-size:24px">+</span></div>
+<div style="height:46px;border-radius:12px;background:#fff;border:1px solid #DFE6E7;padding:0 14px;display:flex;align-items:center;font-size:15px;color:#8C9AA2">Buscar por nome, laboratório…</div>
+<div style="display:flex;gap:6px;font-size:13px;font-weight:500"><span style="height:34px;padding:0 12px;border-radius:99px;background:#14202A;color:#fff;display:grid;place-items:center">Todos</span><span style="height:34px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Sangue</span><span style="height:34px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Imagem</span><span style="height:34px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Coração</span></div>
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">SETEMBRO 2026</span>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column">
+<div style="display:flex;gap:12px;padding:12px 14px;border-bottom:1px solid #E9EEEF;align-items:center"><span style="width:44px;height:54px;border-radius:8px;background:repeating-linear-gradient(135deg,#EEF2F3 0 6px,#E3E9EA 6px 12px);display:grid;place-items:center;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#5B6B75">PDF</span><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">Perfil lipídico</span><span style="font-size:12px;color:#5B6B75">Roberto · 12/09 · Lab. Central</span></div></div>
+<div style="display:flex;gap:12px;padding:12px 14px;align-items:center"><span style="width:44px;height:54px;border-radius:8px;background:repeating-linear-gradient(135deg,#EEF2F3 0 6px,#E3E9EA 6px 12px);display:grid;place-items:center;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#5B6B75">FOTO</span><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">Eletrocardiograma</span><span style="font-size:12px;color:#5B6B75">Roberto · 12/09 · Clínica Coração Paulista</span></div></div>
+</div>
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">JUNHO 2026</span>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column">
+<div style="display:flex;gap:12px;padding:12px 14px;border-bottom:1px solid #E9EEEF;align-items:center"><span style="width:44px;height:54px;border-radius:8px;background:repeating-linear-gradient(135deg,#EEF2F3 0 6px,#E3E9EA 6px 12px);display:grid;place-items:center;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#5B6B75">PDF</span><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">TSH e T4 livre</span><span style="font-size:12px;color:#5B6B75">Você · 03/06 · Lab. Central</span></div></div>
+<div style="display:flex;gap:12px;padding:12px 14px;align-items:center"><span style="width:44px;height:54px;border-radius:8px;background:repeating-linear-gradient(135deg,#EEF2F3 0 6px,#E3E9EA 6px 12px);display:grid;place-items:center;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#5B6B75">PDF</span><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">Glicemia de jejum</span><span style="font-size:12px;color:#5B6B75">Roberto · 03/06 · Lab. Central</span></div></div>
+</div>
+</div>
+<div style="position:absolute;left:16px;right:16px;bottom:26px;height:62px;border-radius:22px;background:#14202A;display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-size:12px;font-weight:600;color:#A7B4BB"><span style="padding:0 8px">Início</span><span style="padding:0 8px">Agenda</span><span style="padding:0 8px">Remédios</span><span style="height:46px;padding:0 14px;border-radius:16px;background:#E3F0F0;color:#14202A;display:grid;place-items:center">Exames</span><span style="padding:0 8px">Família</span></div>
+</div>
+</div>
+
+<!-- M09 CARTEIRINHA -->
+<div data-screen-label="M09 Plano de saúde" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M09 · Plano de saúde / carteirinha</span>
+<div style="width:390px;height:844px;background:#F4F7F7;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="flex:1;padding:14px 20px 0;display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;justify-content:space-between;font-size:15px;font-weight:500;color:#1F6E74"><span>‹ Roberto</span><span>Editar</span></div>
+<span style="font-size:28px;font-weight:600;letter-spacing:-.02em">Plano de saúde</span>
+<div style="border-radius:20px;background:#14202A;color:#fff;padding:20px;display:flex;flex-direction:column;gap:22px;box-shadow:0 20px 40px -24px rgba(20,40,50,.6)">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:18px;font-weight:600">Vitalis Saúde</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#A7B4BB">ANS 000000</span></div>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;color:#A7B4BB">CARTEIRINHA</span><span style="font-family:'IBM Plex Mono',monospace;font-size:21px;font-weight:500;letter-spacing:.02em">0 123 4567 8901 2345</span></div>
+<div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:10px;font-size:14px"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;color:#A7B4BB">Titular</span><span>Roberto C. Almeida</span></div><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;color:#A7B4BB">Plano</span><span>Essencial</span></div><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;color:#A7B4BB">Validade</span><span>08/2028</span></div></div>
+</div>
+<div style="display:flex;gap:8px"><div style="flex:1;height:50px;border-radius:14px;background:#1F6E74;color:#fff;display:grid;place-items:center;font-size:15px;font-weight:600">Mostrar no balcão</div><div style="flex:1;height:50px;border-radius:14px;border:1px solid #C3CED1;background:#fff;display:grid;place-items:center;font-size:15px;font-weight:600">Copiar nº</div></div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column;font-size:14px">
+<div style="display:flex;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #E9EEEF"><span style="color:#5B6B75">Acomodação</span><span>Apartamento</span></div>
+<div style="display:flex;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #E9EEEF"><span style="color:#5B6B75">Segmentação</span><span>Ambulatorial + hospitalar</span></div>
+<div style="display:flex;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #E9EEEF"><span style="color:#5B6B75">Abrangência</span><span>Estadual · SP</span></div>
+<div style="display:flex;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #E9EEEF"><span style="color:#5B6B75">Carências</span><span>Todas cumpridas</span></div>
+<div style="display:flex;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #E9EEEF"><span style="color:#5B6B75">Cartão SUS (CNS)</span><span style="font-family:'IBM Plex Mono',monospace">700 0012 3456 7890</span></div>
+<div style="display:flex;justify-content:space-between;padding:13px 16px"><span style="color:#5B6B75">Central 24 h</span><span style="color:#1F6E74;font-weight:600">0800 000 0000</span></div>
+</div>
+<span style="font-size:12px;color:#8C9AA2;line-height:1.45">Informações digitadas por você. Em caso de dúvida, confirme com a operadora.</span>
+</div>
+</div>
+</div>
+
+<!-- M10 PRIVACIDADE -->
+<div data-screen-label="M10 Privacidade e backup" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M10 · Privacidade, backup e compartilhamento</span>
+<div style="width:390px;height:844px;background:#F4F7F7;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="flex:1;padding:14px 20px 0;display:flex;flex-direction:column;gap:16px">
+<span style="font-size:15px;font-weight:500;color:#1F6E74">‹ Configurações</span>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:28px;font-weight:600;letter-spacing:-.02em">Privacidade</span><span style="font-size:14px;line-height:1.5;color:#5B6B75;text-wrap:pretty">Seus dados ficam só neste aparelho. Nada é enviado para servidores. Para não perder nada, faça backups.</span></div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column;font-size:15px">
+<div style="padding:13px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #E9EEEF"><span>Abrir com biometria</span><span style="width:46px;height:28px;border-radius:99px;background:#1F6E74;position:relative"><span style="position:absolute;right:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff"></span></span></div>
+<div style="padding:13px 16px;display:flex;justify-content:space-between;border-bottom:1px solid #E9EEEF"><span>Bloquear após</span><span style="color:#5B6B75">1 minuto ›</span></div>
+<div style="padding:13px 16px;display:flex;justify-content:space-between;align-items:center"><div style="display:flex;flex-direction:column;gap:2px"><span>Esconder nome do remédio</span><span style="font-size:12px;color:#8C9AA2">Nas notificações aparece “Hora do remédio”</span></div><span style="width:46px;height:28px;border-radius:99px;background:#1F6E74;position:relative;flex:none"><span style="position:absolute;right:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff"></span></span></div>
+</div>
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">BACKUP CRIPTOGRAFADO</span>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">Último backup: ontem, 23:10</span><span style="font-size:12px;color:#5B6B75">Arquivo protegido por senha · 18 MB</span></div><span style="height:24px;padding:0 8px;border-radius:99px;background:#E3F0F0;color:#1F6E74;font-size:11px;font-weight:600;display:grid;place-items:center">Semanal</span></div>
+<div style="display:flex;gap:8px;font-size:14px;font-weight:600"><span style="flex:1;height:42px;border-radius:11px;background:#14202A;color:#fff;display:grid;place-items:center">Fazer agora</span><span style="flex:1;height:42px;border-radius:11px;border:1px solid #C3CED1;display:grid;place-items:center">Restaurar</span></div>
+</div>
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">COMPARTILHADO COM VOCÊ</span>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column">
+<div style="padding:12px 16px;display:flex;gap:12px;align-items:center;border-bottom:1px solid #E9EEEF"><span style="width:32px;height:32px;border-radius:50%;background:#E2E0EE;display:grid;place-items:center;font-size:13px;font-weight:600">A</span><div style="flex:1;display:flex;flex-direction:column"><span style="font-size:15px;font-weight:500">Roberto</span><span style="font-size:12px;color:#5B6B75">Perfil completo</span></div><span style="color:#8C9AA2">›</span></div>
+<div style="padding:12px 16px;display:flex;gap:12px;align-items:center"><span style="width:32px;height:32px;border-radius:50%;background:#EEE7D6;display:grid;place-items:center;font-size:13px;font-weight:600">L</span><div style="flex:1;display:flex;flex-direction:column"><span style="font-size:15px;font-weight:500">Pedro</span><span style="font-size:12px;color:#5B6B75">Remédios e plano</span></div><span style="color:#8C9AA2">›</span></div>
+</div>
+<span style="font-size:14px;font-weight:500;color:#B23A2A;text-align:center;padding:4px 0">Apagar todos os dados deste aparelho</span>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:20px">
+<span style="font-size:22px;font-weight:600">Mobile · fluxos complementares</span>
+<div style="display:flex;flex-wrap:wrap;gap:40px 32px;align-items:flex-start">
+
+<!-- M11 DESBLOQUEIO -->
+<div data-screen-label="M11 Desbloqueio" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M11 · Desbloqueio</span>
+<div style="width:390px;height:844px;background:#14202A;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column;color:#fff">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="flex:1;padding:0 32px 48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;text-align:center">
+<span style="width:72px;height:72px;border-radius:22px;background:#1F6E74;display:grid;place-items:center"><span style="display:flex;flex-direction:column;align-items:center"><span style="width:16px;height:12px;border:3px solid #fff;border-bottom:none;border-radius:10px 10px 0 0"></span><span style="width:26px;height:20px;background:#fff;border-radius:5px"></span></span></span>
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:24px;font-weight:600">Arquivo da família</span><span style="font-size:15px;color:#A7B4BB">Use a biometria para abrir</span></div>
+<div style="display:grid;grid-template-columns:repeat(6,14px);gap:14px"><span style="width:14px;height:14px;border-radius:50%;background:#fff"></span><span style="width:14px;height:14px;border-radius:50%;background:#fff"></span><span style="width:14px;height:14px;border-radius:50%;border:1.5px solid #5B6B75"></span><span style="width:14px;height:14px;border-radius:50%;border:1.5px solid #5B6B75"></span><span style="width:14px;height:14px;border-radius:50%;border:1.5px solid #5B6B75"></span><span style="width:14px;height:14px;border-radius:50%;border:1.5px solid #5B6B75"></span></div>
+<div style="display:grid;grid-template-columns:repeat(3,72px);gap:16px 28px;font-size:28px;font-weight:500">
+<span style="height:72px;border-radius:50%;background:#22323D;display:grid;place-items:center">1</span><span style="height:72px;border-radius:50%;background:#22323D;display:grid;place-items:center">2</span><span style="height:72px;border-radius:50%;background:#22323D;display:grid;place-items:center">3</span>
+<span style="height:72px;border-radius:50%;background:#22323D;display:grid;place-items:center">4</span><span style="height:72px;border-radius:50%;background:#22323D;display:grid;place-items:center">5</span><span style="height:72px;border-radius:50%;background:#22323D;display:grid;place-items:center">6</span>
+<span style="height:72px;border-radius:50%;background:#22323D;display:grid;place-items:center">7</span><span style="height:72px;border-radius:50%;background:#22323D;display:grid;place-items:center">8</span><span style="height:72px;border-radius:50%;background:#22323D;display:grid;place-items:center">9</span>
+<span style="height:72px;display:grid;place-items:center;font-size:13px;color:#7FC4C8">Biometria</span><span style="height:72px;border-radius:50%;background:#22323D;display:grid;place-items:center">0</span><span style="height:72px;display:grid;place-items:center;font-size:13px;color:#A7B4BB">Apagar</span>
+</div>
+<span style="font-size:14px;color:#7FC4C8;font-weight:500">Acesso de emergência</span>
+</div>
+</div>
+</div>
+
+<!-- M12 FAMÍLIA -->
+<div data-screen-label="M12 Família" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M12 · Família (aba)</span>
+<div style="width:390px;height:844px;background:#F4F7F7;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column;position:relative">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="flex:1;padding:14px 20px 0;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:28px;font-weight:600;letter-spacing:-.02em">Família</span><span style="font-size:15px;font-weight:500;color:#1F6E74">Configurações</span></div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;padding:16px;display:flex;gap:14px;align-items:center"><span style="width:52px;height:52px;border-radius:50%;background:#D6E8E9;display:grid;place-items:center;font-size:19px;font-weight:600">R</span><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:17px;font-weight:600">Helena Almeida</span><span style="font-size:13px;color:#5B6B75">Você · 56 anos · O+</span></div><span style="color:#8C9AA2">›</span></div>
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">COMPARTILHADOS COM VOCÊ</span>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column">
+<div style="padding:14px 16px;display:flex;gap:14px;align-items:center;border-bottom:1px solid #E9EEEF"><span style="width:44px;height:44px;border-radius:50%;background:#E2E0EE;display:grid;place-items:center;font-size:16px;font-weight:600">A</span><div style="flex:1;display:flex;flex-direction:column;gap:4px"><span style="font-size:16px;font-weight:600">Roberto</span><div style="display:flex;gap:4px"><span style="height:22px;padding:0 8px;border-radius:99px;background:#E3F0F0;color:#1F6E74;font-size:11px;font-weight:600;display:grid;place-items:center">Perfil completo</span></div></div><span style="color:#8C9AA2">›</span></div>
+<div style="padding:14px 16px;display:flex;gap:14px;align-items:center"><span style="width:44px;height:44px;border-radius:50%;background:#EEE7D6;display:grid;place-items:center;font-size:16px;font-weight:600">L</span><div style="flex:1;display:flex;flex-direction:column;gap:4px"><span style="font-size:16px;font-weight:600">Pedro</span><div style="display:flex;gap:4px"><span style="height:22px;padding:0 8px;border-radius:99px;background:#EEF2F3;color:#5B6B75;font-size:11px;font-weight:600;display:grid;place-items:center">Remédios</span><span style="height:22px;padding:0 8px;border-radius:99px;background:#EEF2F3;color:#5B6B75;font-size:11px;font-weight:600;display:grid;place-items:center">Plano</span></div></div><span style="color:#8C9AA2">›</span></div>
+</div>
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">VOCÊ COMPARTILHA COM</span>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column;font-size:15px">
+<div style="padding:13px 16px;display:flex;justify-content:space-between;border-bottom:1px solid #E9EEEF"><span>Roberto</span><span style="color:#5B6B75">Perfil completo ›</span></div>
+<div style="padding:13px 16px;display:flex;justify-content:space-between"><span>Pedro</span><span style="color:#5B6B75">Plano ›</span></div>
+</div>
+<div style="height:50px;border-radius:14px;border:1.5px dashed #C3CED1;display:grid;place-items:center;font-size:15px;font-weight:600;color:#1F6E74">Convidar ou adicionar pessoa</div>
+</div>
+<div style="position:absolute;left:16px;right:16px;bottom:26px;height:62px;border-radius:22px;background:#14202A;display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-size:12px;font-weight:600;color:#A7B4BB"><span style="padding:0 8px">Início</span><span style="padding:0 8px">Agenda</span><span style="padding:0 8px">Remédios</span><span style="padding:0 8px">Exames</span><span style="height:46px;padding:0 14px;border-radius:16px;background:#E3F0F0;color:#14202A;display:grid;place-items:center">Família</span></div>
+</div>
+</div>
+
+<!-- M13 COMPARTILHAR -->
+<div data-screen-label="M13 Compartilhar perfil" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M13 · Compartilhar meu perfil</span>
+<div style="width:390px;height:844px;background:#F4F7F7;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="flex:1;padding:14px 20px 34px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:15px"><span style="color:#1F6E74;font-weight:500">Cancelar</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">1 de 2</span></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:26px;font-weight:600;letter-spacing:-.01em">O que o Pedro pode ver?</span><span style="font-size:15px;line-height:1.45;color:#5B6B75">Você pode mudar ou parar de compartilhar quando quiser.</span></div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column;font-size:15px">
+<div style="padding:13px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #E9EEEF"><div style="display:flex;flex-direction:column;gap:2px"><span>Perfil clínico</span><span style="font-size:12px;color:#8C9AA2">Alergias, condições, tipo sanguíneo</span></div><span style="width:46px;height:28px;border-radius:99px;background:#1F6E74;position:relative;flex:none"><span style="position:absolute;right:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff"></span></span></div>
+<div style="padding:13px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #E9EEEF"><div style="display:flex;flex-direction:column;gap:2px"><span>Remédios</span><span style="font-size:12px;color:#8C9AA2">Inclui doses tomadas</span></div><span style="width:46px;height:28px;border-radius:99px;background:#1F6E74;position:relative;flex:none"><span style="position:absolute;right:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff"></span></span></div>
+<div style="padding:13px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #E9EEEF"><span>Consultas</span><span style="width:46px;height:28px;border-radius:99px;background:#D3DBDD;position:relative;flex:none"><span style="position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff"></span></span></div>
+<div style="padding:13px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #E9EEEF"><span>Exames</span><span style="width:46px;height:28px;border-radius:99px;background:#D3DBDD;position:relative;flex:none"><span style="position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff"></span></span></div>
+<div style="padding:13px 16px;display:flex;justify-content:space-between;align-items:center"><span>Plano de saúde</span><span style="width:46px;height:28px;border-radius:99px;background:#1F6E74;position:relative;flex:none"><span style="position:absolute;right:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff"></span></span></div>
+</div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;padding:16px;display:flex;gap:16px;align-items:center">
+<span style="width:96px;height:96px;flex:none;border-radius:10px;background:repeating-linear-gradient(135deg,#EEF2F3 0 6px,#E3E9EA 6px 12px);display:grid;place-items:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5B6B75">QR code</span>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:15px;font-weight:600">Próximo passo</span><span style="font-size:13px;line-height:1.45;color:#5B6B75">Pedro lê este código no aparelho dele. A conexão é direta entre os dois celulares.</span></div>
+</div>
+<div style="margin-top:auto;height:54px;border-radius:14px;background:#14202A;color:#fff;display:grid;place-items:center;font-size:16px;font-weight:600">Gerar código</div>
+</div>
+</div>
+</div>
+
+<!-- M14 FICHA EMERGÊNCIA -->
+<div data-screen-label="M14 Ficha de emergência" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M14 · Ficha de emergência</span>
+<div style="width:390px;height:844px;background:#fff;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600;background:#B23A2A;color:#fff"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="background:#B23A2A;color:#fff;padding:10px 22px 22px;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.12em">FICHA DE EMERGÊNCIA</span><span style="font-size:15px;font-weight:600">Fechar</span></div>
+<span style="font-size:30px;font-weight:700;letter-spacing:-.02em">Roberto C. Almeida</span>
+<span style="font-size:15px;opacity:.9">61 anos · nasc. 14/02/1965</span>
+</div>
+<div style="flex:1;padding:18px 22px 30px;display:flex;flex-direction:column;gap:14px">
+<div style="display:grid;grid-template-columns:110px 1fr;gap:10px">
+<div style="border-radius:14px;background:#F4F7F7;padding:14px;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#5B6B75">Sangue</span><span style="font-size:32px;font-weight:700">A+</span></div>
+<div style="border-radius:14px;background:#FBEEE8;padding:14px;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#9A4524;font-weight:600">ALÉRGICO A</span><span style="font-size:26px;font-weight:700;color:#7A3519">Penicilina</span></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600;color:#5B6B75;letter-spacing:.06em">CONDIÇÕES</span><span style="font-size:18px;font-weight:500">Hipertensão arterial · Colesterol alto</span></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600;color:#5B6B75;letter-spacing:.06em">REMÉDIOS EM USO</span><span style="font-size:18px;font-weight:500">Losartana 50 mg · 1x ao dia</span><span style="font-size:18px;font-weight:500">Sinvastatina 20 mg · 1x ao dia</span></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:600;color:#5B6B75;letter-spacing:.06em">PLANO DE SAÚDE</span><span style="font-size:18px;font-weight:500">Vitalis Saúde · Essencial</span><span style="font-family:'IBM Plex Mono',monospace;font-size:16px">0 123 4567 8901 2345</span></div>
+<div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+<span style="font-size:12px;font-weight:600;color:#5B6B75;letter-spacing:.06em">CONTATO DE EMERGÊNCIA</span>
+<div style="height:60px;border-radius:16px;background:#14202A;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 18px"><div style="display:flex;flex-direction:column"><span style="font-size:16px;font-weight:600">Ligar para Helena</span><span style="font-size:13px;color:#A7B4BB">Esposa · (11) 98765-4321</span></div><span style="font-size:20px">›</span></div>
+<span style="font-size:12px;color:#8C9AA2;text-align:center">Visível na tela bloqueada, se você ativar</span>
+</div>
+</div>
+</div>
+</div>
+
+<!-- M15 NOTIFICAÇÃO -->
+<div data-screen-label="M15 Lembrete de dose" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M15 · Lembrete na tela bloqueada</span>
+<div style="width:390px;height:844px;background:linear-gradient(180deg,#2C4350,#14202A);border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column;color:#fff">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span></span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:2px;padding-top:28px"><span style="font-size:17px;font-weight:500;opacity:.85">Quarta, 28 de outubro</span><span style="font-size:88px;font-weight:600;letter-spacing:-.03em;line-height:1">21:00</span></div>
+<div style="padding:36px 12px 0;display:flex;flex-direction:column;gap:10px">
+<div style="border-radius:22px;background:rgba(244,247,247,.92);color:#14202A;padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;gap:10px;align-items:center"><span style="width:28px;height:28px;border-radius:8px;background:#1F6E74"></span><span style="font-size:13px;font-weight:600;flex:1">Arquivo da família</span><span style="font-size:12px;color:#5B6B75">agora</span></div>
+<div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:16px;font-weight:600">Hora do remédio do Roberto</span><span style="font-size:14px;color:#5B6B75">Abra para ver qual. 1 dose às 21:00.</span></div>
+</div>
+<div style="border-radius:16px;background:rgba(244,247,247,.92);color:#14202A;display:flex;flex-direction:column;font-size:16px;font-weight:500">
+<span style="padding:14px 16px;border-bottom:1px solid #DFE6E7;color:#1F6E74;font-weight:600">Tomei</span>
+<span style="padding:14px 16px;border-bottom:1px solid #DFE6E7">Lembrar em 15 min</span>
+<span style="padding:14px 16px">Pular esta dose</span>
+</div>
+</div>
+<div style="margin-top:auto;padding:0 0 40px;display:flex;flex-direction:column;align-items:center;gap:10px"><span style="font-size:13px;opacity:.7">Nome do remédio escondido · ajuste em Privacidade</span><span style="width:134px;height:5px;border-radius:3px;background:#fff"></span></div>
+</div>
+</div>
+
+<!-- M16 DETALHE REMÉDIO -->
+<div data-screen-label="M16 Detalhe do remédio" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M16 · Detalhe do remédio</span>
+<div style="width:390px;height:844px;background:#F4F7F7;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="flex:1;padding:14px 20px 34px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;justify-content:space-between;font-size:15px;font-weight:500;color:#1F6E74"><span>‹ Remédios</span><span>Editar</span></div>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;color:#5B6B75">Você · uso contínuo desde 2021</span><span style="font-size:28px;font-weight:600;letter-spacing:-.02em">Levotiroxina 75 mcg</span><span style="font-size:15px;color:#5B6B75">1 comprimido às 06:30, em jejum</span></div>
+<div style="border-radius:16px;background:#FBEEE8;padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:15px;font-weight:600;color:#7A3519">Restam 4 comprimidos</span><span style="font-size:13px;color:#9A4524">acaba dom, 1/11</span></div><div style="height:6px;border-radius:3px;background:#F2D9CD"><div style="width:14%;height:100%;border-radius:3px;background:#C4643E"></div></div><div style="display:flex;gap:8px;font-size:13px;font-weight:600"><span style="height:36px;padding:0 12px;border-radius:10px;background:#fff;color:#7A3519;display:grid;place-items:center">Comprei mais</span><span style="height:36px;padding:0 12px;border-radius:10px;color:#7A3519;display:grid;place-items:center">Ver receita</span></div></div>
+<div style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">ÚLTIMOS 14 DIAS</span><span style="font-size:12px;color:#5B6B75">13 de 14 doses</span></div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;padding:14px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px">
+<sc-for list="{{ adherence }}" as="a" hint-placeholder-count="14"><div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="width:30px;height:30px;border-radius:9px;background:{{ a.bg }};border:{{ a.border }}"></span><span style="font-size:10px;color:#8C9AA2;font-family:'IBM Plex Mono',monospace">{{ a.d }}</span></div></sc-for>
+</div></div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column;font-size:14px">
+<div style="padding:12px 16px;display:flex;justify-content:space-between;border-bottom:1px solid #E9EEEF"><span style="color:#5B6B75">Receitado por</span><span>Dra. Marta Lins</span></div>
+<div style="padding:12px 16px;display:flex;justify-content:space-between;border-bottom:1px solid #E9EEEF"><span style="color:#5B6B75">Para</span><span>Hipotireoidismo</span></div>
+<div style="padding:12px 16px;display:flex;justify-content:space-between"><span style="color:#5B6B75">Lembrete</span><span>06:30 · ativo</span></div>
+</div>
+<span style="margin-top:auto;font-size:15px;font-weight:500;color:#B23A2A;text-align:center">Encerrar tratamento</span>
+</div>
+</div>
+</div>
+
+<!-- M17 ADICIONAR EXAME -->
+<div data-screen-label="M17 Adicionar exame" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M17 · Adicionar exame</span>
+<div style="width:390px;height:844px;background:#F4F7F7;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="flex:1;padding:14px 20px 34px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:15px"><span style="color:#1F6E74;font-weight:500">Cancelar</span><span style="font-weight:600">Novo exame</span><span style="width:52px"></span></div>
+<div style="display:flex;gap:10px">
+<div style="flex:1;height:150px;border-radius:14px;background:repeating-linear-gradient(135deg,#F7F9F9 0 8px,#EEF2F3 8px 16px);border:1px solid #DFE6E7;display:grid;place-items:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5B6B75;text-align:center">página 1<br>(foto)</div>
+<div style="flex:1;height:150px;border-radius:14px;background:repeating-linear-gradient(135deg,#F7F9F9 0 8px,#EEF2F3 8px 16px);border:1px solid #DFE6E7;display:grid;place-items:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5B6B75;text-align:center">página 2<br>(foto)</div>
+<div style="width:72px;height:150px;border-radius:14px;border:1.5px dashed #C3CED1;display:grid;place-items:center;font-size:24px;color:#1F6E74">+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:500;color:#5B6B75">Nome do exame</span><div style="height:50px;border-radius:12px;background:#fff;border:1.5px solid #1F6E74;padding:0 16px;display:flex;align-items:center;font-size:16px">Hemograma completo</div></div>
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;font-weight:500;color:#5B6B75">De quem</span><div style="display:flex;gap:8px;font-size:14px;font-weight:500"><span style="height:40px;padding:0 16px;border-radius:99px;background:#14202A;color:#fff;display:grid;place-items:center">Você</span><span style="height:40px;padding:0 16px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Roberto</span></div></div>
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;font-weight:500;color:#5B6B75">Categoria</span><div style="display:flex;flex-wrap:wrap;gap:6px;font-size:13px;font-weight:500"><span style="height:36px;padding:0 12px;border-radius:99px;background:#E3F0F0;border:1.5px solid #1F6E74;color:#1F6E74;display:grid;place-items:center">Sangue</span><span style="height:36px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Urina</span><span style="height:36px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Imagem</span><span style="height:36px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Coração</span><span style="height:36px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Outro</span></div></div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column;font-size:15px">
+<div style="padding:12px 16px;display:flex;justify-content:space-between;border-bottom:1px solid #E9EEEF"><span style="color:#5B6B75">Data da coleta</span><span style="font-family:'IBM Plex Mono',monospace">27/10/2026</span></div>
+<div style="padding:12px 16px;display:flex;justify-content:space-between;border-bottom:1px solid #E9EEEF"><span style="color:#5B6B75">Laboratório</span><span>Lab. Central</span></div>
+<div style="padding:12px 16px;display:flex;justify-content:space-between"><span style="color:#5B6B75">Vincular a consulta</span><span style="color:#8C9AA2">Nenhuma ›</span></div>
+</div>
+<div style="margin-top:auto;height:54px;border-radius:14px;background:#14202A;color:#fff;display:grid;place-items:center;font-size:16px;font-weight:600">Salvar exame</div>
+</div>
+</div>
+</div>
+
+<!-- M18 NOVA CONSULTA -->
+<div data-screen-label="M18 Nova consulta" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M18 · Nova consulta</span>
+<div style="width:390px;height:844px;background:#F4F7F7;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="flex:1;padding:14px 20px 34px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:15px"><span style="color:#1F6E74;font-weight:500">Cancelar</span><span style="font-weight:600">Nova consulta</span><span style="width:52px"></span></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:500;color:#5B6B75">Especialidade</span><div style="height:50px;border-radius:12px;background:#fff;border:1.5px solid #1F6E74;padding:0 16px;display:flex;align-items:center;font-size:16px">Dentista</div></div>
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;font-weight:500;color:#5B6B75">Para quem</span><div style="display:flex;gap:8px;font-size:14px;font-weight:500"><span style="height:40px;padding:0 16px;border-radius:99px;background:#14202A;color:#fff;display:grid;place-items:center">Você</span><span style="height:40px;padding:0 16px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Roberto</span></div></div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column;font-size:15px">
+<div style="padding:12px 16px;display:flex;justify-content:space-between;border-bottom:1px solid #E9EEEF"><span style="color:#5B6B75">Data e hora</span><span style="font-family:'IBM Plex Mono',monospace">18/11 · 14:00</span></div>
+<div style="padding:12px 16px;display:flex;justify-content:space-between;border-bottom:1px solid #E9EEEF"><span style="color:#5B6B75">Profissional</span><span>Dr. Renato Souza</span></div>
+<div style="padding:12px 16px;display:flex;justify-content:space-between;border-bottom:1px solid #E9EEEF"><span style="color:#5B6B75">Local</span><span>Odonto Vila Mariana</span></div>
+<div style="padding:12px 16px;display:flex;justify-content:space-between"><span style="color:#5B6B75">Pelo plano</span><span>Vitalis · sim</span></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;font-weight:500;color:#5B6B75">Levar</span>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column;font-size:15px">
+<div style="padding:12px 16px;border-bottom:1px solid #E9EEEF;display:flex;gap:10px"><span style="color:#1F6E74">✓</span>Carteirinha do plano</div>
+<div style="padding:12px 16px;border-bottom:1px solid #E9EEEF;display:flex;gap:10px"><span style="color:#1F6E74">✓</span>Raio-X panorâmico (fev)</div>
+<div style="padding:12px 16px;color:#1F6E74;font-weight:500">+ Adicionar item</div>
+</div></div>
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;font-weight:500;color:#5B6B75">Lembrar</span><div style="display:flex;gap:6px;font-size:13px;font-weight:500"><span style="height:36px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">2 h antes</span><span style="height:36px;padding:0 12px;border-radius:99px;background:#E3F0F0;border:1.5px solid #1F6E74;color:#1F6E74;display:grid;place-items:center">1 dia antes</span><span style="height:36px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">1 semana</span></div></div>
+<div style="margin-top:auto;height:54px;border-radius:14px;background:#14202A;color:#fff;display:grid;place-items:center;font-size:16px;font-weight:600">Salvar consulta</div>
+</div>
+</div>
+</div>
+
+<!-- M19 RESUMO PARA CONSULTA -->
+<div data-screen-label="M19 Resumo para consulta" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M19 · Resumo para levar ao médico</span>
+<div style="width:390px;height:844px;background:#F4F7F7;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="flex:1;padding:14px 20px 34px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;font-size:15px;font-weight:500;color:#1F6E74"><span>‹ Consulta</span><span>Escolher itens</span></div>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:26px;font-weight:600;letter-spacing:-.01em">Resumo para o cardiologista</span><span style="font-size:14px;color:#5B6B75">Roberto · consulta de 05/11</span></div>
+<div style="flex:1;background:#fff;border:1px solid #DFE6E7;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 10px 24px -18px rgba(20,40,50,.4)">
+<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid #E9EEEF;padding-bottom:12px"><span style="font-size:16px;font-weight:600">Roberto Carlos Almeida</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5B6B75">28/10/2026</span></div>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;color:#5B6B75">IDENTIFICAÇÃO</span><span style="font-size:13px">61 anos · A+ · 82 kg · 1,74 m</span></div>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;color:#9A4524">ALERGIAS</span><span style="font-size:13px">Penicilina (urticária, falta de ar)</span></div>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;color:#5B6B75">CONDIÇÕES</span><span style="font-size:13px">Hipertensão (2017) · Colesterol alto (2020) · Colecistectomia (2015)</span></div>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;color:#5B6B75">REMÉDIOS EM USO</span><span style="font-size:13px">Losartana 50 mg · 08:00 · 96% das doses em 30 dias</span><span style="font-size:13px">Sinvastatina 20 mg · 21:00 · 90% das doses em 30 dias</span></div>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;color:#5B6B75">EXAMES ANEXADOS</span><span style="font-size:13px">Perfil lipídico · 12/09</span><span style="font-size:13px">Eletrocardiograma · 12/09</span></div>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;color:#5B6B75">PERGUNTAS</span><span style="font-size:13px">Posso trocar o horário da sinvastatina?</span></div>
+</div>
+<div style="display:flex;gap:8px"><div style="flex:1;height:52px;border-radius:14px;background:#14202A;color:#fff;display:grid;place-items:center;font-size:15px;font-weight:600">Exportar PDF</div><div style="flex:1;height:52px;border-radius:14px;border:1px solid #C3CED1;background:#fff;display:grid;place-items:center;font-size:15px;font-weight:600">Mostrar na tela</div></div>
+</div>
+</div>
+</div>
+
+<!-- M20 INÍCIO VAZIO -->
+<div data-screen-label="M20 Início vazio" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M20 · Início no primeiro uso</span>
+<div style="width:390px;height:844px;background:#F4F7F7;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column;position:relative">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="flex:1;padding:14px 20px 0;display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px;color:#5B6B75">Quarta, 28 de outubro</span><span style="font-size:28px;font-weight:600;letter-spacing:-.02em">Olá, Helena</span></div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:17px;font-weight:600">Vamos começar</span><span style="font-size:13px;color:#5B6B75">1 de 4</span></div>
+<div style="height:5px;border-radius:3px;background:#E9EEEF"><div style="width:25%;height:100%;border-radius:3px;background:#1F6E74"></div></div>
+<div style="display:flex;flex-direction:column">
+<div style="display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #E9EEEF"><span style="width:26px;height:26px;border-radius:50%;background:#1F6E74;color:#fff;display:grid;place-items:center;font-size:13px">✓</span><span style="flex:1;font-size:15px;color:#8C9AA2;text-decoration:line-through">Criar seu perfil</span></div>
+<div style="display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #E9EEEF"><span style="width:26px;height:26px;border-radius:50%;border:1.5px solid #C3CED1"></span><span style="flex:1;font-size:15px;font-weight:500">Adicionar alergias e condições</span><span style="color:#8C9AA2">›</span></div>
+<div style="display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #E9EEEF"><span style="width:26px;height:26px;border-radius:50%;border:1.5px solid #C3CED1"></span><span style="flex:1;font-size:15px;font-weight:500">Cadastrar um remédio</span><span style="color:#8C9AA2">›</span></div>
+<div style="display:flex;gap:12px;align-items:center;padding:12px 0"><span style="width:26px;height:26px;border-radius:50%;border:1.5px solid #C3CED1"></span><span style="flex:1;font-size:15px;font-weight:500">Guardar a carteirinha do plano</span><span style="color:#8C9AA2">›</span></div>
+</div>
+</div>
+<div style="border-radius:16px;border:1.5px dashed #C3CED1;padding:18px;display:flex;flex-direction:column;gap:6px;align-items:flex-start"><span style="font-size:15px;font-weight:600">Mais alguém da casa?</span><span style="font-size:14px;line-height:1.45;color:#5B6B75">Convide quem tem celular próprio ou cadastre quem você cuida.</span><span style="margin-top:6px;height:40px;padding:0 14px;border-radius:10px;background:#E3F0F0;color:#1F6E74;font-size:14px;font-weight:600;display:grid;place-items:center">Adicionar pessoa</span></div>
+</div>
+<div style="position:absolute;left:16px;right:16px;bottom:26px;height:62px;border-radius:22px;background:#14202A;display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-size:12px;font-weight:600;color:#A7B4BB"><span style="height:46px;padding:0 14px;border-radius:16px;background:#E3F0F0;color:#14202A;display:grid;place-items:center">Início</span><span style="padding:0 8px">Agenda</span><span style="padding:0 8px">Remédios</span><span style="padding:0 8px">Exames</span><span style="padding:0 8px">Família</span></div>
+</div>
+</div>
+
+<!-- M21 EXAMES VAZIO -->
+<div data-screen-label="M21 Exames vazio" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M21 · Exames sem nenhum item</span>
+<div style="width:390px;height:844px;background:#F4F7F7;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column;position:relative">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="flex:1;padding:14px 20px 120px;display:flex;flex-direction:column;gap:16px">
+<span style="font-size:28px;font-weight:600;letter-spacing:-.02em">Exames</span>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:0 20px">
+<div style="position:relative;width:120px;height:110px"><span style="position:absolute;left:10px;top:8px;width:76px;height:96px;border-radius:10px;background:#fff;border:1px solid #DFE6E7;transform:rotate(-8deg)"></span><span style="position:absolute;left:34px;top:4px;width:76px;height:96px;border-radius:10px;background:#fff;border:1px solid #DFE6E7;transform:rotate(5deg);display:flex;flex-direction:column;gap:6px;padding:14px 10px"><span style="height:4px;width:70%;border-radius:2px;background:#E3E9EA"></span><span style="height:4px;width:90%;border-radius:2px;background:#E3E9EA"></span><span style="height:4px;width:50%;border-radius:2px;background:#E3E9EA"></span></span></div>
+<span style="font-size:20px;font-weight:600">Nenhum exame ainda</span>
+<span style="font-size:15px;line-height:1.5;color:#5B6B75;text-wrap:pretty">Fotografe o laudo ou importe o PDF que o laboratório enviou. Fica tudo organizado por pessoa e data.</span>
+<div style="display:flex;flex-direction:column;gap:8px;width:100%;margin-top:8px"><span style="height:50px;border-radius:14px;background:#14202A;color:#fff;display:grid;place-items:center;font-size:15px;font-weight:600">Fotografar laudo</span><span style="height:50px;border-radius:14px;border:1px solid #C3CED1;background:#fff;display:grid;place-items:center;font-size:15px;font-weight:600">Importar PDF</span></div>
+</div>
+</div>
+<div style="position:absolute;left:16px;right:16px;bottom:26px;height:62px;border-radius:22px;background:#14202A;display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-size:12px;font-weight:600;color:#A7B4BB"><span style="padding:0 8px">Início</span><span style="padding:0 8px">Agenda</span><span style="padding:0 8px">Remédios</span><span style="height:46px;padding:0 14px;border-radius:16px;background:#E3F0F0;color:#14202A;display:grid;place-items:center">Exames</span><span style="padding:0 8px">Família</span></div>
+</div>
+</div>
+
+<!-- M22 ATUALIZAÇÕES -->
+<div data-screen-label="M22 Atualizações" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M22 · Atualizações (Android)</span>
+<div style="width:390px;height:844px;background:#F4F7F7;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="flex:1;padding:14px 20px 34px;display:flex;flex-direction:column;gap:16px">
+<span style="font-size:15px;font-weight:500;color:#1F6E74">‹ Configurações</span>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:28px;font-weight:600;letter-spacing:-.02em">Atualizações</span><span style="font-size:14px;color:#5B6B75">Versão instalada <span style="font-family:'IBM Plex Mono',monospace">1.4.2</span></span></div>
+<div style="background:#fff;border:1.5px solid #1F6E74;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:17px;font-weight:600">Versão 1.5.0 disponível</span><span style="height:24px;padding:0 8px;border-radius:99px;background:#E3F0F0;color:#1F6E74;font-size:11px;font-weight:600;display:grid;place-items:center">Nova</span></div>
+<div style="display:flex;flex-direction:column;gap:6px;font-size:14px;line-height:1.4"><span>• Resumo para consulta exporta em PDF</span><span>• Lembrete de reposição mais cedo</span><span>• Correção no horário de verão</span></div>
+<div style="height:48px;border-radius:12px;background:#14202A;color:#fff;display:grid;place-items:center;font-size:15px;font-weight:600">Baixar e instalar · 14 MB</div>
+<span style="font-size:12px;color:#8C9AA2">Publicada ontem no GitHub Releases · assinatura conferida</span>
+</div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column;font-size:15px">
+<div style="padding:13px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #E9EEEF"><span>Procurar automaticamente</span><span style="width:46px;height:28px;border-radius:99px;background:#1F6E74;position:relative"><span style="position:absolute;right:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff"></span></span></div>
+<div style="padding:13px 16px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #E9EEEF"><span>Com que frequência</span><div style="display:grid;grid-template-columns:1fr 1fr;padding:4px;border-radius:10px;background:#E3E9EA;font-size:14px;font-weight:600"><span style="height:34px;border-radius:7px;background:#fff;display:grid;place-items:center;box-shadow:0 1px 2px rgba(20,40,50,.1)">1x por dia</span><span style="height:34px;display:grid;place-items:center;color:#5B6B75">1x por semana</span></div></div>
+<div style="padding:13px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #E9EEEF"><div style="display:flex;flex-direction:column;gap:2px"><span>Backup antes de atualizar</span><span style="font-size:12px;color:#8C9AA2">Recomendado</span></div><span style="width:46px;height:28px;border-radius:99px;background:#1F6E74;position:relative;flex:none"><span style="position:absolute;right:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff"></span></span></div>
+<div style="padding:13px 16px;display:flex;justify-content:space-between"><span style="color:#5B6B75">Última verificação</span><span>hoje, 08:00</span></div>
+</div>
+<span style="font-size:14px;font-weight:500;color:#1F6E74;text-align:center">Ver histórico de versões</span>
+</div>
+</div>
+</div>
+
+<!-- M23 INSTALANDO -->
+<div data-screen-label="M23 Instalando atualização" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">M23 · Instalando atualização</span>
+<div style="width:390px;height:844px;background:#F4F7F7;border-radius:44px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:flex;flex-direction:column">
+<div style="height:48px;padding:16px 30px 0;display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>9:41</span><span style="font-size:12px;letter-spacing:.1em">▪▪▪ ▮</span></div>
+<div style="flex:1;padding:0 28px 48px;display:flex;flex-direction:column;justify-content:center;gap:28px">
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.1em;color:#5B6B75">1.4.2 → 1.5.0</span><span style="font-size:28px;font-weight:600;letter-spacing:-.02em">Atualizando o app</span><span style="font-size:15px;line-height:1.5;color:#5B6B75">Seus dados continuam neste aparelho. Leva menos de um minuto.</span></div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column;font-size:15px">
+<div style="padding:14px 16px;display:flex;gap:12px;align-items:center;border-bottom:1px solid #E9EEEF"><span style="width:24px;height:24px;border-radius:50%;background:#1F6E74;color:#fff;display:grid;place-items:center;font-size:12px">✓</span><span style="flex:1">Backup criptografado</span><span style="font-size:13px;color:#8C9AA2">feito</span></div>
+<div style="padding:14px 16px;display:flex;gap:12px;align-items:center;border-bottom:1px solid #E9EEEF"><span style="width:24px;height:24px;border-radius:50%;background:#1F6E74;color:#fff;display:grid;place-items:center;font-size:12px">✓</span><span style="flex:1">Download e assinatura</span><span style="font-size:13px;color:#8C9AA2">14 MB</span></div>
+<div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div style="display:flex;gap:12px;align-items:center"><span style="width:24px;height:24px;border-radius:50%;border:2px solid #1F6E74;border-right-color:#E3F0F0"></span><span style="flex:1;font-weight:600">Instalando</span><span style="font-size:13px;color:#5B6B75">68%</span></div><div style="height:5px;border-radius:3px;background:#E9EEEF"><div style="width:68%;height:100%;border-radius:3px;background:#1F6E74"></div></div></div>
+</div>
+<span style="font-size:13px;line-height:1.45;color:#8C9AA2;text-wrap:pretty">O Android vai pedir para confirmar a instalação. Se algo der errado, o backup de hoje pode ser restaurado.</span>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:20px">
+<span style="font-size:22px;font-weight:600">Desktop</span>
+<div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+
+<!-- D01 INÍCIO -->
+<div data-screen-label="D01 Início" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">D01 · Início</span>
+<div style="width:1280px;height:800px;background:#F4F7F7;border-radius:14px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:grid;grid-template-columns:232px 1fr">
+<div style="background:#fff;border-right:1px solid #DFE6E7;padding:22px 14px;display:flex;flex-direction:column;gap:24px">
+<span style="font-size:16px;font-weight:600;padding:0 10px">Família Almeida</span>
+<div style="display:flex;flex-direction:column;gap:2px;font-size:14px;color:#5B6B75"><span style="padding:10px 12px;border-radius:10px;background:#E3F0F0;color:#14202A;font-weight:600">Início</span><span style="padding:10px 12px">Agenda</span><span style="padding:10px 12px">Remédios</span><span style="padding:10px 12px">Exames</span><span style="padding:10px 12px">Planos de saúde</span></div>
+<div style="display:flex;flex-direction:column;gap:2px"><span style="padding:0 12px 8px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;color:#8C9AA2">PESSOAS</span>
+<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;font-size:14px"><span style="width:26px;height:26px;border-radius:50%;background:#D6E8E9;display:grid;place-items:center;font-size:11px;font-weight:600">R</span>Helena (você)</div>
+<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;font-size:14px"><span style="width:26px;height:26px;border-radius:50%;background:#E2E0EE;display:grid;place-items:center;font-size:11px;font-weight:600">A</span>Roberto</div>
+<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;font-size:14px"><span style="width:26px;height:26px;border-radius:50%;background:#EEE7D6;display:grid;place-items:center;font-size:11px;font-weight:600">L</span>Pedro</div>
+</div>
+<div style="margin-top:auto;padding:10px 12px;font-size:14px;color:#5B6B75;display:flex;gap:8px;align-items:center"><sc-if value="{{ showLock }}" hint-placeholder-val="{{ true }}"><span style="display:flex;flex-direction:column;align-items:center"><span style="width:7px;height:5px;border:1.4px solid currentColor;border-bottom:none;border-radius:4px 4px 0 0"></span><span style="width:10px;height:8px;background:currentColor;border-radius:2px"></span></span></sc-if>Privacidade e backup</div>
+</div>
+<div style="padding:32px 36px;display:flex;flex-direction:column;gap:24px;overflow:hidden">
+<div style="display:flex;justify-content:space-between;align-items:flex-end"><div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:14px;color:#5B6B75">Quarta, 28 de outubro</span><span style="font-size:32px;font-weight:600;letter-spacing:-.02em">Olá, Helena</span></div><div style="display:flex;gap:8px;font-size:14px;font-weight:600"><span style="height:40px;padding:0 16px;border-radius:10px;border:1px solid #C3CED1;background:#fff;display:grid;place-items:center">Adicionar exame</span><span style="height:40px;padding:0 16px;border-radius:10px;background:#1F6E74;color:#fff;display:grid;place-items:center">Nova consulta</span></div></div>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+<div style="padding:16px 18px;border-radius:16px;background:#fff;border:1px solid #DFE6E7;display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;color:#5B6B75">Doses hoje</span><span style="font-size:28px;font-weight:600">2 de 3</span></div>
+<div style="padding:16px 18px;border-radius:16px;background:#fff;border:1px solid #DFE6E7;display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;color:#5B6B75">Próxima consulta</span><span style="font-size:28px;font-weight:600">em 8 dias</span></div>
+<div style="padding:16px 18px;border-radius:16px;background:#fff;border:1px solid #DFE6E7;display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;color:#5B6B75">Exames arquivados</span><span style="font-size:28px;font-weight:600">31</span></div>
+<div style="padding:16px 18px;border-radius:16px;background:#FBEEE8;display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;color:#9A4524">Repor em breve</span><span style="font-size:28px;font-weight:600;color:#7A3519">Levotiroxina</span></div>
+</div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px">
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column">
+<div style="padding:14px 18px;border-bottom:1px solid #E9EEEF;display:flex;justify-content:space-between"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">REMÉDIOS DE HOJE</span><span style="font-size:13px;color:#1F6E74;font-weight:600">Ver todos</span></div>
+<div style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid #E9EEEF"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#8C9AA2">06:30</span><div style="flex:1;display:flex;flex-direction:column"><span style="font-size:15px;color:#8C9AA2">Levotiroxina 75 mcg</span><span style="font-size:12px;color:#8C9AA2">Você</span></div><span style="height:26px;padding:0 10px;border-radius:99px;background:#E3F0F0;color:#1F6E74;font-size:12px;font-weight:600;display:grid;place-items:center">Tomado 06:34</span></div>
+<div style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid #E9EEEF"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#8C9AA2">08:00</span><div style="flex:1;display:flex;flex-direction:column"><span style="font-size:15px;color:#8C9AA2">Losartana 50 mg</span><span style="font-size:12px;color:#8C9AA2">Roberto</span></div><span style="height:26px;padding:0 10px;border-radius:99px;background:#E3F0F0;color:#1F6E74;font-size:12px;font-weight:600;display:grid;place-items:center">Tomado 08:05</span></div>
+<div style="display:flex;align-items:center;gap:14px;padding:14px 18px"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500">21:00</span><div style="flex:1;display:flex;flex-direction:column"><span style="font-size:15px;font-weight:600">Sinvastatina 20 mg</span><span style="font-size:12px;color:#5B6B75">Roberto</span></div><span style="height:34px;padding:0 14px;border-radius:9px;background:#1F6E74;color:#fff;font-size:13px;font-weight:600;display:grid;place-items:center">Marcar</span></div>
+</div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column">
+<div style="padding:14px 18px;border-bottom:1px solid #E9EEEF;display:flex;justify-content:space-between"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">PRÓXIMOS 30 DIAS</span><span style="font-size:13px;color:#1F6E74;font-weight:600">Abrir agenda</span></div>
+<div style="display:flex;gap:16px;padding:14px 18px;border-bottom:1px solid #E9EEEF;align-items:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;width:56px">05 NOV</span><div style="flex:1;display:flex;flex-direction:column"><span style="font-size:15px;font-weight:600">Cardiologista</span><span style="font-size:12px;color:#5B6B75">Roberto · 10:00 · Dr. Paulo Mendes</span></div></div>
+<div style="display:flex;gap:16px;padding:14px 18px;border-bottom:1px solid #E9EEEF;align-items:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;width:56px">10 NOV</span><div style="flex:1;display:flex;flex-direction:column"><span style="font-size:15px;font-weight:600">Exame TSH e T4 livre</span><span style="font-size:12px;color:#5B6B75">Você · 07:30 · jejum 4 h</span></div></div>
+<div style="display:flex;gap:16px;padding:14px 18px;align-items:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;width:56px">24 NOV</span><div style="flex:1;display:flex;flex-direction:column"><span style="font-size:15px;font-weight:600">Endocrinologista</span><span style="font-size:12px;color:#5B6B75">Você · 15:00 · Dra. Marta Lins</span></div></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- D02 PERFIL CLÍNICO -->
+<div data-screen-label="D02 Perfil clínico" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">D02 · Perfil clínico</span>
+<div style="width:1280px;height:800px;background:#F4F7F7;border-radius:14px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:grid;grid-template-columns:232px 1fr">
+<div style="background:#fff;border-right:1px solid #DFE6E7;padding:22px 14px;display:flex;flex-direction:column;gap:24px">
+<span style="font-size:16px;font-weight:600;padding:0 10px">Família Almeida</span>
+<div style="display:flex;flex-direction:column;gap:2px;font-size:14px;color:#5B6B75"><span style="padding:10px 12px">Início</span><span style="padding:10px 12px">Agenda</span><span style="padding:10px 12px">Remédios</span><span style="padding:10px 12px">Exames</span><span style="padding:10px 12px">Planos de saúde</span></div>
+<div style="display:flex;flex-direction:column;gap:2px"><span style="padding:0 12px 8px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;color:#8C9AA2">PESSOAS</span>
+<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;font-size:14px"><span style="width:26px;height:26px;border-radius:50%;background:#D6E8E9;display:grid;place-items:center;font-size:11px;font-weight:600">R</span>Helena (você)</div>
+<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;font-size:14px;border-radius:10px;background:#E3F0F0;font-weight:600"><span style="width:26px;height:26px;border-radius:50%;background:#E2E0EE;display:grid;place-items:center;font-size:11px;font-weight:600">A</span>Roberto</div>
+<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;font-size:14px"><span style="width:26px;height:26px;border-radius:50%;background:#EEE7D6;display:grid;place-items:center;font-size:11px;font-weight:600">L</span>Pedro</div>
+</div>
+<div style="margin-top:auto;padding:10px 12px;font-size:14px;color:#5B6B75;display:flex;gap:8px;align-items:center"><sc-if value="{{ showLock }}" hint-placeholder-val="{{ true }}"><span style="display:flex;flex-direction:column;align-items:center"><span style="width:7px;height:5px;border:1.4px solid currentColor;border-bottom:none;border-radius:4px 4px 0 0"></span><span style="width:10px;height:8px;background:currentColor;border-radius:2px"></span></span></sc-if>Privacidade e backup</div>
+</div>
+<div style="padding:32px 36px;display:flex;flex-direction:column;gap:22px;overflow:hidden">
+<div style="display:flex;justify-content:space-between;align-items:flex-end"><div style="display:flex;gap:16px;align-items:center"><span style="width:60px;height:60px;border-radius:50%;background:#E2E0EE;display:grid;place-items:center;font-size:22px;font-weight:600">A</span><div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:30px;font-weight:600;letter-spacing:-.02em">Roberto Carlos Almeida</span><span style="font-size:14px;color:#5B6B75">Masculino · 61 anos · nasc. 14/02/1965 · compartilha tudo com você</span></div></div><div style="display:flex;gap:8px;font-size:14px;font-weight:600"><span style="height:40px;padding:0 16px;border-radius:10px;border:1px solid #C3CED1;background:#fff;display:grid;place-items:center">Ficha de emergência</span><span style="height:40px;padding:0 16px;border-radius:10px;background:#1F6E74;color:#fff;display:grid;place-items:center">Editar perfil</span></div></div>
+<div style="display:flex;gap:24px;font-size:14px;font-weight:600;border-bottom:1px solid #DFE6E7"><span style="padding-bottom:12px;border-bottom:2px solid #14202A">Perfil clínico</span><span style="padding-bottom:12px;color:#5B6B75">Remédios</span><span style="padding-bottom:12px;color:#5B6B75">Consultas</span><span style="padding-bottom:12px;color:#5B6B75">Exames</span><span style="padding-bottom:12px;color:#5B6B75">Plano</span></div>
+<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px">
+<div style="padding:16px 18px;border-radius:16px;background:#fff;border:1px solid #DFE6E7;display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;color:#5B6B75">Tipo sanguíneo</span><span style="font-size:24px;font-weight:600">A+</span></div>
+<div style="padding:16px 18px;border-radius:16px;background:#fff;border:1px solid #DFE6E7;display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;color:#5B6B75">Peso</span><span style="font-size:24px;font-weight:600">82 kg</span></div>
+<div style="padding:16px 18px;border-radius:16px;background:#fff;border:1px solid #DFE6E7;display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;color:#5B6B75">Altura</span><span style="font-size:24px;font-weight:600">1,74 m</span></div>
+<div style="padding:16px 18px;border-radius:16px;background:#fff;border:1px solid #DFE6E7;display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;color:#5B6B75">Pressão · 20/10</span><span style="font-size:24px;font-weight:600">130/80</span></div>
+<div style="padding:16px 18px;border-radius:16px;background:#FBEEE8;display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;color:#9A4524;font-weight:600">Alergia</span><span style="font-size:24px;font-weight:600;color:#7A3519">Penicilina</span></div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column"><span style="padding:14px 18px;border-bottom:1px solid #E9EEEF;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">CONDIÇÕES</span><div style="padding:12px 18px;display:flex;justify-content:space-between;font-size:14px"><span>Hipertensão arterial</span><span style="color:#8C9AA2">2017</span></div><div style="padding:12px 18px;display:flex;justify-content:space-between;font-size:14px"><span>Colesterol alto</span><span style="color:#8C9AA2">2020</span></div><div style="padding:12px 18px;display:flex;justify-content:space-between;font-size:14px"><span>Cirurgia de vesícula</span><span style="color:#8C9AA2">2015</span></div><div style="padding:12px 18px;display:flex;justify-content:space-between;font-size:14px"><span>Vacina gripe</span><span style="color:#8C9AA2">abr 2026</span></div></div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column"><span style="padding:14px 18px;border-bottom:1px solid #E9EEEF;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">REMÉDIOS EM USO</span><div style="padding:12px 18px;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">Losartana 50 mg</span><span style="font-size:13px;color:#5B6B75">08:00 · 12 dias de estoque</span></div><div style="padding:12px 18px;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">Sinvastatina 20 mg</span><span style="font-size:13px;color:#5B6B75">21:00 · 26 dias de estoque</span></div></div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column"><span style="padding:14px 18px;border-bottom:1px solid #E9EEEF;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">EXAMES RECENTES</span><div style="padding:12px 18px;display:flex;justify-content:space-between;font-size:14px"><span>Perfil lipídico</span><span style="color:#8C9AA2">12/09</span></div><div style="padding:12px 18px;display:flex;justify-content:space-between;font-size:14px"><span>Eletrocardiograma</span><span style="color:#8C9AA2">12/09</span></div><div style="padding:12px 18px;display:flex;justify-content:space-between;font-size:14px"><span>Glicemia de jejum</span><span style="color:#8C9AA2">03/06</span></div></div>
+</div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;align-items:center;gap:20px;padding:16px 18px;font-size:14px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">PRÓXIMA</span><span style="font-weight:600">Cardiologista · Dr. Paulo Mendes</span><span style="color:#5B6B75">qui, 05/11 às 10:00 · Clínica Coração Paulista</span><span style="margin-left:auto;color:#1F6E74;font-weight:600">Ver na agenda</span></div>
+</div>
+</div>
+</div>
+
+<!-- D03 EXAMES -->
+<div data-screen-label="D03 Exames" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">D03 · Exames (lista + visualização)</span>
+<div style="width:1280px;height:800px;background:#F4F7F7;border-radius:14px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:grid;grid-template-columns:232px 1fr">
+<div style="background:#fff;border-right:1px solid #DFE6E7;padding:22px 14px;display:flex;flex-direction:column;gap:24px">
+<span style="font-size:16px;font-weight:600;padding:0 10px">Família Almeida</span>
+<div style="display:flex;flex-direction:column;gap:2px;font-size:14px;color:#5B6B75"><span style="padding:10px 12px">Início</span><span style="padding:10px 12px">Agenda</span><span style="padding:10px 12px">Remédios</span><span style="padding:10px 12px;border-radius:10px;background:#E3F0F0;color:#14202A;font-weight:600">Exames</span><span style="padding:10px 12px">Planos de saúde</span></div>
+<div style="margin-top:auto;padding:10px 12px;font-size:14px;color:#5B6B75;display:flex;gap:8px;align-items:center"><sc-if value="{{ showLock }}" hint-placeholder-val="{{ true }}"><span style="display:flex;flex-direction:column;align-items:center"><span style="width:7px;height:5px;border:1.4px solid currentColor;border-bottom:none;border-radius:4px 4px 0 0"></span><span style="width:10px;height:8px;background:currentColor;border-radius:2px"></span></span></sc-if>Privacidade e backup</div>
+</div>
+<div style="display:grid;grid-template-columns:440px 1fr;overflow:hidden">
+<div style="border-right:1px solid #DFE6E7;padding:28px 24px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:26px;font-weight:600;letter-spacing:-.02em">Exames</span><span style="height:38px;padding:0 14px;border-radius:10px;background:#1F6E74;color:#fff;display:grid;place-items:center;font-size:14px;font-weight:600">Adicionar</span></div>
+<div style="height:42px;border-radius:10px;background:#fff;border:1px solid #DFE6E7;padding:0 14px;display:flex;align-items:center;font-size:14px;color:#8C9AA2">Buscar exame, laboratório, médico…</div>
+<div style="display:flex;gap:6px;font-size:13px;font-weight:500"><span style="height:32px;padding:0 12px;border-radius:99px;background:#14202A;color:#fff;display:grid;place-items:center">Todos</span><span style="height:32px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Você</span><span style="height:32px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Roberto</span><span style="height:32px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Sangue</span><span style="height:32px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Imagem</span></div>
+<div style="display:flex;flex-direction:column;gap:4px">
+<div style="display:flex;gap:12px;padding:12px;border-radius:12px;background:#fff;border:1.5px solid #1F6E74;align-items:center"><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">Perfil lipídico</span><span style="font-size:12px;color:#5B6B75">Roberto · Lab. Central</span></div><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">12/09/26</span></div>
+<div style="display:flex;gap:12px;padding:12px;border-radius:12px;align-items:center"><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">Eletrocardiograma</span><span style="font-size:12px;color:#5B6B75">Roberto · Clínica Coração Paulista</span></div><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">12/09/26</span></div>
+<div style="display:flex;gap:12px;padding:12px;border-radius:12px;align-items:center"><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">TSH e T4 livre</span><span style="font-size:12px;color:#5B6B75">Você · Lab. Central</span></div><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">03/06/26</span></div>
+<div style="display:flex;gap:12px;padding:12px;border-radius:12px;align-items:center"><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">Glicemia de jejum</span><span style="font-size:12px;color:#5B6B75">Roberto · Lab. Central</span></div><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">03/06/26</span></div>
+<div style="display:flex;gap:12px;padding:12px;border-radius:12px;align-items:center"><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">Mamografia</span><span style="font-size:12px;color:#5B6B75">Você · Imagem Diagnóstica Sul</span></div><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">18/02/26</span></div>
+<div style="display:flex;gap:12px;padding:12px;border-radius:12px;align-items:center"><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">Hemograma completo</span><span style="font-size:12px;color:#5B6B75">Você · Lab. Central</span></div><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">18/02/26</span></div>
+</div>
+</div>
+<div style="padding:28px 32px;display:flex;flex-direction:column;gap:18px;overflow:hidden">
+<div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:24px;font-weight:600">Perfil lipídico</span><span style="font-size:14px;color:#5B6B75">Roberto · coletado em 12/09/2026</span></div><div style="display:flex;gap:8px;font-size:14px;font-weight:600"><span style="height:38px;padding:0 14px;border-radius:10px;border:1px solid #C3CED1;background:#fff;display:grid;place-items:center">Abrir PDF</span><span style="height:38px;padding:0 14px;border-radius:10px;border:1px solid #C3CED1;background:#fff;display:grid;place-items:center">Exportar</span></div></div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:20px;flex:1;min-height:0">
+<div style="border-radius:14px;border:1px solid #DFE6E7;background:repeating-linear-gradient(135deg,#F7F9F9 0 10px,#EEF2F3 10px 20px);display:grid;place-items:center;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">pré-visualização do laudo (PDF)</div>
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:14px;display:flex;flex-direction:column;font-size:14px">
+<div style="padding:12px 14px;display:flex;flex-direction:column;gap:2px;border-bottom:1px solid #E9EEEF"><span style="font-size:12px;color:#5B6B75">Laboratório</span><span>Lab. Central</span></div>
+<div style="padding:12px 14px;display:flex;flex-direction:column;gap:2px;border-bottom:1px solid #E9EEEF"><span style="font-size:12px;color:#5B6B75">Pedido por</span><span>Dr. Paulo Mendes</span></div>
+<div style="padding:12px 14px;display:flex;flex-direction:column;gap:2px;border-bottom:1px solid #E9EEEF"><span style="font-size:12px;color:#5B6B75">Categoria</span><span>Sangue</span></div>
+<div style="padding:12px 14px;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#5B6B75">Vinculado à consulta</span><span style="color:#1F6E74;font-weight:500">Cardiologista · 05/11</span></div>
+</div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:#5B6B75">Anotação</span><span style="font-size:14px;line-height:1.45">Mostrar ao cardiologista. Ele pediu para repetir em 6 meses.</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- D04 AGENDA -->
+<div data-screen-label="D04 Agenda" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">D04 · Agenda (mês)</span>
+<div style="width:1280px;height:800px;background:#F4F7F7;border-radius:14px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:grid;grid-template-columns:232px 1fr">
+<div style="background:#fff;border-right:1px solid #DFE6E7;padding:22px 14px;display:flex;flex-direction:column;gap:24px">
+<span style="font-size:16px;font-weight:600;padding:0 10px">Família Almeida</span>
+<div style="display:flex;flex-direction:column;gap:2px;font-size:14px;color:#5B6B75"><span style="padding:10px 12px">Início</span><span style="padding:10px 12px;border-radius:10px;background:#E3F0F0;color:#14202A;font-weight:600">Agenda</span><span style="padding:10px 12px">Remédios</span><span style="padding:10px 12px">Exames</span><span style="padding:10px 12px">Planos de saúde</span></div>
+<div style="margin-top:auto;padding:10px 12px;font-size:14px;color:#5B6B75;display:flex;gap:8px;align-items:center"><sc-if value="{{ showLock }}" hint-placeholder-val="{{ true }}"><span style="display:flex;flex-direction:column;align-items:center"><span style="width:7px;height:5px;border:1.4px solid currentColor;border-bottom:none;border-radius:4px 4px 0 0"></span><span style="width:10px;height:8px;background:currentColor;border-radius:2px"></span></span></sc-if>Privacidade e backup</div>
+</div>
+<div style="padding:28px 32px;display:flex;flex-direction:column;gap:18px;overflow:hidden">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:16px"><span style="font-size:26px;font-weight:600;letter-spacing:-.02em">Novembro 2026</span><span style="font-size:16px;color:#5B6B75">‹  ›</span></div><div style="display:flex;gap:12px;align-items:center"><div style="display:flex;gap:14px;font-size:13px;color:#5B6B75"><span style="display:flex;gap:6px;align-items:center"><span style="width:8px;height:8px;border-radius:50%;background:#1F6E74"></span>Consulta</span><span style="display:flex;gap:6px;align-items:center"><span style="width:8px;height:8px;border-radius:50%;background:#C4643E"></span>Exame</span></div><span style="height:38px;padding:0 14px;border-radius:10px;background:#1F6E74;color:#fff;display:grid;place-items:center;font-size:14px;font-weight:600">Nova consulta</span></div></div>
+<div style="flex:1;background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:32px repeat(5,minmax(0,1fr));overflow:hidden;font-size:13px">
+<span style="padding:8px 12px;color:#8C9AA2;font-size:11px;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid #E9EEEF">SEG</span><span style="padding:8px 12px;color:#8C9AA2;font-size:11px;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid #E9EEEF">TER</span><span style="padding:8px 12px;color:#8C9AA2;font-size:11px;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid #E9EEEF">QUA</span><span style="padding:8px 12px;color:#8C9AA2;font-size:11px;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid #E9EEEF">QUI</span><span style="padding:8px 12px;color:#8C9AA2;font-size:11px;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid #E9EEEF">SEX</span><span style="padding:8px 12px;color:#8C9AA2;font-size:11px;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid #E9EEEF">SÁB</span><span style="padding:8px 12px;color:#8C9AA2;font-size:11px;font-family:'IBM Plex Mono',monospace;border-bottom:1px solid #E9EEEF">DOM</span>
+<sc-for list="{{ days }}" as="d" hint-placeholder-count="35"><div style="padding:8px 10px;border-right:1px solid #E9EEEF;border-bottom:1px solid #E9EEEF;display:flex;flex-direction:column;gap:4px;min-width:0"><span style="font-size:13px;font-weight:500;color:{{ d.color }}">{{ d.n }}</span><sc-if value="{{ d.ev }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:500;padding:4px 6px;border-radius:6px;background:{{ d.evBg }};color:{{ d.evFg }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ d.ev }}</span></sc-if></div></sc-for>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:20px">
+<span style="font-size:22px;font-weight:600">Desktop · complementares</span>
+<div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+
+<!-- D05 REMÉDIOS -->
+<div data-screen-label="D05 Remédios" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">D05 · Remédios</span>
+<div style="width:1280px;height:800px;background:#F4F7F7;border-radius:14px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:grid;grid-template-columns:232px 1fr">
+<div style="background:#fff;border-right:1px solid #DFE6E7;padding:22px 14px;display:flex;flex-direction:column;gap:24px">
+<span style="font-size:16px;font-weight:600;padding:0 10px">Família Almeida</span>
+<div style="display:flex;flex-direction:column;gap:2px;font-size:14px;color:#5B6B75"><span style="padding:10px 12px">Início</span><span style="padding:10px 12px">Agenda</span><span style="padding:10px 12px;border-radius:10px;background:#E3F0F0;color:#14202A;font-weight:600">Remédios</span><span style="padding:10px 12px">Exames</span><span style="padding:10px 12px">Planos de saúde</span></div>
+<div style="margin-top:auto;padding:10px 12px;font-size:14px;color:#5B6B75;display:flex;gap:8px;align-items:center"><sc-if value="{{ showLock }}" hint-placeholder-val="{{ true }}"><span style="display:flex;flex-direction:column;align-items:center"><span style="width:7px;height:5px;border:1.4px solid currentColor;border-bottom:none;border-radius:4px 4px 0 0"></span><span style="width:10px;height:8px;background:currentColor;border-radius:2px"></span></span></sc-if>Privacidade e backup</div>
+</div>
+<div style="padding:28px 32px;display:flex;flex-direction:column;gap:18px;overflow:hidden">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:26px;font-weight:600;letter-spacing:-.02em">Remédios</span><span style="height:38px;padding:0 14px;border-radius:10px;background:#1F6E74;color:#fff;display:grid;place-items:center;font-size:14px;font-weight:600">Novo remédio</span></div>
+<div style="display:flex;gap:12px;align-items:center"><div style="display:flex;padding:4px;border-radius:10px;background:#E3E9EA;font-size:13px;font-weight:600"><span style="height:32px;padding:0 14px;border-radius:7px;background:#fff;display:grid;place-items:center">Em uso · 4</span><span style="height:32px;padding:0 14px;display:grid;place-items:center;color:#5B6B75">Encerrados · 7</span></div><div style="display:flex;gap:6px;font-size:13px;font-weight:500"><span style="height:32px;padding:0 12px;border-radius:99px;background:#14202A;color:#fff;display:grid;place-items:center">Todos</span><span style="height:32px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Você</span><span style="height:32px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Roberto</span><span style="height:32px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid #DFE6E7;display:grid;place-items:center">Pedro</span></div></div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column;font-size:14px">
+<div style="display:grid;grid-template-columns:2fr 1fr 1.4fr 1.2fr 1.4fr;padding:12px 20px;border-bottom:1px solid #E9EEEF;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;color:#5B6B75"><span>REMÉDIO</span><span>PESSOA</span><span>HORÁRIOS</span><span>ADESÃO 30 D</span><span>ESTOQUE</span></div>
+<div style="display:grid;grid-template-columns:2fr 1fr 1.4fr 1.2fr 1.4fr;padding:16px 20px;border-bottom:1px solid #E9EEEF;align-items:center;background:#FDF8F6"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">Levotiroxina 75 mcg</span><span style="font-size:12px;color:#5B6B75">1 comp. em jejum · contínuo</span></div><span>Você</span><span style="font-family:'IBM Plex Mono',monospace">06:30</span><span>97%</span><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;height:5px;border-radius:3px;background:#F2D9CD"><div style="width:14%;height:100%;border-radius:3px;background:#C4643E"></div></div><span style="font-weight:600;color:#9A4524">4 dias</span></div></div>
+<div style="display:grid;grid-template-columns:2fr 1fr 1.4fr 1.2fr 1.4fr;padding:16px 20px;border-bottom:1px solid #E9EEEF;align-items:center"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">Losartana 50 mg</span><span style="font-size:12px;color:#5B6B75">1 comp. · contínuo</span></div><span>Roberto</span><span style="font-family:'IBM Plex Mono',monospace">08:00</span><span>96%</span><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;height:5px;border-radius:3px;background:#E9EEEF"><div style="width:40%;height:100%;border-radius:3px;background:#1F6E74"></div></div><span style="color:#5B6B75">12 dias</span></div></div>
+<div style="display:grid;grid-template-columns:2fr 1fr 1.4fr 1.2fr 1.4fr;padding:16px 20px;border-bottom:1px solid #E9EEEF;align-items:center"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">Sinvastatina 20 mg</span><span style="font-size:12px;color:#5B6B75">1 comp. · contínuo</span></div><span>Roberto</span><span style="font-family:'IBM Plex Mono',monospace">21:00</span><span>90%</span><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;height:5px;border-radius:3px;background:#E9EEEF"><div style="width:86%;height:100%;border-radius:3px;background:#1F6E74"></div></div><span style="color:#5B6B75">26 dias</span></div></div>
+<div style="display:grid;grid-template-columns:2fr 1fr 1.4fr 1.2fr 1.4fr;padding:16px 20px;align-items:center"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">Loratadina 10 mg</span><span style="font-size:12px;color:#5B6B75">se necessário</span></div><span>Pedro</span><span style="color:#8C9AA2">sem horário</span><span style="color:#8C9AA2">—</span><span style="color:#5B6B75">1 cartela</span></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">ENCERRADOS RECENTEMENTE</span>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column;font-size:14px">
+<div style="display:flex;justify-content:space-between;padding:14px 20px;border-bottom:1px solid #E9EEEF"><span>Amoxicilina 500 mg · Você</span><span style="color:#5B6B75">21/10 a 28/10 · 21 de 21 doses</span></div>
+<div style="display:flex;justify-content:space-between;padding:14px 20px"><span>Ibuprofeno 400 mg · Roberto</span><span style="color:#5B6B75">02/09 a 05/09</span></div>
+</div></div>
+</div>
+</div>
+</div>
+
+<!-- D06 PLANO -->
+<div data-screen-label="D06 Planos de saúde" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">D06 · Planos de saúde</span>
+<div style="width:1280px;height:800px;background:#F4F7F7;border-radius:14px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:grid;grid-template-columns:232px 1fr">
+<div style="background:#fff;border-right:1px solid #DFE6E7;padding:22px 14px;display:flex;flex-direction:column;gap:24px">
+<span style="font-size:16px;font-weight:600;padding:0 10px">Família Almeida</span>
+<div style="display:flex;flex-direction:column;gap:2px;font-size:14px;color:#5B6B75"><span style="padding:10px 12px">Início</span><span style="padding:10px 12px">Agenda</span><span style="padding:10px 12px">Remédios</span><span style="padding:10px 12px">Exames</span><span style="padding:10px 12px;border-radius:10px;background:#E3F0F0;color:#14202A;font-weight:600">Planos de saúde</span></div>
+<div style="margin-top:auto;padding:10px 12px;font-size:14px;color:#5B6B75;display:flex;gap:8px;align-items:center"><sc-if value="{{ showLock }}" hint-placeholder-val="{{ true }}"><span style="display:flex;flex-direction:column;align-items:center"><span style="width:7px;height:5px;border:1.4px solid currentColor;border-bottom:none;border-radius:4px 4px 0 0"></span><span style="width:10px;height:8px;background:currentColor;border-radius:2px"></span></span></sc-if>Privacidade e backup</div>
+</div>
+<div style="padding:28px 32px;display:flex;flex-direction:column;gap:20px;overflow:hidden">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:26px;font-weight:600;letter-spacing:-.02em">Planos de saúde</span><span style="height:38px;padding:0 14px;border-radius:10px;border:1px solid #C3CED1;background:#fff;display:grid;place-items:center;font-size:14px;font-weight:600">Adicionar plano</span></div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
+<div style="border-radius:18px;background:#14202A;color:#fff;padding:20px;display:flex;flex-direction:column;gap:18px;outline:2px solid #1F6E74;outline-offset:3px"><div style="display:flex;justify-content:space-between"><span style="font-size:16px;font-weight:600">Vitalis Saúde</span><span style="font-size:12px;color:#A7B4BB">Roberto · titular</span></div><span style="font-family:'IBM Plex Mono',monospace;font-size:17px">0 123 4567 8901 2345</span><div style="display:flex;justify-content:space-between;font-size:13px;color:#A7B4BB"><span>Essencial · Apto</span><span>val. 08/2028</span></div></div>
+<div style="border-radius:18px;background:#22323D;color:#fff;padding:20px;display:flex;flex-direction:column;gap:18px"><div style="display:flex;justify-content:space-between"><span style="font-size:16px;font-weight:600">Vitalis Saúde</span><span style="font-size:12px;color:#A7B4BB">Você · dependente</span></div><span style="font-family:'IBM Plex Mono',monospace;font-size:17px">0 123 4567 8901 2346</span><div style="display:flex;justify-content:space-between;font-size:13px;color:#A7B4BB"><span>Essencial · Apto</span><span>val. 08/2028</span></div></div>
+<div style="border-radius:18px;background:#fff;border:1px solid #DFE6E7;padding:20px;display:flex;flex-direction:column;gap:18px"><div style="display:flex;justify-content:space-between"><span style="font-size:16px;font-weight:600">Orbe Odonto</span><span style="font-size:12px;color:#5B6B75">Pedro · titular</span></div><span style="font-family:'IBM Plex Mono',monospace;font-size:17px">88 0042 1177 5</span><div style="display:flex;justify-content:space-between;font-size:13px;color:#5B6B75"><span>Odontológico</span><span>val. 03/2027</span></div></div>
+</div>
+<div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px">
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column;font-size:14px">
+<span style="padding:14px 20px;border-bottom:1px solid #E9EEEF;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">DETALHES · VITALIS · ROBERTO</span>
+<div style="display:grid;grid-template-columns:1fr 1fr">
+<div style="padding:14px 20px;border-bottom:1px solid #E9EEEF;border-right:1px solid #E9EEEF;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#5B6B75">Registro ANS</span><span>000000</span></div>
+<div style="padding:14px 20px;border-bottom:1px solid #E9EEEF;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#5B6B75">Segmentação</span><span>Ambulatorial + hospitalar</span></div>
+<div style="padding:14px 20px;border-bottom:1px solid #E9EEEF;border-right:1px solid #E9EEEF;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#5B6B75">Abrangência</span><span>Estadual · SP</span></div>
+<div style="padding:14px 20px;border-bottom:1px solid #E9EEEF;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#5B6B75">Acomodação</span><span>Apartamento</span></div>
+<div style="padding:14px 20px;border-bottom:1px solid #E9EEEF;border-right:1px solid #E9EEEF;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#5B6B75">Carências</span><span>Todas cumpridas</span></div>
+<div style="padding:14px 20px;border-bottom:1px solid #E9EEEF;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#5B6B75">Cartão SUS (CNS)</span><span style="font-family:'IBM Plex Mono',monospace">700 0012 3456 7890</span></div>
+<div style="padding:14px 20px;border-right:1px solid #E9EEEF;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#5B6B75">Central 24 h</span><span style="color:#1F6E74;font-weight:600">0800 000 0000</span></div>
+<div style="padding:14px 20px;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#5B6B75">Mensalidade</span><span>R$ 1.240,00 · vence dia 10</span></div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:16px">
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column;font-size:14px"><span style="padding:14px 20px;border-bottom:1px solid #E9EEEF;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">IMAGENS DA CARTEIRINHA</span><div style="padding:16px 20px;display:flex;gap:12px"><span style="flex:1;height:96px;border-radius:10px;background:repeating-linear-gradient(135deg,#F7F9F9 0 8px,#EEF2F3 8px 16px);display:grid;place-items:center;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5B6B75">frente</span><span style="flex:1;height:96px;border-radius:10px;background:repeating-linear-gradient(135deg,#F7F9F9 0 8px,#EEF2F3 8px 16px);display:grid;place-items:center;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5B6B75">verso</span></div></div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;padding:16px 20px;display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:#5B6B75">Anotação</span><span style="font-size:14px;line-height:1.45">Autorização prévia para ressonância: ligar na central com o pedido médico em mãos.</span></div>
+</div>
+</div>
+<span style="font-size:12px;color:#8C9AA2">Informações digitadas por você. O app não se conecta às operadoras.</span>
+</div>
+</div>
+</div>
+
+<!-- D07 PRIVACIDADE -->
+<div data-screen-label="D07 Privacidade e backup" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">D07 · Privacidade, backup e compartilhamento</span>
+<div style="width:1280px;height:800px;background:#F4F7F7;border-radius:14px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;display:grid;grid-template-columns:232px 1fr">
+<div style="background:#fff;border-right:1px solid #DFE6E7;padding:22px 14px;display:flex;flex-direction:column;gap:24px">
+<span style="font-size:16px;font-weight:600;padding:0 10px">Família Almeida</span>
+<div style="display:flex;flex-direction:column;gap:2px;font-size:14px;color:#5B6B75"><span style="padding:10px 12px">Início</span><span style="padding:10px 12px">Agenda</span><span style="padding:10px 12px">Remédios</span><span style="padding:10px 12px">Exames</span><span style="padding:10px 12px">Planos de saúde</span></div>
+<div style="margin-top:auto;padding:10px 12px;border-radius:10px;background:#E3F0F0;font-size:14px;font-weight:600;display:flex;gap:8px;align-items:center"><sc-if value="{{ showLock }}" hint-placeholder-val="{{ true }}"><span style="display:flex;flex-direction:column;align-items:center"><span style="width:7px;height:5px;border:1.4px solid currentColor;border-bottom:none;border-radius:4px 4px 0 0"></span><span style="width:10px;height:8px;background:currentColor;border-radius:2px"></span></span></sc-if>Privacidade e backup</div>
+</div>
+<div style="padding:28px 32px;display:flex;flex-direction:column;gap:20px;overflow:hidden">
+<div style="display:flex;flex-direction:column;gap:6px;max-width:640px"><span style="font-size:26px;font-weight:600;letter-spacing:-.02em">Privacidade e backup</span><span style="font-size:15px;line-height:1.5;color:#5B6B75">Seus dados ficam neste computador. Nada é enviado para servidores; o backup é um arquivo criptografado que fica com você.</span></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column;font-size:14px">
+<span style="padding:14px 20px;border-bottom:1px solid #E9EEEF;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">BLOQUEIO</span>
+<div style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #E9EEEF"><span>Pedir senha ao abrir</span><span style="width:42px;height:26px;border-radius:99px;background:#1F6E74;position:relative"><span style="position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff"></span></span></div>
+<div style="padding:14px 20px;display:flex;justify-content:space-between;border-bottom:1px solid #E9EEEF"><span>Bloquear após inatividade</span><span style="color:#5B6B75">5 minutos ›</span></div>
+<div style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center"><span>Esconder nomes de remédios nas notificações</span><span style="width:42px;height:26px;border-radius:99px;background:#1F6E74;position:relative;flex:none"><span style="position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff"></span></span></div>
+</div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column;font-size:14px">
+<span style="padding:14px 20px;border-bottom:1px solid #E9EEEF;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">BACKUP CRIPTOGRAFADO</span>
+<div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">Último backup: ontem, 23:10</span><span style="font-size:13px;color:#5B6B75">familia-almeida-2026-10-27.fsaude · 18 MB</span></div><span style="height:24px;padding:0 8px;border-radius:99px;background:#E3F0F0;color:#1F6E74;font-size:11px;font-weight:600;display:grid;place-items:center">Semanal</span></div>
+<div style="display:flex;justify-content:space-between"><span style="color:#5B6B75">Pasta de destino</span><span>Documentos / Saúde</span></div>
+<div style="display:flex;gap:8px;font-size:14px;font-weight:600"><span style="height:38px;padding:0 14px;border-radius:10px;background:#14202A;color:#fff;display:grid;place-items:center">Fazer backup agora</span><span style="height:38px;padding:0 14px;border-radius:10px;border:1px solid #C3CED1;display:grid;place-items:center">Restaurar</span><span style="height:38px;padding:0 14px;border-radius:10px;border:1px solid #C3CED1;display:grid;place-items:center">Trocar senha</span></div>
+</div>
+</div>
+</div>
+<div style="background:#fff;border:1px solid #DFE6E7;border-radius:16px;display:flex;flex-direction:column;font-size:14px">
+<span style="padding:14px 20px;border-bottom:1px solid #E9EEEF;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#5B6B75">COMPARTILHAMENTO</span>
+<div style="display:grid;grid-template-columns:1.2fr repeat(5,minmax(0,1fr)) 120px;padding:10px 20px;border-bottom:1px solid #E9EEEF;font-size:12px;color:#5B6B75"><span>Pessoa</span><span>Perfil clínico</span><span>Remédios</span><span>Consultas</span><span>Exames</span><span>Plano</span><span></span></div>
+<div style="display:grid;grid-template-columns:1.2fr repeat(5,minmax(0,1fr)) 120px;padding:14px 20px;border-bottom:1px solid #E9EEEF;align-items:center"><span style="font-weight:600">Você → Roberto</span><span style="color:#1F6E74">✓</span><span style="color:#1F6E74">✓</span><span style="color:#1F6E74">✓</span><span style="color:#1F6E74">✓</span><span style="color:#1F6E74">✓</span><span style="color:#1F6E74;font-weight:600;text-align:right">Editar</span></div>
+<div style="display:grid;grid-template-columns:1.2fr repeat(5,minmax(0,1fr)) 120px;padding:14px 20px;border-bottom:1px solid #E9EEEF;align-items:center"><span style="font-weight:600">Você → Pedro</span><span style="color:#C3CED1">—</span><span style="color:#C3CED1">—</span><span style="color:#C3CED1">—</span><span style="color:#C3CED1">—</span><span style="color:#1F6E74">✓</span><span style="color:#1F6E74;font-weight:600;text-align:right">Editar</span></div>
+<div style="display:grid;grid-template-columns:1.2fr repeat(5,minmax(0,1fr)) 120px;padding:14px 20px;border-bottom:1px solid #E9EEEF;align-items:center"><span>Roberto → você</span><span style="color:#1F6E74">✓</span><span style="color:#1F6E74">✓</span><span style="color:#1F6E74">✓</span><span style="color:#1F6E74">✓</span><span style="color:#1F6E74">✓</span><span style="color:#8C9AA2;text-align:right">definido por ele</span></div>
+<div style="display:grid;grid-template-columns:1.2fr repeat(5,minmax(0,1fr)) 120px;padding:14px 20px;align-items:center"><span>Pedro → você</span><span style="color:#C3CED1">—</span><span style="color:#1F6E74">✓</span><span style="color:#C3CED1">—</span><span style="color:#C3CED1">—</span><span style="color:#1F6E74">✓</span><span style="color:#8C9AA2;text-align:right">definido por ele</span></div>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px"><span style="color:#5B6B75">Última sincronização entre aparelhos: hoje, 08:12 · conexão direta</span><span style="color:#B23A2A;font-weight:500">Apagar todos os dados deste computador</span></div>
+</div>
+</div>
+</div>
+
+<!-- D08 ATUALIZAÇÃO -->
+<div data-screen-label="D08 Atualização disponível" style="display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5B6B75">D08 · Atualização disponível</span>
+<div style="width:1280px;height:800px;background:#F4F7F7;border-radius:14px;border:1px solid #D3DBDD;box-shadow:0 30px 60px -30px rgba(20,40,50,.3);overflow:hidden;position:relative;display:grid;grid-template-columns:232px 1fr">
+<div style="background:#fff;border-right:1px solid #DFE6E7;padding:22px 14px;display:flex;flex-direction:column;gap:24px">
+<span style="font-size:16px;font-weight:600;padding:0 10px">Família Almeida</span>
+<div style="display:flex;flex-direction:column;gap:2px;font-size:14px;color:#5B6B75"><span style="padding:10px 12px;border-radius:10px;background:#E3F0F0;color:#14202A;font-weight:600">Início</span><span style="padding:10px 12px">Agenda</span><span style="padding:10px 12px">Remédios</span><span style="padding:10px 12px">Exames</span><span style="padding:10px 12px">Planos de saúde</span></div>
+</div>
+<div style="padding:32px 36px;display:flex;flex-direction:column;gap:24px">
+<span style="font-size:32px;font-weight:600;letter-spacing:-.02em">Olá, Helena</span>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px"><div style="height:90px;border-radius:16px;background:#fff;border:1px solid #DFE6E7"></div><div style="height:90px;border-radius:16px;background:#fff;border:1px solid #DFE6E7"></div><div style="height:90px;border-radius:16px;background:#fff;border:1px solid #DFE6E7"></div><div style="height:90px;border-radius:16px;background:#fff;border:1px solid #DFE6E7"></div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div style="height:280px;border-radius:16px;background:#fff;border:1px solid #DFE6E7"></div><div style="height:280px;border-radius:16px;background:#fff;border:1px solid #DFE6E7"></div></div>
+</div>
+<div style="position:absolute;inset:0;background:rgba(20,32,42,.38);display:grid;place-items:center">
+<div style="width:520px;background:#fff;border-radius:20px;box-shadow:0 40px 80px -30px rgba(10,20,30,.5);display:flex;flex-direction:column">
+<div style="padding:26px 28px 18px;display:flex;flex-direction:column;gap:8px"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.1em;color:#5B6B75">1.4.2 → 1.5.0</span><span style="font-size:24px;font-weight:600;letter-spacing:-.01em">Nova versão disponível</span><span style="font-size:14px;color:#5B6B75">Publicada em 27/10 no GitHub Releases · assinatura conferida</span></div>
+<div style="margin:0 28px;padding:16px;border-radius:14px;background:#F4F7F7;display:flex;flex-direction:column;gap:8px;font-size:14px;line-height:1.4"><span style="font-weight:600">O que mudou</span><span>• Resumo para consulta exporta em PDF</span><span>• Lembrete de reposição mais cedo</span><span>• Correção no horário de verão</span></div>
+<div style="padding:16px 28px;display:flex;gap:10px;align-items:center;font-size:14px"><span style="width:20px;height:20px;border-radius:6px;background:#1F6E74;color:#fff;display:grid;place-items:center;font-size:12px">✓</span>Fazer backup antes de instalar</div>
+<div style="padding:16px 28px 24px;border-top:1px solid #E9EEEF;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;color:#5B6B75">Verificação diária · <span style="color:#1F6E74;font-weight:500">alterar</span></span><div style="display:flex;gap:8px;font-size:14px;font-weight:600"><span style="height:40px;padding:0 16px;border-radius:10px;border:1px solid #C3CED1;display:grid;place-items:center">Lembrar amanhã</span><span style="height:40px;padding:0 16px;border-radius:10px;background:#1F6E74;color:#fff;display:grid;place-items:center">Instalar e reiniciar</span></div></div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showLock&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const ev = {
+      4: ['Helena · retorno tireoide', 'exam'],
+      5: ['10:00 Cardiologista · Roberto', 'cons'],
+      10: ['07:30 TSH · Helena', 'exam'],
+      18: ['14:00 Dentista · Helena', 'cons'],
+      24: ['15:00 Endocrino · Helena', 'cons'],
+      27: ['08:00 Ultrassom · Roberto', 'exam']
+    };
+    delete ev[4];
+    const days = [];
+    // Nov 2026 starts on Sunday; grid starts Mon 26 Oct
+    for (let i = 0; i < 35; i++) {
+      const date = new Date(2026, 9, 26 + i);
+      const inMonth = date.getMonth() === 10;
+      const n = date.getDate();
+      const e = inMonth ? ev[n] : null;
+      days.push({
+        n,
+        color: inMonth ? '#14202A' : '#B8C3C8',
+        ev: e ? e[0] : '',
+        evBg: e ? (e[1] === 'cons' ? '#E3F0F0' : '#FBEEE8') : 'transparent',
+        evFg: e ? (e[1] === 'cons' ? '#14484C' : '#7A3519') : 'inherit'
+      });
+    }
+    const missed = [9];
+    const adherence = Array.from({ length: 14 }, (_, i) => {
+      const date = new Date(2026, 9, 15 + i);
+      const m = missed.includes(i);
+      return { d: String(date.getDate()).padStart(2, '0'), bg: m ? '#fff' : '#1F6E74', border: m ? '1.5px dashed #C4643E' : 'none' };
+    });
+    return { showLock: this.props.showLock ?? true, days, adherence };
+  }
+}
+</script>
+</body>
+</html>

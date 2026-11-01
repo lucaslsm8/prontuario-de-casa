@@ -1,0 +1,618 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
+import * as seed from './seed';
+import { HOJE, MODO_EXEMPLO, MODO_REAL, horaAgora } from './tempo';
+import { useLembretes } from './useLembretes';
+import { useViradaDoDia } from './useViradaDoDia';
+import { persistencia, novoId, type Evento, type InfoBackup } from './persistencia';
+import type { PatchPessoa } from './perfil';
+import { medicoesDoPatch, perfilDasMedicoes } from './medicoes';
+import type { Categoria, Config, Consulta, Dose, Exame, Pessoa, Plano, Remedio, Compartilhamento, Vacina, Prevencao, Sintoma, Procedimento, Pesagem, Medicao, Anexo } from './types';
+
+// Estado do app = projeção do log de eventos.
+// Toda mudança vira um evento; o evento é gravado (cifrado) no banco e aplicado
+// pelo mesmo reducer que reconstrói o estado ao abrir o app.
+
+export interface State {
+  pessoas: Pessoa[];
+  remedios: Remedio[];
+  doses: Dose[];
+  consultas: Consulta[];
+  exames: Exame[];
+  planos: Plano[];
+  vacinas: Vacina[];
+  prevencoes: Prevencao[];
+  sintomas: Sintoma[];
+  procedimentos: Procedimento[];
+  pesagens: Pesagem[];
+  medicoes: Medicao[];
+  anexos: Anexo[];
+  compartilhamentos: Compartilhamento[];
+  config: Config;
+  bloqueado: boolean;
+  temSenha: boolean;
+}
+
+const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
+
+const CONFIG_PADRAO: Config = {
+  biometria: true,
+  senhaAoAbrir: true,
+  bloqueioMobile: '1 minuto',
+  bloqueioDesktop: '5 minutos',
+  esconderNomeNotif: true,
+  fichaSemDesbloqueio: false,
+  backup: { freq: 'semanal', pasta: 'Documentos / Arquivo da família', temSenha: false },
+  update: { auto: true, freq: 'dia', backupAntes: true, ultimaVerificacao: '—', instalada: '0.2.0' },
+  sync: {},
+};
+
+function estadoBase(): State {
+  return { pessoas: [], remedios: [], doses: [], consultas: [], exames: [], planos: [], vacinas: [], prevencoes: [], sintomas: [], procedimentos: [], pesagens: [], medicoes: [], anexos: [], compartilhamentos: [], config: clone(CONFIG_PADRAO), bloqueado: false, temSenha: false };
+}
+
+export function estadoExemplo(): State {
+  return {
+    pessoas: clone(seed.pessoas).map((p) => ({ ...p, ...perfilDasMedicoes(p, seed.medicoes) })),
+    remedios: clone(seed.remedios),
+    doses: clone(seed.doses),
+    consultas: clone(seed.consultas),
+    exames: clone(seed.exames),
+    planos: clone(seed.planos),
+    vacinas: clone(seed.vacinas),
+    prevencoes: clone(seed.prevencoes),
+    sintomas: clone(seed.sintomas),
+    procedimentos: clone(seed.procedimentos),
+    pesagens: clone(seed.pesagens),
+    medicoes: clone(seed.medicoes),
+    anexos: [],
+    compartilhamentos: clone(seed.compartilhamentos),
+    config: clone(seed.config),
+    bloqueado: false,
+    temSenha: true,
+  };
+}
+
+/** Primeiro uso nos dados de exemplo (M20/M21): só o perfil de quem instalou. */
+export function estadoVazio(): State {
+  const eu = clone(seed.pessoas.find((p) => p.souEu)!);
+  eu.condicoes = [];
+  return { ...estadoExemplo(), pessoas: [eu], remedios: [], doses: [], consultas: [], exames: [], planos: [], vacinas: [], prevencoes: [], sintomas: [], procedimentos: [], pesagens: [], medicoes: [], anexos: [], compartilhamentos: [] };
+}
+
+/** Coleções com edição/remoção genérica (registros com `id`). */
+export type Colecao = 'remedios' | 'consultas' | 'exames' | 'planos' | 'vacinas' | 'prevencoes' | 'sintomas' | 'procedimentos' | 'pesagens' | 'medicoes';
+type Item = { id: string } & Record<string, unknown>;
+
+// Ações que viram eventos persistidos.
+type Mudanca =
+  | { type: 'dose'; dose: Dose }
+  | { type: 'desfazerDose'; remedioId: string; previstoPara: string }
+  | { type: 'comprei'; remedioId: string; qtd: number }
+  | { type: 'encerrar'; remedioId: string; data: string }
+  | { type: 'addRemedio'; remedio: Remedio }
+  | { type: 'addConsulta'; consulta: Consulta }
+  | { type: 'addExame'; exame: Exame }
+  | { type: 'addPlano'; plano: Plano }
+  | { type: 'addPessoa'; pessoa: Pessoa }
+  | { type: 'addVacina'; vacina: Vacina }
+  | { type: 'addPrevencao'; prevencao: Prevencao }
+  | { type: 'desfazerPrevencao'; id: string }
+  | { type: 'addSintoma'; sintoma: Sintoma }
+  | { type: 'addProcedimento'; procedimento: Procedimento }
+  | { type: 'addPesagem'; pesagem: Pesagem }
+  | { type: 'addMedicao'; medicao: Medicao }
+  | { type: 'desfazerMedicao'; id: string }
+  | { type: 'addAnexo'; anexo: Anexo }
+  | { type: 'editarRegistro'; colecao: Colecao; id: string; patch: Record<string, unknown> }
+  | { type: 'removerRegistro'; colecao: Colecao; id: string }
+  | { type: 'restaurarRegistro'; colecao: Colecao; item: Item }
+  | { type: 'removerPessoa'; id: string }
+  | { type: 'removerAnexo'; id: string }
+  | { type: 'editarPessoa'; pessoaId: string; patch: PatchPessoa }
+  | { type: 'levar'; consultaId: string; idx: number }
+  | { type: 'lembrete'; consultaId: string; lembrete: string }
+  | { type: 'config'; patch: Partial<Config> }
+  | { type: 'compartilhar'; de: string; para: string; categorias: Categoria[] };
+
+// Ações locais (não persistidas).
+type Local =
+  | { type: 'reset'; state: State }
+  | { type: 'bloquear'; valor: boolean }
+  | { type: 'sistema'; patch: Partial<Config>; temSenha?: boolean };
+
+type Action = Mudanca | Local;
+
+function mesclarConfig(c: Config, p: Partial<Config>): Config {
+  return {
+    ...c,
+    ...p,
+    backup: { ...c.backup, ...(p.backup ?? {}) },
+    update: { ...c.update, ...(p.update ?? {}) },
+    sync: { ...c.sync, ...(p.sync ?? {}) },
+  };
+}
+
+function reducer(s: State, a: Action): State {
+  switch (a.type) {
+    case 'reset':
+      return a.state;
+    case 'bloquear':
+      return { ...s, bloqueado: a.valor };
+    case 'sistema':
+      return { ...s, config: mesclarConfig(s.config, a.patch), temSenha: a.temSenha ?? s.temSenha };
+    case 'dose': {
+      const remedios = s.remedios.map((r) =>
+        r.id === a.dose.remedioId && r.estoque != null && a.dose.status === 'tomada' ? { ...r, estoque: Math.max(0, r.estoque - 1) } : r,
+      );
+      return { ...s, doses: [...s.doses, a.dose], remedios };
+    }
+    case 'desfazerDose': {
+      const alvo = [...s.doses].reverse().find((d) => d.remedioId === a.remedioId && d.previstoPara === a.previstoPara);
+      if (!alvo) return s;
+      const remedios = s.remedios.map((r) =>
+        r.id === a.remedioId && r.estoque != null && alvo.status === 'tomada' ? { ...r, estoque: r.estoque + 1 } : r,
+      );
+      return { ...s, doses: s.doses.filter((d) => d !== alvo), remedios };
+    }
+    case 'comprei':
+      return { ...s, remedios: s.remedios.map((r) => (r.id === a.remedioId ? { ...r, estoque: (r.estoque ?? 0) + a.qtd } : r)) };
+    case 'encerrar':
+      return {
+        ...s,
+        remedios: s.remedios.map((r) => {
+          if (r.id !== a.remedioId) return r;
+          const ini = r.inicio ? `${r.inicio.slice(8, 10)}/${r.inicio.slice(5, 7)} a ` : 'até ';
+          return { ...r, ativo: false, fim: a.data, encerradoResumo: `${ini}${a.data.slice(8, 10)}/${a.data.slice(5, 7)}` };
+        }),
+      };
+    case 'addRemedio':
+      return { ...s, remedios: [a.remedio, ...s.remedios] };
+    case 'addConsulta':
+      return { ...s, consultas: [...s.consultas, a.consulta].sort((x, y) => (x.data + x.hora).localeCompare(y.data + y.hora)) };
+    case 'addExame':
+      return { ...s, exames: [a.exame, ...s.exames].sort((x, y) => y.dataColeta.localeCompare(x.dataColeta)) };
+    case 'addPlano':
+      return { ...s, planos: [...s.planos, a.plano] };
+    case 'addPessoa':
+      return { ...s, pessoas: [...s.pessoas, a.pessoa] };
+    case 'addVacina':
+      return { ...s, vacinas: [...s.vacinas, a.vacina] };
+    case 'addPrevencao':
+      return { ...s, prevencoes: [...s.prevencoes, a.prevencao] };
+    case 'desfazerPrevencao':
+      return { ...s, prevencoes: s.prevencoes.filter((x) => x.id !== a.id) };
+    case 'addSintoma':
+      return { ...s, sintomas: [...s.sintomas, a.sintoma] };
+    case 'addProcedimento':
+      return { ...s, procedimentos: [...s.procedimentos, a.procedimento] };
+    case 'addPesagem':
+      return { ...s, pesagens: [...s.pesagens, a.pesagem] };
+    case 'editarRegistro':
+    case 'removerRegistro':
+    case 'restaurarRegistro': {
+      const lista = s[a.colecao] as unknown as Item[] | undefined;
+      if (!lista) return s;
+      let nova: Item[];
+      if (a.type === 'editarRegistro') {
+        // `null` no patch apaga o campo opcional; `id` nunca muda.
+        nova = lista.map((x) => {
+          if (x.id !== a.id) return x;
+          const r: Item = { ...x };
+          for (const [k, v] of Object.entries(a.patch)) { if (k === 'id' || v === undefined) continue; if (v === null) delete r[k]; else r[k] = v; }
+          return r;
+        });
+      } else if (a.type === 'removerRegistro') nova = lista.filter((x) => x.id !== a.id);
+      else nova = lista.some((x) => x.id === a.item.id) ? lista : [...lista, a.item];
+      const s2 = { ...s, [a.colecao]: nova } as State;
+      // Medições alimentam o perfil: recalcula quem foi afetado.
+      if (a.colecao !== 'medicoes') return s2;
+      const pid = a.type === 'restaurarRegistro' ? (a.item.pessoaId as string) : lista.find((x) => x.id === a.id)?.pessoaId;
+      return { ...s2, pessoas: s2.pessoas.map((p) => (p.id === pid ? { ...p, ...perfilDasMedicoes(p, s2.medicoes) } : p)) };
+    }
+    case 'removerPessoa': {
+      // Remove a pessoa (ou pet) e tudo que é dela. Quem está usando o app não se remove.
+      if (s.pessoas.find((p) => p.id === a.id)?.souEu) return s;
+      const dela = <T extends { pessoaId: string }>(xs: T[]) => xs.filter((x) => x.pessoaId !== a.id);
+      const remedios = dela(s.remedios);
+      const exames = dela(s.exames);
+      const planos = dela(s.planos);
+      // Anexos que ficam: os de registros que ficam e as fotos de quem fica (donoId = pessoa ou pet).
+      const donos = new Set([...remedios, ...exames, ...planos, ...s.pessoas.filter((p) => p.id !== a.id)].map((x) => x.id));
+      return {
+        ...s,
+        pessoas: s.pessoas.filter((p) => p.id !== a.id),
+        remedios, exames, planos,
+        doses: s.doses.filter((d) => remedios.some((r) => r.id === d.remedioId)),
+        consultas: dela(s.consultas), vacinas: dela(s.vacinas), prevencoes: dela(s.prevencoes), sintomas: dela(s.sintomas),
+        procedimentos: dela(s.procedimentos), pesagens: dela(s.pesagens), medicoes: dela(s.medicoes),
+        anexos: s.anexos.filter((x) => donos.has(x.donoId)),
+        compartilhamentos: s.compartilhamentos.filter((c) => c.de !== a.id && c.para !== a.id),
+      };
+    }
+    case 'addAnexo':
+      return s.anexos.some((x) => x.id === a.anexo.id) ? s : { ...s, anexos: [...s.anexos, a.anexo] };
+    case 'removerAnexo':
+      return { ...s, anexos: s.anexos.filter((x) => x.id !== a.id) };
+    case 'addMedicao':
+    case 'desfazerMedicao': {
+      const medicoes = a.type === 'addMedicao' ? [...s.medicoes, a.medicao] : s.medicoes.filter((m) => m.id !== a.id);
+      const pid = a.type === 'addMedicao' ? a.medicao.pessoaId : s.medicoes.find((m) => m.id === a.id)?.pessoaId;
+      // O perfil mostra sempre a medição mais recente de peso, altura e pressão.
+      return { ...s, medicoes, pessoas: s.pessoas.map((p) => (p.id === pid ? { ...p, ...perfilDasMedicoes(p, medicoes) } : p)) };
+    }
+    case 'editarPessoa':
+      return {
+        ...s,
+        pessoas: s.pessoas.map((p) => {
+          if (p.id !== a.pessoaId) return p;
+          const novo: Record<string, unknown> = { ...p };
+          for (const [k, v] of Object.entries(a.patch)) {
+            if (k === 'id' || k === 'souEu' || k === 'tipo' || v === undefined) continue;
+            if (v === null) {
+              // Obrigatórios não se removem; listas vazias voltam a [].
+              if (k === 'nome' || k === 'curto' || k === 'cor') continue;
+              if (k === 'alergias' || k === 'condicoes') novo[k] = [];
+              else delete novo[k];
+            }
+            else novo[k] = v;
+          }
+          return novo as unknown as Pessoa;
+        }),
+      };
+    case 'levar':
+      return {
+        ...s,
+        consultas: s.consultas.map((c) => (c.id === a.consultaId ? { ...c, levar: c.levar.map((l, i) => (i === a.idx ? { ...l, ok: !l.ok } : l)) } : c)),
+      };
+    case 'lembrete':
+      return {
+        ...s,
+        consultas: s.consultas.map((c) =>
+          c.id === a.consultaId ? { ...c, lembretes: c.lembretes.includes(a.lembrete) ? c.lembretes.filter((l) => l !== a.lembrete) : [...c.lembretes, a.lembrete] } : c,
+        ),
+      };
+    case 'config':
+      return { ...s, config: mesclarConfig(s.config, a.patch) };
+    case 'compartilhar': {
+      const outros = s.compartilhamentos.filter((c) => !(c.de === a.de && c.para === a.para));
+      return { ...s, compartilhamentos: [...outros, { de: a.de, para: a.para, categorias: a.categorias }] };
+    }
+    // Evento de outra versão (backup mais novo, sincronização): ignora em vez de perder o log.
+    default:
+      return s;
+  }
+}
+
+const paraAcao = (ev: Evento) => ({ type: ev.tipo, ...ev.dados }) as Mudanca;
+
+/** Reconstrói o estado aplicando o log inteiro, na ordem. */
+export function projetar(eventos: Evento[]): State {
+  return eventos.reduce((s, ev) => {
+    try { return reducer(s, paraAcao(ev)); } catch { return s; }
+  }, estadoBase());
+}
+
+/** O que da configuração é preferência do usuário (vai para o log). */
+function soPreferencias(p: Partial<Config>): Partial<Config> {
+  const { backup: _b, sync: _s, update, ...resto } = p;
+  void _b; void _s;
+  if (!update) return resto;
+  const { auto, freq, backupAntes } = update;
+  return { ...resto, update: Object.fromEntries(Object.entries({ auto, freq, backupAntes }).filter(([, v]) => v !== undefined)) as unknown as Config['update'] };
+}
+
+function backupParaConfig(b: InfoBackup): Config['backup'] {
+  return { pasta: b.pasta, freq: b.freq === 'manual' ? 'manual' : 'semanal', temSenha: b.temSenha, ultimo: b.ultimo, arquivo: b.arquivo, tamanho: b.tamanho };
+}
+
+interface Toast { id: number; texto: string; desfazer?: () => void }
+export type Status = 'carregando' | 'pronto' | 'erro';
+
+function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: Omit<Toast, 'id'>) => void) {
+  const ref = useRef(state);
+  ref.current = state;
+
+  return useMemo(() => {
+    const autor = () => ref.current.pessoas.find((p) => p.souEu)?.id;
+    /** Aplica a mudança na tela na hora e grava o evento em seguida. */
+    const emitir = (m: Mudanca) => {
+      dispatch(m);
+      if (!MODO_REAL) return;
+      const { type, ...dados } = m;
+      const ev: Evento = { id: novoId(), em: new Date().toISOString(), autor: autor(), tipo: type, dados };
+      persistencia.gravar(ev).catch((e) => mostrarToast({ texto: `Não foi possível salvar: ${String(e)}` }));
+    };
+    const erroTexto = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
+    const recarregar = async () => {
+      const ini = await persistencia.iniciar();
+      const s = projetar(ini.eventos);
+      dispatch({ type: 'reset', state: { ...s, temSenha: ini.temSenha, config: mesclarConfig(s.config, { backup: backupParaConfig(ini.backup), update: { ...s.config.update, instalada: ini.versao } }) } });
+    };
+
+    return {
+      /** `dia` vem da notificação, que pode ser de ontem (lembrete das 23:45 respondido à 00:10). */
+      marcarDose(remedioId: string, horario: string, status: Dose['status'] = 'tomada', dia = HOJE) {
+        const registradoEm = horaAgora();
+        const previstoPara = `${dia}T${horario}`;
+        emitir({ type: 'dose', dose: { remedioId, previstoPara, status, registradoEm } });
+        // Bloqueado (ação vinda da notificação): sem toast, que mostraria o nome do remédio
+        // por cima do desbloqueio e deixaria "Desfazer" mudar dados sem desbloquear.
+        if (ref.current.bloqueado) return;
+        const r = ref.current.remedios.find((x) => x.id === remedioId);
+        mostrarToast({
+          texto: status === 'tomada' ? `${r?.nome ?? 'Dose'} marcado às ${registradoEm}` : 'Dose pulada',
+          desfazer: () => emitir({ type: 'desfazerDose', remedioId, previstoPara }),
+        });
+      },
+      /** Desfaz a dose registrada na lista do Início (evento novo, append-only). */
+      desfazerDose: (remedioId: string, horario: string) => emitir({ type: 'desfazerDose', remedioId, previstoPara: `${HOJE}T${horario}` }),
+      comprei: (remedioId: string, qtd: number) => {
+        emitir({ type: 'comprei', remedioId, qtd });
+        mostrarToast({ texto: `Estoque atualizado: +${qtd}` });
+      },
+      encerrar: (remedioId: string) => emitir({ type: 'encerrar', remedioId, data: HOJE }),
+      addRemedio: (remedio: Remedio) => emitir({ type: 'addRemedio', remedio }),
+      addConsulta: (consulta: Consulta) => emitir({ type: 'addConsulta', consulta }),
+      addExame: (exame: Exame) => emitir({ type: 'addExame', exame }),
+      addPlano: (plano: Plano) => emitir({ type: 'addPlano', plano }),
+      addPessoa: (pessoa: Pessoa) => emitir({ type: 'addPessoa', pessoa }),
+      addVacina: (vacina: Vacina) => emitir({ type: 'addVacina', vacina }),
+      addPrevencao: (prevencao: Prevencao) => emitir({ type: 'addPrevencao', prevencao }),
+      /** "Apliquei hoje": registra e oferece desfazer (evento novo, append-only). */
+      aplicarPrevencao: (prevencao: Prevencao) => {
+        emitir({ type: 'addPrevencao', prevencao });
+        mostrarToast({ texto: 'Aplicação registrada', desfazer: () => emitir({ type: 'desfazerPrevencao', id: prevencao.id }) });
+      },
+      addSintoma: (sintoma: Sintoma) => emitir({ type: 'addSintoma', sintoma }),
+      addProcedimento: (procedimento: Procedimento) => emitir({ type: 'addProcedimento', procedimento }),
+      addPesagem: (pesagem: Pesagem) => emitir({ type: 'addPesagem', pesagem }),
+      editarPessoa: (pessoaId: string, patch: PatchPessoa) => {
+        emitir({ type: 'editarPessoa', pessoaId, patch });
+        // Peso, altura e pressão do perfil também entram no histórico (gráficos de progresso).
+        for (const m of medicoesDoPatch(pessoaId, patch, HOJE)) emitir({ type: 'addMedicao', medicao: { id: `med-${novoId()}`, ...m } });
+      },
+      /** Salva só os campos alterados (evento novo; o log continua append-only). */
+      editar: (colecao: Colecao, id: string, patch: Record<string, unknown>, texto = 'Alterações salvas') => {
+        if (!Object.keys(patch).length) return;
+        emitir({ type: 'editarRegistro', colecao, id, patch });
+        if (texto) mostrarToast({ texto });
+      },
+      /** Remove vários sem aviso (ex.: consultas canceladas na agenda conectada). */
+      removerVarios: (colecao: Colecao, ids: string[]) => { for (const id of ids) emitir({ type: 'removerRegistro', colecao, id }); },
+      /** Remove e oferece desfazer (o mesmo registro volta como evento novo). */
+      remover: (colecao: Colecao, item: { id: string }, texto: string) => {
+        emitir({ type: 'removerRegistro', colecao, id: item.id });
+        mostrarToast({ texto, desfazer: () => emitir({ type: 'restaurarRegistro', colecao, item: item as Item }) });
+      },
+      removerPessoa: (id: string) => emitir({ type: 'removerPessoa', id }),
+      addAnexos: (lista: Anexo[]) => { for (const anexo of lista) emitir({ type: 'addAnexo', anexo }); },
+      /** Remove o anexo e oferece desfazer (o mesmo anexo volta como evento novo). */
+      removerAnexo: (anexo: Anexo) => {
+        emitir({ type: 'removerAnexo', id: anexo.id });
+        mostrarToast({ texto: `${anexo.nome} removido`, desfazer: () => emitir({ type: 'addAnexo', anexo }) });
+      },
+      addMedicao: (m: Omit<Medicao, 'id'>) => {
+        const id = `med-${novoId()}`;
+        emitir({ type: 'addMedicao', medicao: { id, ...m } });
+        mostrarToast({ texto: 'Medição registrada', desfazer: () => emitir({ type: 'desfazerMedicao', id }) });
+      },
+      toggleLevar: (consultaId: string, idx: number) => emitir({ type: 'levar', consultaId, idx }),
+      toggleLembrete: (consultaId: string, lembrete: string) => emitir({ type: 'lembrete', consultaId, lembrete }),
+      setConfig: (patch: Partial<Config>) => {
+        // Preferências vão para o log; o resto (versão instalada etc.) só para a tela.
+        const pref = soPreferencias(patch);
+        if (Object.keys(pref).length) emitir({ type: 'config', patch: pref });
+        dispatch({ type: 'sistema', patch });
+      },
+      /** Pets não entram em compartilhamento: nunca se emite `compartilhar` para um pet. */
+      compartilhar: (para: string, categorias: Categoria[]) => {
+        if (ref.current.pessoas.find((p) => p.id === para)?.tipo === 'pet') return;
+        emitir({ type: 'compartilhar', de: autor() ?? '', para, categorias });
+      },
+      bloquear: (valor: boolean) => dispatch({ type: 'bloquear', valor }),
+      toast: mostrarToast,
+
+      // ── Senha / PIN ──
+      async definirSenha(senha: string) {
+        if (MODO_EXEMPLO) return;
+        await persistencia.definirSenha(senha);
+        dispatch({ type: 'sistema', patch: {}, temSenha: true });
+      },
+      async desbloquear(senha: string) {
+        const ok = MODO_EXEMPLO ? senha.length > 0 : await persistencia.verificarSenha(senha);
+        if (ok) dispatch({ type: 'bloquear', valor: false });
+        return ok;
+      },
+
+      // ── Backup ──
+      async configurarBackup(o: { senha?: string; pasta?: string; freq?: 'semanal' | 'manual' }) {
+        if (MODO_EXEMPLO) {
+          dispatch({ type: 'sistema', patch: { backup: { ...ref.current.config.backup, ...(o.freq ? { freq: o.freq } : {}), ...(o.pasta ? { pasta: o.pasta } : {}), temSenha: true } } });
+          return true;
+        }
+        try {
+          const sobrenome = ref.current.pessoas.find((p) => p.souEu)?.nome.split(' ').slice(-1)[0];
+          const b = await persistencia.backupConfigurar({ ...o, nome: sobrenome ? `familia-${sobrenome}` : undefined });
+          dispatch({ type: 'sistema', patch: { backup: backupParaConfig(b) } });
+          return true;
+        } catch (e) {
+          mostrarToast({ texto: erroTexto(e) });
+          return false;
+        }
+      },
+      async backupAgora() {
+        if (MODO_EXEMPLO) {
+          dispatch({ type: 'sistema', patch: { backup: { ...ref.current.config.backup, ultimo: new Date().toISOString() } } });
+          mostrarToast({ texto: 'Backup criptografado salvo' });
+          return true;
+        }
+        try {
+          const b = await persistencia.backupAgora();
+          dispatch({ type: 'sistema', patch: { backup: backupParaConfig(b) } });
+          mostrarToast({ texto: `Backup salvo: ${b.arquivo}` });
+          return true;
+        } catch (e) {
+          mostrarToast({ texto: erroTexto(e) });
+          return false;
+        }
+      },
+      escolherPasta: () => persistencia.escolherPasta(ref.current.config.backup.pasta),
+      escolherArquivoBackup: () => persistencia.escolherArquivoBackup(),
+      /** Lança erro com mensagem legível se a senha estiver errada. */
+      async restaurar(caminho: string, senha: string) {
+        await persistencia.backupRestaurar(caminho, senha);
+        await recarregar();
+        mostrarToast({ texto: 'Backup restaurado' });
+      },
+      async apagarTudo() {
+        if (MODO_EXEMPLO) {
+          dispatch({ type: 'reset', state: estadoBase() });
+          return;
+        }
+        await persistencia.apagarTudo();
+        await recarregar();
+      },
+      recarregar,
+
+      // Só para o navegador de telas em desenvolvimento.
+      carregarExemplo: () => dispatch({ type: 'reset', state: estadoExemplo() }),
+      carregarVazio: () => dispatch({ type: 'reset', state: estadoVazio() }),
+    };
+  }, [dispatch, mostrarToast]);
+}
+
+type Api = ReturnType<typeof useApi>;
+const Ctx = createContext<{ state: State; api: Api; toast: Toast | null; fecharToast: () => void; status: Status; erro: string | null } | null>(null);
+
+export function StoreProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(reducer, undefined, () => (MODO_REAL ? estadoBase() : estadoExemplo()));
+  const [status, setStatus] = useState<Status>(MODO_REAL ? 'carregando' : 'pronto');
+  const [erro, setErro] = useState<string | null>(null);
+  const [toast, setToast] = useState<Toast | null>(null);
+  const timer = useRef<number>();
+  const mostrarToast = useCallback((t: Omit<Toast, 'id'>) => {
+    window.clearTimeout(timer.current);
+    setToast({ ...t, id: Date.now() });
+    timer.current = window.setTimeout(() => setToast(null), 5000);
+  }, []);
+  const fecharToast = useCallback(() => setToast(null), []);
+  const api = useApi(state, dispatch, mostrarToast);
+  useLembretes(state, status === 'pronto', api.marcarDose);
+  useViradaDoDia();
+
+  useEffect(() => {
+    if (!MODO_REAL) return;
+    let vivo = true;
+    (async () => {
+      try {
+        const ini = await persistencia.iniciar();
+        if (!vivo) return;
+        if (ini.erro) {
+          setErro(ini.erro);
+          setStatus('erro');
+          return;
+        }
+        const s = projetar(ini.eventos);
+        const config = mesclarConfig(s.config, { backup: backupParaConfig(ini.backup), update: { ...s.config.update, instalada: ini.versao } });
+        const temEu = s.pessoas.some((p) => p.souEu);
+        dispatch({ type: 'reset', state: { ...s, config, temSenha: ini.temSenha, bloqueado: ini.temSenha && temEu } });
+        setStatus('pronto');
+        // Backup semanal automático, se estiver na hora.
+        const feito = await persistencia.backupSeDevido().catch(() => null);
+        if (feito && vivo) {
+          dispatch({ type: 'sistema', patch: { backup: backupParaConfig(feito) } });
+          mostrarToast({ texto: 'Backup semanal feito' });
+        }
+      } catch (e) {
+        if (!vivo) return;
+        setErro(e instanceof Error ? e.message : String(e));
+        setStatus('erro');
+      }
+    })();
+    return () => { vivo = false; };
+  }, [mostrarToast]);
+
+  return <Ctx.Provider value={{ state, api, toast, fecharToast, status, erro }}>{children}</Ctx.Provider>;
+}
+
+export function useStore() {
+  const c = useContext(Ctx);
+  if (!c) throw new Error('useStore fora do StoreProvider');
+  return c;
+}
+
+// ── Seletores ───────────────────────────────────────────────────────────────
+
+export const eu = (s: State) => s.pessoas.find((p) => p.souEu)!;
+export const temEu = (s: State) => s.pessoas.some((p) => p.souEu);
+export const pessoa = (s: State, id: string) => s.pessoas.find((p) => p.id === id);
+
+export interface DoseHoje { remedio: Remedio; pessoa: Pessoa; horario: string; dose?: Dose }
+export function dosesHoje(s: State): DoseHoje[] {
+  const out: DoseHoje[] = [];
+  for (const r of s.remedios) {
+    if (!r.ativo || r.seNecessario) continue;
+    const p = pessoa(s, r.pessoaId);
+    if (!p) continue;
+    for (const h of r.horarios) {
+      const dose = s.doses.find((d) => d.remedioId === r.id && d.previstoPara === `${HOJE}T${h}`);
+      out.push({ remedio: r, pessoa: p, horario: h, dose });
+    }
+  }
+  return out.sort((a, b) => a.horario.localeCompare(b.horario));
+}
+
+const addDiasISO = (iso: string, n: number) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y, m - 1, d + n);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+};
+
+export const proximos = (s: State, dias = 30) => {
+  const lim = addDiasISO(HOJE, dias);
+  return s.consultas.filter((c) => c.data >= HOJE && c.data <= lim);
+};
+
+export type DiaAdesao = { iso: string; estado: 'tomada' | 'perdida' | 'pendente' | 'fora'; tomadas: number; previstas: number };
+
+/** Histórico dia a dia de um remédio (inclui hoje). */
+export function historicoAdesao(s: State, remedioId: string, dias: number): DiaAdesao[] {
+  const r = s.remedios.find((x) => x.id === remedioId);
+  if (!r || r.seNecessario || !r.horarios.length) return [];
+  return Array.from({ length: dias }, (_, i) => {
+    const iso = addDiasISO(HOJE, i - dias + 1);
+    const fora = (r.inicio && iso < r.inicio) || (r.fim && iso > r.fim);
+    const tomadas = s.doses.filter((d) => d.remedioId === r.id && d.status === 'tomada' && d.previstoPara.startsWith(iso)).length;
+    const previstas = fora ? 0 : r.horarios.length;
+    const estado: DiaAdesao['estado'] = fora ? 'fora' : tomadas >= previstas ? 'tomada' : iso === HOJE ? 'pendente' : 'perdida';
+    return { iso, estado, tomadas, previstas };
+  });
+}
+
+/** % de doses tomadas nos últimos 30 dias (sem contar o que ainda vai ser tomado hoje). */
+export function adesao(s: State, remedioId: string, dias = 30): number | undefined {
+  const h = historicoAdesao(s, remedioId, dias + 1).filter((d) => d.iso !== HOJE);
+  const prev = h.reduce((a, d) => a + d.previstas, 0);
+  if (!prev) return undefined;
+  return Math.round((h.reduce((a, d) => a + Math.min(d.tomadas, d.previstas), 0) / prev) * 100);
+}
+
+/** O que `de` compartilha com `para`. Para si mesmo, tudo. */
+export function compartilhado(s: State, de: string, para: string): Categoria[] {
+  // Pets são da casa: todo mundo vê e edita tudo.
+  if (de === para || s.pessoas.find((p) => p.id === de)?.tipo === 'pet') return ['perfil', 'remedios', 'consultas', 'exames', 'plano'];
+  return s.compartilhamentos.find((c) => c.de === de && c.para === para)?.categorias ?? [];
+}
+export function podeVer(s: State, pessoaId: string, cat: Categoria) {
+  return compartilhado(s, pessoaId, eu(s).id).includes(cat);
+}
+
+/** Pessoas para quem você pode cadastrar coisas: você, quem compartilha o perfil
+ *  completo com você e dependentes que você cadastrou (sem aparelho próprio). */
+export function editaveis(s: State) {
+  const meuId = eu(s).id;
+  return s.pessoas.filter(
+    (p) => p.souEu || compartilhado(s, p.id, meuId).includes('perfil') || !s.compartilhamentos.some((c) => c.de === p.id),
+  );
+}

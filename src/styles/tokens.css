@@ -1,0 +1,84 @@
+/* Tokens do handoff "Arquivo de saúde da família" — valores finais (hi-fi). */
+:root {
+  /* Superfícies */
+  --bg: #F4F7F7;
+  --surface: #FFFFFF;
+  --canvas: #D3DBDD;
+  --preview-canvas: #E6EBEC;
+
+  /* Bordas */
+  --border-card: #DFE6E7;
+  --divider: #E9EEEF;
+  --border-input: #C3CED1;
+
+  /* Texto */
+  --ink: #14202A;
+  --text-2: #5B6B75;
+  --text-3: #8C9AA2;
+  --tab-inactive: #A7B4BB;
+  --ink-2: #22323D;
+
+  /* Primária (teal) */
+  --teal: #1F6E74;
+  --teal-light: #E3F0F0;
+  --teal-dark: #14484C;
+  --teal-on-dark: #7FC4C8;
+
+  /* Segunda cor (âmbar): destaque decorativo, nunca alerta. */
+  --sol: #E3A03A;
+  --sol-light: #FBF0DA;
+  --sol-dark: #8C5A12;
+
+  /* Textura do fundo: grade de pontos bem leve. */
+  --padrao-ponto: rgba(31, 110, 116, .085);
+  --padrao: radial-gradient(var(--padrao-ponto) 1px, transparent 1.4px) 0 0 / 18px 18px;
+
+  /* Alerta */
+  --warn-bg: #FBEEE8;
+  --warn-bar: #C4643E;
+  --warn-text: #9A4524;
+  --warn-strong: #7A3519;
+  --warn-track: #F2D9CD;
+  --warn-row: #FDF8F6;
+
+  /* Destrutivo / emergência */
+  --danger: #B23A2A;
+  --danger-bg: #FBE9E7;
+  --danger-borda: #F3C9C2;
+
+  /* Cartão escuro da dose (Início) */
+  --hero-bg: #14202A;
+  --hero-2: #22323D;
+  --hero-texto-2: #A7B4BB;
+  --trilho-passado: #C8DCDD;
+
+  /* Controles */
+  --segment-track: #E3E9EA;
+  --toggle-off: #D3DBDD;
+  --chip-neutral: #EEF2F3;
+  --placeholder: repeating-linear-gradient(135deg, #EEF2F3 0 6px, #E3E9EA 6px 12px);
+  --placeholder-soft: repeating-linear-gradient(135deg, #F7F9F9 0 8px, #EEF2F3 8px 16px);
+
+  /* Tipografia */
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* Raios (menos redondos desde o redesign de 30/10/2026) */
+  --r-phone: 44px;
+  --r-tabbar: 10px;
+  --r-plan: 12px;
+  --r-card: 10px;
+  --r-cta: 8px;
+  --r-input: 6px;
+  --r-btn: 6px;
+  --r-pill: 6px;
+
+  /* Sombras */
+  --shadow-frame: 0 30px 60px -30px rgba(20, 40, 50, .3);
+  --shadow-plan: 0 20px 40px -24px rgba(20, 40, 50, .6);
+  --shadow-modal: 0 40px 80px -30px rgba(10, 20, 30, .5);
+  --shadow-segment: 0 1px 2px rgba(20, 40, 50, .1);
+
+  --ease: cubic-bezier(.2, .7, .3, 1);
+  --t: 180ms;
+}

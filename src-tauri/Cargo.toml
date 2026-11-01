@@ -1,0 +1,52 @@
+[package]
+name = "arquivo-saude"
+version = "0.2.0"
+description = "Arquivo de saúde da família"
+authors = ["lucaslsm8"]
+edition = "2021"
+
+[lib]
+name = "arquivo_saude_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# SQLite compilado junto (sem dependências do sistema). Os dados vão cifrados pelo app.
+rusqlite = { version = "0.32", features = ["bundled"] }
+chacha20poly1305 = "0.10"
+argon2 = "0.5"
+rand = "0.8"
+base64 = "0.22"
+# Download da agenda do Google (endereço iCal que a pessoa colou).
+ureq = "2"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+
+# Chave do banco no cofre do sistema (Gerenciador de Credenciais no Windows, Keychain no macOS).
+[target.'cfg(any(windows, target_os = "macos"))'.dependencies]
+keyring = { version = "3", features = ["windows-native", "apple-native"] }
+
+# Notificações do Windows com botões (Tomei / 15 min / Pular).
+[target.'cfg(windows)'.dependencies]
+tauri-winrt-notification = "0.8"
+windows-registry = "0.6"
+
+# Atualização pelo GitHub Releases (instalador assinado) e reinício depois de instalar. Só no desktop.
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-process = "2"
+tauri-plugin-updater = "2"
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

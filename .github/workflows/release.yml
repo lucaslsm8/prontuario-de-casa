@@ -1,0 +1,48 @@
+# Publica uma versão: ao enviar uma tag "v*" (ex.: v0.3.0), compila no Windows, assina
+# e cria o release no GitHub com o instalador e o latest.json que o app instalado consulta.
+#
+# Precisa do segredo TAURI_SIGNING_PRIVATE_KEY (conteúdo de ~/.tauri/prontuario-de-casa.key)
+# em Settings › Secrets and variables › Actions. Sem ele, o app não aceita a atualização.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      - run: npm test
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: Prontuário de Casa ${{ github.ref_name }}
+          releaseBody: |
+            - Descreva aqui o que mudou (uma linha por item; aparece no aviso de atualização).
+          releaseDraft: true
+          prerelease: false
+          includeUpdaterJson: true

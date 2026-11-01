@@ -1,0 +1,52 @@
+# Arquitetura e próximos marcos
+
+## Decisão: sincronização entre aparelhos
+
+O handoff deixou a sincronização em aberto. A proposta abaixo segue as regras já definidas: dados só nos aparelhos, cada pessoa é dona dos próprios registros e doses são só de adição.
+
+**Modelo de dados: log de eventos por dono.** Cada aparelho grava suas mudanças como eventos (`criou`, `editou`, `dose_registrada`…) assinados com a chave do dono (Ed25519) e marcados com relógio lógico híbrido (HLC). O SQLite local é uma projeção desse log.
+- Quem pode editar um registro é só o dono (ou quem cuida de um dependente). Assim quase não há conflito entre pessoas.
+- Entre os aparelhos da mesma pessoa (celular + computador), vale o último HLC por campo.
+- Doses nunca são editadas nem apagadas: um “desfazer” vira um evento novo que anula o anterior.
+- Antes de enviar, o aparelho filtra os eventos pelas categorias que a pessoa compartilha com cada destinatário (`Compartilhamento`).
+
+Escolhi isso em vez de CRDT genérico (Automerge, cr-sqlite) porque o modelo de dono único já elimina a maior parte dos conflitos, e um log simples é mais fácil de auditar, de fazer backup e de filtrar por categoria.
+
+**Transporte, em duas camadas:**
+1. **Conexão direta na rede local** (padrão). Descoberta por mDNS e canal cifrado Noise (`XX`) com as chaves trocadas no pareamento por QR (M13). Status na D07: “conexão direta”.
+2. **Pasta sincronizada do próprio usuário** (opcional, para quem mora em outra casa). O aparelho grava pacotes de eventos cifrados para a chave pública de cada destinatário (formato `age`/X25519) numa pasta que o usuário já sincroniza (Google Drive, OneDrive, Syncthing). Quem guarda a pasta só vê bytes cifrados. Status: “via pasta sincronizada”.
+
+Nenhum servidor de terceiros recebe dados legíveis. Um relay próprio com criptografia ponta a ponta pode entrar depois, se a pasta não bastar.
+
+Bibliotecas previstas (Rust, no `src-tauri`): `mdns-sd`, `snow` (Noise), `ed25519-dalek`/`x25519-dalek`, `age`.
+
+## Armazenamento (feito no marco 2)
+
+- **Log de eventos**: o front transforma cada ação (`dose`, `addRemedio`, `config`…) num evento `{ id, em, autor, tipo, dados }`. O estado é a projeção do log pelo mesmo reducer (`src/data/store.tsx`). Doses e “desfazer” são eventos novos, nunca edições.
+- **SQLite + criptografia no app** em vez de SQLCipher: o SQLCipher no Windows exige compilar OpenSSL (Perl, NASM), o que complicaria o build. Cada evento e cada valor de configuração é cifrado com XChaCha20-Poly1305 usando o id como dado associado (um blob não pode ser trocado de lugar). Um marcador cifrado detecta chave errada logo na abertura.
+- **Chave do aparelho**: 32 bytes aleatórios no Gerenciador de Credenciais (Windows) / Keychain (macOS). No Linux e, por enquanto, no Android, num arquivo na pasta privada do app (0600). No Android ela vai para o Keystore.
+- **Senha/PIN**: hash Argon2id (64 MiB, 3 passadas). Serve para desbloquear a interface; a chave do banco não depende dela.
+- **Backup `.fsaude`**: `FSAUDE` + versão | sal (16) | nonce (24) | JSON com o log inteiro, cifrado com chave derivada da senha do backup por Argon2id. Independe do aparelho. A senha do backup fica guardada (cifrada) no banco para o backup semanal automático.
+- **Pendência para a sincronização**: hoje “quem sou eu” está no evento da pessoa (`souEu`). Antes de sincronizar, isso passa para uma configuração local do aparelho.
+- **Pets**: um pet é uma `Pessoa` com `tipo: 'pet'` (espécie, raça, veterinário). Os registros próprios vêm de eventos `addVacina`, `addPrevencao`, `addSintoma`, `addProcedimento` e `addPesagem` (cada `Pesagem` e `Prevencao` tem `id`). "Apliquei hoje" mostra "Desfazer", que emite `desfazerPrevencao { id }` (remove a prevenção com esse id; o log continua append-only). Prevenção não aceita data futura. Pets não entram em `Compartilhamento`. Os lembretes agora incluem reforço de vacina (`proxima`) e prevenção (data + `intervaloDias`), além das doses.
+
+## Próximos marcos
+
+1. **Lembretes**: `tauri-plugin-notification` no desktop; no Android, AlarmManager com ações nativas Tomei / Lembrar em 15 min / Pular (M15), respeitando “esconder nome do remédio”.
+2. **Atualizações**: desktop com `tauri-plugin-updater` lendo o `latest.json` do GitHub Releases (assinatura verificada). Android: consultar a API de Releases, baixar o APK, conferir hash e abrir o instalador (`REQUEST_INSTALL_PACKAGES`). Backup antes de instalar ligado por padrão.
+3. **Android**: `npm run tauri android init`, chave no Keystore, biometria (`tauri-plugin-biometric`), ajustes de área segura.
+4. **Sincronização**, conforme a decisão acima.
+5. Edição de registros, que nos mockups aparece como “Editar”. **Perfil feito** (29/10/2026): evento `editarPessoa { pessoaId, patch }` com só os campos alterados, inclusive alergias, condições, contato e foto. A foto fica dentro do evento (data URL JPEG 384×384, qualidade 0,82), portanto no log cifrado e no backup `.fsaude`; nunca em arquivo solto. Faltam remédios, consultas, exames e planos.
+   Custo: cada troca de foto acrescenta ~40–70 KB ao log (append-only, nada é apagado).
+
+## Observações sobre o design
+
+- A D04 de novembro/2026 precisa de 6 semanas (o dia 1º cai num domingo); o mockup mostra 5 e corta o dia 30. O app mostra as 6.
+- Nos mockups, a seção “Pessoas” da sidebar aparece só em D01/D02. No app ela fica em todas as telas do desktop.
+- Telas não desenhadas que precisei criar seguindo o mesmo visual: hub de Configurações (mobile), bloqueio por senha no desktop, confirmação de “Encerrar tratamento”, “Escolher itens” do resumo, histórico de versões e tela cheia da carteirinha (“Mostrar no balcão”).
+- Telas desktop criadas fora dos mockups (D01–D08 não as cobrem):
+  - **Formulários em diálogo largo** (`src/desktop/Formularios.tsx`): remédio, consulta, exame, pessoa e ficha de emergência. A lógica (validação, eventos) fica em `src/data/formularios.ts` e é a mesma do mobile, só a apresentação muda.
+  - **Primeiro uso em tela dividida** (no modo real a boas-vindas fica em `/`; `/boas-vindas` existe só para o navegador de telas; depois `/cadastro?passo=1|2|3`): painel de marca de um lado, formulário do outro, em vez da coluna estreita do celular.
+  - **Detalhe do remédio** (`/remedios/:id`): no mobile é a M16; no desktop a D05 só lista.
+  - **Resumo para consulta** (`/consulta/:id/resumo`): documento imprimível com “Escolher itens”; “Exportar PDF” usa `window.print()`.
+  - **Carteirinha em tela cheia** (“Mostrar no balcão” na D06): número grande em fundo escuro, fecha com Esc ou clique.

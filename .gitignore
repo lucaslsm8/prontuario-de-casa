@@ -1,0 +1,17 @@
+node_modules
+dist
+src-tauri/target
+src-tauri/gen/schemas
+*.log
+.DS_Store
+*.tsbuildinfo
+.superpowers/
+.claude/launch.json
+*.lnk
+# Dados e chaves pessoais nunca entram no repositório.
+*.fsaude
+*.db
+*.db-wal
+*.db-shm
+*.key
+*.pdf
