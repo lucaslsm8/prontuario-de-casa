@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 
 type R<T> = Result<T, String>;
 
-/// Kv "sync_envio": quantos eventos deste aparelho já subiram e o próximo número de pacote.
+/// Kv "sync_envio": quantos eventos deste aparelho já subiram e o último número de pacote enviado.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Pendencia {
     pub n: u32,
@@ -23,8 +23,12 @@ pub fn preparar_envio(proprios: &[Value], ja: usize, prox_n: u32) -> Vec<(u32, V
     pacote::fatiar(resto).into_iter().enumerate().map(|(i, p)| (prox_n + i as u32, p)).collect()
 }
 
-/// Grava os pacotes em ordem; para no primeiro erro. Devolve (último n gravado, eventos enviados).
-/// Se o primeiro já falhar, devolve o erro.
+/// Grava os pacotes em ordem; para no primeiro erro.
+/// Devolve (último número de pacote presente no remoto, eventos dos pacotes enviados/confirmados nesta chamada).
+/// Com `pacotes` vazio devolve (0, 0): quem chama mantém a `Pendencia` anterior intacta.
+/// Quem chama guarda `n = ultimo` (o próximo pacote é `ultimo + 1`). Se o primeiro já falhar, devolve o erro.
+/// Escrita ambígua (chegou, mas a resposta se perdeu): se o remoto já tem o pacote `n` com os mesmos
+/// ids de evento, conta como enviado.
 pub fn enviar(remoto: &dyn Remoto, f: &Familia, aparelho: &str, pacotes: &[(u32, Vec<Value>)]) -> R<(u32, usize)> {
     let chave = f.chave_bytes()?;
     let mut ultimo = 0;
@@ -32,15 +36,24 @@ pub fn enviar(remoto: &dyn Remoto, f: &Familia, aparelho: &str, pacotes: &[(u32,
     for (n, evs) in pacotes {
         let bytes = pacote::empacotar(&chave, &f.familia_id, aparelho, *n, evs)?;
         if let Err(e) = remoto.gravar(&pacote::nome(aparelho, *n), &bytes) {
-            if enviados == 0 {
-                return Err(e);
+            if !ja_gravado(remoto, f, &chave, aparelho, *n, evs) {
+                if enviados == 0 {
+                    return Err(e);
+                }
+                break;
             }
-            break;
         }
         ultimo = *n;
         enviados += evs.len();
     }
     Ok((ultimo, enviados))
+}
+
+/// O remoto já tem o pacote `n` com os mesmos eventos (mesmos ids, mesma ordem)? Falha ao checar = não.
+fn ja_gravado(remoto: &dyn Remoto, f: &Familia, chave: &[u8; 32], aparelho: &str, n: u32, evs: &[Value]) -> bool {
+    let Ok(Some(bytes)) = remoto.baixar(&pacote::nome(aparelho, n)) else { return false };
+    let Ok(remotos) = pacote::desempacotar(chave, &f.familia_id, aparelho, n, &bytes) else { return false };
+    remotos.len() == evs.len() && remotos.iter().zip(evs).all(|(a, b)| a.get("id") == b.get("id"))
 }
 
 /// Pacotes dos outros aparelhos que ainda não foram lidos, em ordem.
@@ -53,7 +66,16 @@ pub fn novos_pacotes(remoto: &dyn Remoto, aparelho: &str, lidos: &BTreeMap<Strin
         let ja = lidos.get(&dono).copied().unwrap_or(0);
         let mut ns: Vec<u32> = remoto.listar(&format!("eventos/{dono}"))?.iter().filter_map(|a| a.strip_suffix(".bin")?.parse().ok()).filter(|n| *n > ja).collect();
         ns.sort_unstable();
-        out.extend(ns.into_iter().map(|n| (dono.clone(), n)));
+        ns.dedup();
+        // só a sequência sem buracos a partir de ja + 1: quem avança `lidos` nunca pula um pacote ainda não listado
+        let mut esperado = ja + 1;
+        for n in ns {
+            if n != esperado {
+                break;
+            }
+            out.push((dono.clone(), n));
+            esperado += 1;
+        }
     }
     Ok(out)
 }
@@ -103,10 +125,28 @@ mod testes {
     }
 
     #[test]
-    fn envio_repetido_do_mesmo_numero_falha_sem_perder_contagem() {
+    fn envio_repetido_com_conteudo_diferente_falha() {
         let m = Memoria::default();
         let f = Familia::nova("a/b", "t");
         enviar(&m, &f, "pc-a", &preparar_envio(&evs(&["1"]), 0, 1)).unwrap();
         assert!(enviar(&m, &f, "pc-a", &preparar_envio(&evs(&["9"]), 0, 1)).is_err());
+    }
+
+    #[test]
+    fn escrita_que_chegou_mas_sem_resposta_conta_como_enviada() {
+        let m = Memoria::default();
+        let f = Familia::nova("a/b", "t");
+        let p = preparar_envio(&evs(&["1"]), 0, 1);
+        assert_eq!(enviar(&m, &f, "pc-a", &p).unwrap(), (1, 1));
+        assert_eq!(enviar(&m, &f, "pc-a", &p).unwrap(), (1, 1));
+    }
+
+    #[test]
+    fn lacuna_na_numeracao_para_a_leitura() {
+        let m = Memoria::default();
+        let f = Familia::nova("a/b", "t");
+        enviar(&m, &f, "pc-a", &preparar_envio(&evs(&["1"]), 0, 1)).unwrap();
+        enviar(&m, &f, "pc-a", &preparar_envio(&evs(&["3"]), 0, 3)).unwrap();
+        assert_eq!(novos_pacotes(&m, "cel-b", &BTreeMap::new()).unwrap(), [("pc-a".to_string(), 1)]);
     }
 }
