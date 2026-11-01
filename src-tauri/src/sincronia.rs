@@ -6,76 +6,67 @@ use crate::pacote;
 use crate::remoto::Remoto;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::BTreeMap;
 
 type R<T> = Result<T, String>;
 
-/// Kv "sync_envio": quantos eventos deste aparelho já subiram e o último número de pacote enviado.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+/// Kv "sync_envio:<familiaId>": o último número de pacote enviado e o id do último evento que subiu.
+/// O formato antigo `{n, enviados}` é lido com `ultimo_id: None` (o front reenvia tudo; duplicatas são inofensivas).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Pendencia {
     pub n: u32,
-    pub enviados: usize,
+    #[serde(default)]
+    pub ultimo_id: Option<String>,
 }
 
-/// Pacotes a enviar: os eventos próprios depois dos `ja` enviados, numerados a partir de `prox_n`.
-pub fn preparar_envio(proprios: &[Value], ja: usize, prox_n: u32) -> Vec<(u32, Vec<Value>)> {
-    let resto = proprios.get(ja..).unwrap_or(&[]);
-    pacote::fatiar(resto).into_iter().enumerate().map(|(i, p)| (prox_n + i as u32, p)).collect()
+fn id_de(ev: &Value) -> Option<&str> {
+    ev.get("id").and_then(Value::as_str)
 }
 
-/// Grava os pacotes em ordem; para no primeiro erro.
-/// Devolve (último número de pacote presente no remoto, eventos dos pacotes enviados/confirmados nesta chamada).
-/// Com `pacotes` vazio devolve (0, 0): quem chama mantém a `Pendencia` anterior intacta.
-/// Quem chama guarda `n = ultimo` (o próximo pacote é `ultimo + 1`). Se o primeiro já falhar, devolve o erro.
-/// Escrita ambígua (chegou, mas a resposta se perdeu): se o remoto já tem o pacote `n` com os mesmos
-/// ids de evento, conta como enviado.
-pub fn enviar(remoto: &dyn Remoto, f: &Familia, aparelho: &str, pacotes: &[(u32, Vec<Value>)]) -> R<(u32, usize)> {
+/// Grava os eventos em pacotes numerados a partir de `prox_n`, fatiando aos poucos; para no primeiro erro.
+/// Devolve (último número de pacote presente no remoto, eventos contados como enviados, id do último deles).
+/// Com `eventos` vazio devolve (0, 0, None): quem chama mantém a `Pendencia` anterior intacta.
+/// Se o primeiro pacote já falhar, devolve o erro.
+/// Escrita incerta (chegou, mas a resposta se perdeu): se o remoto já tem o pacote `n`, ele abre com a
+/// nossa chave e seus ids são o começo dos eventos pendentes, conta esses como enviados e segue para `n + 1`.
+pub fn enviar(remoto: &dyn Remoto, f: &Familia, aparelho: &str, eventos: &[Value], prox_n: u32) -> R<(u32, usize, Option<String>)> {
     let chave = f.chave_bytes()?;
-    let mut ultimo = 0;
-    let mut enviados = 0;
-    for (n, evs) in pacotes {
-        let bytes = pacote::empacotar(&chave, &f.familia_id, aparelho, *n, evs)?;
-        if let Err(e) = remoto.gravar(&pacote::nome(aparelho, *n), &bytes) {
-            if !ja_gravado(remoto, f, &chave, aparelho, *n, evs) {
-                if enviados == 0 {
-                    return Err(e);
-                }
-                break;
-            }
-        }
-        ultimo = *n;
-        enviados += evs.len();
+    let (mut ultimo, mut enviados, mut ultimo_id) = (0, 0, None);
+    let mut resto = eventos;
+    let mut n = prox_n;
+    while !resto.is_empty() {
+        let lote = &resto[..pacote::primeira_fatia(resto)];
+        let bytes = pacote::empacotar(&chave, &f.familia_id, aparelho, n, lote)?;
+        let tam = match remoto.gravar(&pacote::nome(aparelho, n), &bytes) {
+            Ok(()) => lote.len(),
+            Err(e) => match ja_gravado(remoto, f, &chave, aparelho, n, resto) {
+                Some(k) => k,
+                None if enviados == 0 => return Err(e),
+                None => break,
+            },
+        };
+        ultimo = n;
+        enviados += tam;
+        ultimo_id = id_de(&resto[tam - 1]).map(String::from);
+        resto = &resto[tam..];
+        n += 1;
     }
-    Ok((ultimo, enviados))
+    Ok((ultimo, enviados, ultimo_id))
 }
 
-/// O remoto já tem o pacote `n` com os mesmos eventos (mesmos ids, mesma ordem)? Falha ao checar = não.
-fn ja_gravado(remoto: &dyn Remoto, f: &Familia, chave: &[u8; 32], aparelho: &str, n: u32, evs: &[Value]) -> bool {
-    let Ok(Some(bytes)) = remoto.baixar(&pacote::nome(aparelho, n)) else { return false };
-    let Ok(remotos) = pacote::desempacotar(chave, &f.familia_id, aparelho, n, &bytes) else { return false };
-    remotos.len() == evs.len() && remotos.iter().zip(evs).all(|(a, b)| a.get("id") == b.get("id"))
+/// O remoto já tem o pacote `n` com um começo de `pendentes` (mesmos ids, mesma ordem)? Devolve quantos.
+/// Falha ao checar, pacote vazio ou que não bate = None.
+fn ja_gravado(remoto: &dyn Remoto, f: &Familia, chave: &[u8; 32], aparelho: &str, n: u32, pendentes: &[Value]) -> Option<usize> {
+    let bytes = remoto.baixar(&pacote::nome(aparelho, n)).ok()??;
+    let remotos = pacote::desempacotar(chave, &f.familia_id, aparelho, n, &bytes).ok()?;
+    let bate = !remotos.is_empty() && remotos.len() <= pendentes.len() && remotos.iter().zip(pendentes).all(|(a, b)| id_de(a).is_some() && id_de(a) == id_de(b));
+    bate.then_some(remotos.len())
 }
 
-/// Pacotes dos outros aparelhos que ainda não foram lidos, em ordem.
-pub fn novos_pacotes(remoto: &dyn Remoto, aparelho: &str, lidos: &BTreeMap<String, u32>) -> R<Vec<(String, u32)>> {
-    let mut out = Vec::new();
-    for dono in remoto.listar("eventos")? {
-        if dono == aparelho {
-            continue;
-        }
-        let ja = lidos.get(&dono).copied().unwrap_or(0);
-        let mut ns: Vec<u32> = remoto.listar(&format!("eventos/{dono}"))?.iter().filter_map(|a| a.strip_suffix(".bin")?.parse().ok()).filter(|n| *n > ja).collect();
-        ns.sort_unstable();
-        ns.dedup();
-        // só a sequência sem buracos a partir de ja + 1: quem avança `lidos` nunca pula um pacote ainda não listado
-        for (n, esperado) in ns.into_iter().zip(ja + 1..) {
-            if n != esperado {
-                break;
-            }
-            out.push((dono.clone(), n));
-        }
-    }
-    Ok(out)
+/// Os outros aparelhos com pasta em `eventos/`. A pasta de cada um não é listada (o GitHub corta em 1000 itens):
+/// quem lê sonda `baixar_proximo(n)`, `n + 1`, … até o primeiro que não existe.
+pub fn donos(remoto: &dyn Remoto, aparelho: &str) -> R<Vec<String>> {
+    Ok(remoto.listar("eventos")?.into_iter().filter(|d| d != aparelho).collect())
 }
 
 pub enum Baixado {
@@ -84,13 +75,25 @@ pub enum Baixado {
     Ilegivel,
 }
 
-/// Erro de rede ou pacote ausente = Err (tenta de novo no próximo ciclo); só falha ao decifrar vira `Ilegivel`.
-pub fn baixar_ou_pular(remoto: &dyn Remoto, f: &Familia, dono: &str, n: u32) -> R<Baixado> {
-    let bytes = remoto.baixar(&pacote::nome(dono, n))?.ok_or_else(|| format!("{} sumiu do repositório", pacote::nome(dono, n)))?;
+/// O pacote `n` de `dono`, se já existe. Ausente = Ok(None): fim da sequência sem buracos por enquanto.
+/// Erro de rede = Err (a rodada para e tenta de novo no próximo ciclo); só falha ao decifrar vira `Ilegivel`.
+pub fn baixar_proximo(remoto: &dyn Remoto, f: &Familia, dono: &str, n: u32) -> R<Option<Baixado>> {
+    let Some(bytes) = remoto.baixar(&pacote::nome(dono, n))? else { return Ok(None) };
     let chave = f.chave_bytes()?;
-    Ok(match pacote::desempacotar(&chave, &f.familia_id, dono, n, &bytes) {
+    Ok(Some(match pacote::desempacotar(&chave, &f.familia_id, dono, n, &bytes) {
         Ok(evs) => Baixado::Eventos(evs),
         Err(_) => Baixado::Ilegivel,
+    }))
+}
+
+/// Eventos de um pacote de `dono` que podem entrar em `aparelho` (este): `id` em texto e `aparelho` em texto,
+/// igual ao dono da pasta ou de um aparelho de fora da família (evento de um backup restaurado, que sobe pela
+/// pasta de quem restaurou). Ninguém escreve em nome deste aparelho nem de outro da família (`donos`).
+/// Os outros são ignorados: um malformado não trava o recebimento.
+pub fn aceitaveis<'a>(evs: &'a [Value], dono: &'a str, aparelho: &'a str, donos: &'a [String]) -> impl Iterator<Item = &'a Value> + 'a {
+    evs.iter().filter(move |e| {
+        let Some(de) = e.get("aparelho").and_then(Value::as_str) else { return false };
+        id_de(e).is_some() && (de == dono || (de != aparelho && !donos.iter().any(|d| d == de)))
     })
 }
 
@@ -99,75 +102,155 @@ mod testes {
     use super::*;
     use crate::remoto::Memoria;
     use serde_json::json;
+    use std::collections::BTreeMap;
 
     fn evs(ids: &[&str]) -> Vec<Value> {
         ids.iter().map(|i| json!({"id": i, "aparelho": "pc-a"})).collect()
     }
 
+    /// Remoto que recusa listar a pasta de um aparelho (o GitHub corta em 1000 itens): a leitura tem de sondar.
+    struct SemListarPasta(Memoria);
+    impl Remoto for SemListarPasta {
+        fn listar(&self, pasta: &str) -> R<Vec<String>> {
+            if pasta != "eventos" {
+                panic!("não deveria listar {pasta}");
+            }
+            self.0.listar(pasta)
+        }
+        fn baixar(&self, caminho: &str) -> R<Option<Vec<u8>>> {
+            self.0.baixar(caminho)
+        }
+        fn gravar(&self, caminho: &str, bytes: &[u8]) -> R<()> {
+            self.0.gravar(caminho, bytes)
+        }
+        fn conferir(&self) -> R<()> {
+            Ok(())
+        }
+    }
+
+    /// Lê tudo o que é novo de cada dono, sondando n = ja + 1, ja + 2… como o sync_receber.
+    fn ler_tudo(m: &dyn Remoto, f: &Familia, aparelho: &str, lidos: &mut BTreeMap<String, u32>) -> Vec<(String, u32, Vec<Value>)> {
+        let mut out = Vec::new();
+        for dono in donos(m, aparelho).unwrap() {
+            let mut n = lidos.get(&dono).copied().unwrap_or(0) + 1;
+            while let Some(b) = baixar_proximo(m, f, &dono, n).unwrap() {
+                let evs = match b {
+                    Baixado::Eventos(e) => e,
+                    Baixado::Ilegivel => vec![],
+                };
+                out.push((dono.clone(), n, evs));
+                lidos.insert(dono.clone(), n);
+                n += 1;
+            }
+        }
+        out
+    }
+
     #[test]
-    fn envia_so_o_que_falta_e_o_outro_aparelho_recebe() {
-        let m = Memoria::default();
+    fn envia_so_o_recorte_e_o_outro_aparelho_recebe() {
+        let m = SemListarPasta(Memoria::default());
         let f = Familia::nova("a/b", "t");
-        let p1 = preparar_envio(&evs(&["1", "2"]), 0, 1);
-        assert_eq!(enviar(&m, &f, "pc-a", &p1).unwrap(), (1, 2));
-        let p2 = preparar_envio(&evs(&["1", "2", "3"]), 2, 2);
-        assert_eq!(p2.len(), 1);
-        assert_eq!(enviar(&m, &f, "pc-a", &p2).unwrap(), (2, 1));
-        assert!(preparar_envio(&evs(&["1", "2", "3"]), 3, 3).is_empty());
+        assert_eq!(enviar(&m, &f, "pc-a", &evs(&["1", "2"]), 1).unwrap(), (1, 2, Some("2".into())));
+        assert_eq!(enviar(&m, &f, "pc-a", &evs(&["3"]), 2).unwrap(), (2, 1, Some("3".into())));
+        assert_eq!(enviar(&m, &f, "pc-a", &[], 3).unwrap(), (0, 0, None));
 
         let mut lidos = BTreeMap::new();
-        let novos = novos_pacotes(&m, "cel-b", &lidos).unwrap();
-        assert_eq!(novos, [("pc-a".to_string(), 1), ("pc-a".to_string(), 2)]);
-        let recebidos: Vec<Value> = novos
-            .iter()
-            .flat_map(|(d, n)| match baixar_ou_pular(&m, &f, d, *n).unwrap() {
-                Baixado::Eventos(e) => e,
-                Baixado::Ilegivel => panic!("deveria abrir"),
-            })
-            .collect();
-        assert_eq!(recebidos, evs(&["1", "2", "3"]));
-        lidos.insert("pc-a".to_string(), 2);
-        assert!(novos_pacotes(&m, "cel-b", &lidos).unwrap().is_empty());
-        assert!(novos_pacotes(&m, "pc-a", &BTreeMap::new()).unwrap().is_empty(), "não lê a própria pasta");
+        let lido = ler_tudo(&m, &f, "cel-b", &mut lidos);
+        assert_eq!(lido.iter().map(|(d, n, _)| (d.as_str(), *n)).collect::<Vec<_>>(), [("pc-a", 1), ("pc-a", 2)]);
+        assert_eq!(lido.into_iter().flat_map(|(_, _, e)| e).collect::<Vec<_>>(), evs(&["1", "2", "3"]));
+        assert!(ler_tudo(&m, &f, "cel-b", &mut lidos).is_empty());
+        assert!(ler_tudo(&m, &f, "pc-a", &mut BTreeMap::new()).is_empty(), "não lê a própria pasta");
+    }
+
+    #[test]
+    fn muitos_eventos_viram_varios_pacotes_numerados() {
+        let m = Memoria::default();
+        let f = Familia::nova("a/b", "t");
+        let muitos: Vec<Value> = (0..450).map(|i| json!({"id": i.to_string(), "aparelho": "pc-a"})).collect();
+        assert_eq!(enviar(&m, &f, "pc-a", &muitos, 5).unwrap(), (7, 450, Some("449".into())));
+        assert_eq!(m.listar("eventos/pc-a").unwrap(), ["000005.bin", "000006.bin", "000007.bin"]);
     }
 
     #[test]
     fn pacote_de_outra_familia_nao_abre() {
         let m = Memoria::default();
         let f = Familia::nova("a/b", "t");
-        enviar(&m, &f, "pc-a", &preparar_envio(&evs(&["1"]), 0, 1)).unwrap();
-        assert!(matches!(baixar_ou_pular(&m, &Familia::nova("a/b", "t"), "pc-a", 1), Ok(Baixado::Ilegivel)));
+        enviar(&m, &f, "pc-a", &evs(&["1"]), 1).unwrap();
+        assert!(matches!(baixar_proximo(&m, &Familia::nova("a/b", "t"), "pc-a", 1), Ok(Some(Baixado::Ilegivel))));
     }
 
     #[test]
-    fn pacote_ausente_e_erro_e_nao_pulo() {
+    fn pacote_ausente_e_o_fim_da_sequencia() {
         let m = Memoria::default();
-        assert!(baixar_ou_pular(&m, &Familia::nova("a/b", "t"), "pc-a", 1).is_err());
+        assert!(matches!(baixar_proximo(&m, &Familia::nova("a/b", "t"), "pc-a", 1), Ok(None)));
     }
 
     #[test]
     fn envio_repetido_com_conteudo_diferente_falha() {
         let m = Memoria::default();
         let f = Familia::nova("a/b", "t");
-        enviar(&m, &f, "pc-a", &preparar_envio(&evs(&["1"]), 0, 1)).unwrap();
-        assert!(enviar(&m, &f, "pc-a", &preparar_envio(&evs(&["9"]), 0, 1)).is_err());
+        enviar(&m, &f, "pc-a", &evs(&["1"]), 1).unwrap();
+        assert!(enviar(&m, &f, "pc-a", &evs(&["9"]), 1).is_err());
     }
 
     #[test]
     fn escrita_que_chegou_mas_sem_resposta_conta_como_enviada() {
         let m = Memoria::default();
         let f = Familia::nova("a/b", "t");
-        let p = preparar_envio(&evs(&["1"]), 0, 1);
-        assert_eq!(enviar(&m, &f, "pc-a", &p).unwrap(), (1, 1));
-        assert_eq!(enviar(&m, &f, "pc-a", &p).unwrap(), (1, 1));
+        assert_eq!(enviar(&m, &f, "pc-a", &evs(&["1"]), 1).unwrap(), (1, 1, Some("1".into())));
+        assert_eq!(enviar(&m, &f, "pc-a", &evs(&["1"]), 1).unwrap(), (1, 1, Some("1".into())));
+    }
+
+    #[test]
+    fn escrita_incerta_seguida_de_eventos_novos_nao_trava() {
+        // O pacote 1 com [1, 2] chegou ao remoto, mas o cursor não avançou (resposta e checagem perdidas).
+        let m = Memoria::default();
+        let f = Familia::nova("a/b", "t");
+        enviar(&m, &f, "pc-a", &evs(&["1", "2"]), 1).unwrap();
+        // Próxima rodada: o mesmo recorte e mais um evento, de novo a partir do pacote 1.
+        assert_eq!(enviar(&m, &f, "pc-a", &evs(&["1", "2", "3"]), 1).unwrap(), (2, 3, Some("3".into())));
+        assert_eq!(m.listar("eventos/pc-a").unwrap(), ["000001.bin", "000002.bin"]);
+        let mut lidos = BTreeMap::new();
+        let lido: Vec<Value> = ler_tudo(&m, &f, "cel-b", &mut lidos).into_iter().flat_map(|(_, _, e)| e).collect();
+        assert_eq!(lido, evs(&["1", "2", "3"]));
     }
 
     #[test]
     fn lacuna_na_numeracao_para_a_leitura() {
-        let m = Memoria::default();
+        let m = SemListarPasta(Memoria::default());
         let f = Familia::nova("a/b", "t");
-        enviar(&m, &f, "pc-a", &preparar_envio(&evs(&["1"]), 0, 1)).unwrap();
-        enviar(&m, &f, "pc-a", &preparar_envio(&evs(&["3"]), 0, 3)).unwrap();
-        assert_eq!(novos_pacotes(&m, "cel-b", &BTreeMap::new()).unwrap(), [("pc-a".to_string(), 1)]);
+        enviar(&m, &f, "pc-a", &evs(&["1"]), 1).unwrap();
+        enviar(&m, &f, "pc-a", &evs(&["2"]), 2).unwrap();
+        enviar(&m, &f, "pc-a", &evs(&["4"]), 4).unwrap();
+        let mut lidos = BTreeMap::new();
+        let lido = ler_tudo(&m, &f, "cel-b", &mut lidos);
+        assert_eq!(lido.iter().map(|(_, n, _)| *n).collect::<Vec<_>>(), [1, 2]);
+        assert_eq!(lidos.get("pc-a"), Some(&2));
+    }
+
+    #[test]
+    fn so_aceita_eventos_com_id_texto_e_sem_se_passar_por_outro_aparelho() {
+        let evs = vec![
+            json!({"id": "a", "aparelho": "pc-a"}),
+            json!({"id": 7, "aparelho": "pc-a"}),
+            json!({"aparelho": "pc-a"}),
+            json!({"id": "b", "aparelho": "cel-b"}),
+            json!({"id": "c"}),
+            json!({"id": "d", "aparelho": "pc-a"}),
+            json!({"id": "e", "aparelho": "tab-c"}),
+            json!({"id": "f", "aparelho": "pc-x"}),
+        ];
+        // Lendo a pasta de pc-a em cel-b; tab-c também é da família; pc-x é de fora (backup restaurado em pc-a).
+        let donos = ["pc-a".to_string(), "tab-c".to_string()];
+        let ok: Vec<&str> = aceitaveis(&evs, "pc-a", "cel-b", &donos).filter_map(|e| e.get("id")?.as_str()).collect();
+        assert_eq!(ok, ["a", "d", "f"]);
+    }
+
+    #[test]
+    fn pendencia_antiga_vira_cursor_sem_ultimo_id() {
+        let p: Pendencia = serde_json::from_value(json!({"n": 4, "enviados": 37})).unwrap();
+        assert_eq!(p, Pendencia { n: 4, ultimo_id: None });
+        let nova = Pendencia { n: 5, ultimo_id: Some("x".into()) };
+        assert_eq!(serde_json::to_value(&nova).unwrap(), json!({"n": 5, "ultimoId": "x"}));
     }
 }

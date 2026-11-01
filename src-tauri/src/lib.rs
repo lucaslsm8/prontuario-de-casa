@@ -24,6 +24,8 @@ struct Estado {
     pasta_padrao_backup: PathBuf,
     banco: Mutex<Option<Banco>>,
     erro: Mutex<Option<String>>,
+    /// Uma sincronização por vez: quem chega com outra em andamento devolve 0 e tenta na próxima rodada.
+    sync: tauri::async_runtime::Mutex<()>,
 }
 
 type R<T> = Result<T, String>;
@@ -132,54 +134,85 @@ async fn familia_convite(st: State<'_, Estado>) -> R<String> {
     Ok(familia::convite(&exigir_familia(&st)?))
 }
 
+fn ler_kv<T: serde::de::DeserializeOwned + Default>(b: &Banco, chave: &str) -> R<T> {
+    Ok(b.kv_get(chave)?.and_then(|v| serde_json::from_value(v).ok()).unwrap_or_default())
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CursorSync {
+    /// Id do último evento que subiu (null: nada ainda, ou cursor do formato antigo → o front manda tudo).
+    ultimo_id: Option<String>,
+    /// Aparelhos da família já lidos: os eventos deles não sobem daqui.
+    recebidos: Vec<String>,
+}
+
+#[tauri::command]
+async fn sync_cursor(st: State<'_, Estado>) -> R<CursorSync> {
+    let f = exigir_familia(&st)?;
+    com_banco(&st, |b| {
+        let p: sincronia::Pendencia = ler_kv(b, &format!("sync_envio:{}", f.familia_id))?;
+        let lidos: std::collections::BTreeMap<String, u32> = ler_kv(b, &format!("sync_lidos:{}", f.familia_id))?;
+        Ok(CursorSync { ultimo_id: p.ultimo_id, recebidos: lidos.into_keys().collect() })
+    })
+}
+
+/// Sobe o recorte que o front montou (os eventos depois de `ultimoId`); devolve quantos eventos subiram.
 #[tauri::command]
 async fn sync_enviar(st: State<'_, Estado>, aparelho: String, eventos: Vec<Value>) -> R<usize> {
-    let f = exigir_familia(&st)?;
-    let chave_envio = format!("sync_envio:{}", f.familia_id);
-    let p: sincronia::Pendencia = com_banco(&st, |b| Ok(b.kv_get(&chave_envio)?.and_then(|v| serde_json::from_value(v).ok()).unwrap_or_default()))?;
-    let pacotes = sincronia::preparar_envio(&eventos, p.enviados, p.n + 1);
-    if pacotes.is_empty() {
+    let Ok(_vez) = st.sync.try_lock() else { return Ok(0) };
+    if eventos.is_empty() {
         return Ok(0);
     }
-    let (ultimo, enviados) = rede(move || {
+    let f = exigir_familia(&st)?;
+    let chave_envio = format!("sync_envio:{}", f.familia_id);
+    let p: sincronia::Pendencia = com_banco(&st, |b| ler_kv(b, &chave_envio))?;
+    let (ultimo, enviados, ultimo_id) = rede(move || {
         let r = remoto::GitHub::new(&f.repo, &f.token);
-        sincronia::enviar(&r, &f, &aparelho, &pacotes)
+        sincronia::enviar(&r, &f, &aparelho, &eventos, p.n + 1)
     })
     .await?;
-    let nova = sincronia::Pendencia { n: ultimo, enviados: p.enviados + enviados };
-    com_banco(&st, |b| b.kv_set(&chave_envio, &serde_json::to_value(nova).map_err(|e| e.to_string())?))?;
+    if enviados > 0 {
+        let nova = sincronia::Pendencia { n: ultimo, ultimo_id };
+        com_banco(&st, |b| b.kv_set(&chave_envio, &serde_json::to_value(nova).map_err(|e| e.to_string())?))?;
+    }
     Ok(enviados)
 }
 
 #[tauri::command]
 async fn sync_receber(st: State<'_, Estado>, aparelho: String) -> R<usize> {
+    let Ok(_vez) = st.sync.try_lock() else { return Ok(0) };
     let f = exigir_familia(&st)?;
     let chave_lidos = format!("sync_lidos:{}", f.familia_id);
-    let mut lidos: std::collections::BTreeMap<String, u32> =
-        com_banco(&st, |b| Ok(b.kv_get(&chave_lidos)?.and_then(|v| serde_json::from_value(v).ok()).unwrap_or_default()))?;
-    let (f2, ap, l2) = (f.clone(), aparelho.clone(), lidos.clone());
-    let novos = rede(move || sincronia::novos_pacotes(&remoto::GitHub::new(&f2.repo, &f2.token), &ap, &l2)).await?;
+    let mut lidos: std::collections::BTreeMap<String, u32> = com_banco(&st, |b| ler_kv(b, &chave_lidos))?;
+    let (f2, ap) = (f.clone(), aparelho.clone());
+    let donos = rede(move || sincronia::donos(&remoto::GitHub::new(&f2.repo, &f2.token), &ap)).await?;
     let mut entraram = 0;
-    for (dono, n) in novos {
-        let g = f.clone();
-        let d = dono.clone();
-        // Erro de rede ou pacote ausente: aborta e tenta no próximo ciclo. Só o que não decifra é pulado.
-        let evs = match rede(move || sincronia::baixar_ou_pular(&remoto::GitHub::new(&g.repo, &g.token), &g, &d, n)).await? {
-            sincronia::Baixado::Eventos(evs) => evs,
-            sincronia::Baixado::Ilegivel => vec![],
-        };
-        entraram += com_banco(&st, |b| {
-            let mut c = 0;
-            // evento sem id é descartado: um malformado não pode travar o recebimento para sempre
-            for ev in evs.iter().filter(|e| e.get("id").is_some()) {
-                if b.gravar_novo(ev)? {
-                    c += 1;
+    for dono in &donos {
+        let dono = dono.clone();
+        // Sonda n = lidos + 1, + 2, … até o primeiro ausente (só a sequência sem buracos).
+        let mut n = lidos.get(&dono).copied().unwrap_or(0) + 1;
+        loop {
+            let (g, d) = (f.clone(), dono.clone());
+            // Erro de rede: aborta e tenta no próximo ciclo. Só o que não decifra é pulado.
+            let Some(baixado) = rede(move || sincronia::baixar_proximo(&remoto::GitHub::new(&g.repo, &g.token), &g, &d, n)).await? else { break };
+            let evs = match baixado {
+                sincronia::Baixado::Eventos(evs) => evs,
+                sincronia::Baixado::Ilegivel => vec![],
+            };
+            entraram += com_banco(&st, |b| {
+                let mut c = 0;
+                for ev in sincronia::aceitaveis(&evs, &dono, &aparelho, &donos) {
+                    if b.gravar_novo(ev)? {
+                        c += 1;
+                    }
                 }
-            }
-            Ok(c)
-        })?;
-        lidos.insert(dono, n);
-        com_banco(&st, |b| b.kv_set(&chave_lidos, &serde_json::to_value(&lidos).map_err(|e| e.to_string())?))?;
+                Ok(c)
+            })?;
+            lidos.insert(dono.clone(), n);
+            com_banco(&st, |b| b.kv_set(&chave_lidos, &serde_json::to_value(&lidos).map_err(|e| e.to_string())?))?;
+            n += 1;
+        }
     }
     Ok(entraram)
 }
@@ -487,7 +520,7 @@ pub fn run() {
                 Ok(b) => (Some(b), None),
                 Err(e) => (None, Some(e)),
             };
-            app.manage(Estado { servico, dir, pasta_padrao_backup, banco: Mutex::new(banco), erro: Mutex::new(erro) });
+            app.manage(Estado { servico, dir, pasta_padrao_backup, banco: Mutex::new(banco), erro: Mutex::new(erro), sync: Default::default() });
             notificacao::registrar();
             let ag = lembretes::Agendador::novo();
             app.manage(ag.clone());
@@ -514,6 +547,7 @@ pub fn run() {
             familia_entrar,
             familia_sair,
             familia_convite,
+            sync_cursor,
             sync_enviar,
             sync_receber
         ])

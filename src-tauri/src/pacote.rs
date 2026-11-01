@@ -17,22 +17,27 @@ fn aad(familia: &str, aparelho: &str, n: u32) -> Vec<u8> {
     format!("{familia}|{aparelho}|{n}").into_bytes()
 }
 
-/// Divide em pacotes de até 200 eventos ou ~1 MB de JSON; um evento maior que isso vai sozinho.
-pub fn fatiar(eventos: &[Value]) -> Vec<Vec<Value>> {
-    let mut out: Vec<Vec<Value>> = Vec::new();
-    let mut atual: Vec<Value> = Vec::new();
+/// Quantos eventos do começo cabem no próximo pacote: até 200 ou ~1 MB de JSON; um evento maior que isso vai sozinho.
+pub fn primeira_fatia(eventos: &[Value]) -> usize {
     let mut bytes = 0usize;
-    for ev in eventos {
+    for (i, ev) in eventos.iter().enumerate() {
         let tam = serde_json::to_vec(ev).map(|v| v.len()).unwrap_or(0);
-        if !atual.is_empty() && (atual.len() >= MAX_EVENTOS || bytes + tam > MAX_BYTES) {
-            out.push(std::mem::take(&mut atual));
-            bytes = 0;
+        if i > 0 && (i >= MAX_EVENTOS || bytes + tam > MAX_BYTES) {
+            return i;
         }
-        atual.push(ev.clone());
         bytes += tam;
     }
-    if !atual.is_empty() {
-        out.push(atual);
+    eventos.len()
+}
+
+/// Divide em pacotes de até 200 eventos ou ~1 MB de JSON; um evento maior que isso vai sozinho.
+#[cfg(test)]
+pub fn fatiar(mut eventos: &[Value]) -> Vec<Vec<Value>> {
+    let mut out = Vec::new();
+    while !eventos.is_empty() {
+        let k = primeira_fatia(eventos);
+        out.push(eventos[..k].to_vec());
+        eventos = &eventos[k..];
     }
     out
 }
