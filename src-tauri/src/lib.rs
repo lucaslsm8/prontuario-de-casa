@@ -842,6 +842,10 @@ pub fn run() {
     // Celular: ler o QR do convite da família.
     #[cfg(mobile)]
     let builder = builder.plugin(tauri_plugin_barcode_scanner::init());
+
+    // Lembretes de remédio no celular (no desktop quem avisa é o agendador em lembretes.rs).
+    #[cfg(mobile)]
+    let builder = builder.plugin(tauri_plugin_notification::init());
     builder
         .setup(|app| {
             let servico = app.config().identifier.clone();

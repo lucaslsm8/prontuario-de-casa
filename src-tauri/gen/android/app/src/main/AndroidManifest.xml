@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Lembretes de remédio (plugin de notificações): POST_NOTIFICATIONS, RECEIVE_BOOT_COMPLETED e WAKE_LOCK
+         vêm do próprio plugin. O alarme exato deixa o aviso sair na hora marcada. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <!-- AndroidTV support -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
