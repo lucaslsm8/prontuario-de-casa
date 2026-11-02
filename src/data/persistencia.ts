@@ -51,6 +51,8 @@ export interface Persistencia {
   apagarTudo(): Promise<void>;
   /** Substitui os lembretes agendados no sistema (só em memória no Rust). */
   agendarLembretes(lista: Lembrete[]): Promise<void>;
+  /** Android: ação da notificação que abriu o app fechado (`{ actionId, notification }`), lida uma vez; null se não houver. */
+  lembreteAcaoPendente(): Promise<unknown>;
   /** A família deste aparelho, ou null se ainda não entrou em nenhuma. */
   familiaInfo(): Promise<InfoFamilia | null>;
   /** Cria a família no repositório do GitHub com o token informado. */
@@ -125,6 +127,7 @@ function tauri(): Persistencia {
     },
     apagarTudo: () => call('apagar_tudo'),
     agendarLembretes: (lista) => call('agendar_lembretes', { lista }),
+    lembreteAcaoPendente: () => call<unknown>('lembrete_acao_pendente'),
     familiaInfo: () => call<InfoFamilia | null>('familia_info'),
     familiaCriar: (repo, token) => call<InfoFamilia>('familia_criar', { repo, token }),
     familiaEntrar: (convite) => call<InfoFamilia>('familia_entrar', { convite }),
@@ -195,6 +198,7 @@ function memoria(): Persistencia {
     escolherArquivoBackup: async () => (d.copia ? 'familia-dev.fsaude' : null),
     apagarTudo: async () => { const copia = d.copia; d = vazio(); d.copia = copia; salvar(); },
     agendarLembretes: async () => {},
+    lembreteAcaoPendente: async () => null,
     familiaInfo: async () => null,
     familiaCriar: async () => { throw new Error('A família só funciona no app instalado.'); },
     familiaEntrar: async () => { throw new Error('A família só funciona no app instalado.'); },

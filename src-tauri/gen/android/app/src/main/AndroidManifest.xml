@@ -9,7 +9,10 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!-- Lembretes de remédio (plugin de notificações): POST_NOTIFICATIONS, RECEIVE_BOOT_COMPLETED e WAKE_LOCK
-         vêm do próprio plugin. O alarme exato deixa o aviso sair na hora marcada. -->
+         vêm do próprio plugin. O alarme exato deixa o aviso sair na hora marcada: USE_EXACT_ALARM (Android 13+,
+         concedida na instalação a apps de lembrete; o APK é distribuído fora da Play Store) e SCHEDULE_EXACT_ALARM
+         para o Android 12. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <!-- Atualização do APK pelo app (InstaladorPlugin.kt): abrir o instalador do Android. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />

@@ -10,6 +10,8 @@ mod familia;
 #[cfg(target_os = "android")]
 mod instalador_android;
 mod lan;
+#[cfg(target_os = "android")]
+mod lembrete_android;
 mod lembretes;
 mod notificacao;
 mod pacote;
@@ -881,6 +883,20 @@ async fn apk_instalar(app: tauri::AppHandle, caminho: String) -> R<String> {
     }
 }
 
+/// Android: ação da notificação que abriu o app fechado (`{ actionId, notification }`), lida uma vez. Fora do Android, null.
+#[tauri::command]
+async fn lembrete_acao_pendente(app: tauri::AppHandle) -> R<Value> {
+    #[cfg(target_os = "android")]
+    {
+        Ok(lembrete_android::acao_pendente(&app).await)
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = app;
+        Ok(Value::Null)
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default().plugin(tauri_plugin_dialog::init());
@@ -896,6 +912,9 @@ pub fn run() {
     // Android: abre o instalador de pacotes para atualizar o APK (InstaladorPlugin.kt).
     #[cfg(target_os = "android")]
     let builder = builder.plugin(instalador_android::init());
+    // Android: Tomei / Pular tocados com o app fechado (LembretePlugin.kt).
+    #[cfg(target_os = "android")]
+    let builder = builder.plugin(lembrete_android::init());
     // Celular: abrir com biometria.
     #[cfg(mobile)]
     let builder = builder.plugin(tauri_plugin_biometric::init());
@@ -943,6 +962,7 @@ pub fn run() {
             apk_verificar,
             apk_baixar,
             apk_instalar,
+            lembrete_acao_pendente,
             familia_info,
             familia_criar,
             familia_entrar,

@@ -10,6 +10,14 @@ import { EM_TAURI } from './tempo';
 export const TIPO_ACAO_DOSE = 'dose';
 export const ADIAR_MIN = 15;
 const SUFIXO_ADIADO = '|adiado';
+/** Dose que passou há até 30 min sem aviso (ex.: remédio cadastrado depois do horário) avisa logo, como no desktop (lembretes.rs). */
+export const ATRASO_MAX_MIN = 30;
+/** Quanto depois de `agora` sai o aviso atrasado. */
+const LOGO_MS = 3_000;
+/** Texto dos avisos que não são de dose com "Esconder nomes" ligado. O plugin guarda título e corpo de cada
+ *  agendamento em claro (SharedPreferences) até disparar; assim nada de título, profissional, local ou pet fica lá. */
+export const TITULO_GENERICO = 'Lembrete do Prontuário de Casa';
+export const CORPO_GENERICO = 'Hora de um cuidado';
 
 /** Notificação pronta para o plugin (sem depender dele: o `Schedule` é montado na hora de agendar). */
 export interface Agendamento {
@@ -19,6 +27,7 @@ export interface Agendamento {
   em: Date;
   actionTypeId?: string;
   extra: { id: string };         // id de texto do lembrete, devolvido quando a ação é tocada
+  atrasado?: true;               // dose de até 30 min atrás, avisada logo (uma vez por sessão: ver `reagendar`)
 }
 
 export type AcaoAndroid = 'tomada' | 'pulada' | 'adiar';
@@ -40,19 +49,28 @@ export function idNumerico(id: string): number {
   return (h >>> 0) & 0x7fffffff;
 }
 
-/** Lembretes que ainda não passaram viram notificações agendadas; os de antes de `agora` ficam de fora. */
-export function paraAgendar(lista: Lembrete[], agora: Date): Agendamento[] {
+/** Lembretes que ainda não passaram viram notificações agendadas. Dos que passaram, só a dose de até
+ *  `ATRASO_MAX_MIN` atrás entra, para logo (`atrasado`); o resto fica de fora. Com `esconder`, os avisos que não são
+ *  de dose (consulta, vacina, prevenção) levam o texto genérico; os de dose já vêm sem o nome do remédio. */
+export function paraAgendar(lista: Lembrete[], agora: Date, esconder = false): Agendamento[] {
   const out: Agendamento[] = [];
   for (const l of lista) {
-    const em = data(l.quando);
-    if (em.getTime() <= agora.getTime()) continue;
+    let em = data(l.quando);
+    let atrasado = false;
+    if (em.getTime() <= agora.getTime()) {
+      if (!parteDose(l.id) || em.getTime() < agora.getTime() - ATRASO_MAX_MIN * 60_000) continue;
+      em = new Date(agora.getTime() + LOGO_MS);
+      atrasado = true;
+    }
+    const generico = esconder && !parteDose(l.id);
     out.push({
       id: idNumerico(l.id),
-      title: l.titulo,
-      body: l.corpo,
+      title: generico ? TITULO_GENERICO : l.titulo,
+      body: generico ? CORPO_GENERICO : l.corpo,
       em,
       ...(l.acoes ? { actionTypeId: TIPO_ACAO_DOSE } : {}),
       extra: { id: l.id },
+      ...(atrasado ? { atrasado: true as const } : {}),
     });
   }
   return out;
@@ -79,6 +97,16 @@ export function acaoDoPlugin(actionId: string | null | undefined): AcaoAndroid |
   return null;
 }
 
+/** Ação tocada, como o plugin entrega (`{ actionId, notification }`, no evento ou na Intent de abertura) → ação do app; null se não for ação de lembrete. */
+export function lerAcaoPlugin(payload: unknown): { acao: AcaoAndroid; id: string; titulo: string; corpo: string } | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const r = payload as { actionId?: string | null; notification?: { title?: string; body?: string; extra?: { id?: string } } | null };
+  const acao = acaoDoPlugin(r.actionId);
+  const id = r.notification?.extra?.id;
+  if (!acao || typeof id !== 'string' || !id) return null;
+  return { acao, id, titulo: r.notification?.title ?? '', corpo: r.notification?.body ?? '' };
+}
+
 /** Id "dose|<remedio>|<previstoPara>[|adiado]" → partes; null se não for de dose. */
 export function parteDose(id: string): { remedioId: string; previstoPara: string } | null {
   const [tipo, remedioId, previstoPara] = id.split('|');
@@ -86,12 +114,22 @@ export function parteDose(id: string): { remedioId: string; previstoPara: string
   return { remedioId, previstoPara };
 }
 
+/** Dose ainda sem registro (id de lembrete de dose, com ou sem "|adiado"). */
+function doseSemRegistro(extraId: string, doses: Dose[]): boolean {
+  const p = parteDose(extraId);
+  return !!p && !doses.some((d) => d.remedioId === p.remedioId && d.previstoPara === p.previstoPara);
+}
+
 /** Adiamento pendente que ainda vale: dose ainda sem registro. Os demais pendentes são cancelados. */
 export function adiadoVale(extraId: string | undefined, doses: Dose[]): boolean {
   if (!extraId || !extraId.endsWith(SUFIXO_ADIADO)) return false;
-  const p = parteDose(extraId);
-  if (!p) return false;
-  return !doses.some((d) => d.remedioId === p.remedioId && d.previstoPara === p.previstoPara);
+  return doseSemRegistro(extraId, doses);
+}
+
+/** Pendente que fica ao reagendar: adiamento que vale ou aviso atrasado desta sessão (`avisados`) de dose ainda sem registro. */
+export function pendenteFica(extraId: string | undefined, doses: Dose[], avisados: ReadonlySet<string>): boolean {
+  if (!extraId) return false;
+  return adiadoVale(extraId, doses) || (avisados.has(extraId) && doseSemRegistro(extraId, doses));
 }
 
 // ---------- chamadas ao plugin (só no app Android) ----------
@@ -100,6 +138,10 @@ export const noCelular = () => EM_TAURI && /Android/i.test(navigator.userAgent);
 
 let tiposRegistrados = false;
 let fila: Promise<void> = Promise.resolve();
+/** Doses atrasadas já avisadas nesta sessão (só em memória): cada uma avisa uma vez, mesmo reagendando a cada mudança. */
+const avisados = new Set<string>();
+/** Doses já agendadas nesta sessão: a que tocou na hora com o app aberto não volta como atrasada. */
+const agendados = new Set<string>();
 
 const plugin = () => import('@tauri-apps/plugin-notification');
 type Plugin = Awaited<ReturnType<typeof plugin>>;
@@ -131,14 +173,20 @@ function agendar(p: Plugin, a: Agendamento) {
 }
 
 /** Cancela as pendentes do app (menos adiamentos ainda válidos) e agenda a lista de novo. Uma por vez. */
-export function reagendarAndroid(lista: Lembrete[], doses: Dose[], agora: Date): Promise<void> {
-  fila = fila.then(() => reagendar(lista, doses, agora)).catch((e) => console.error('lembretes:', e));
+export function reagendarAndroid(lista: Lembrete[], doses: Dose[], agora: Date, esconder: boolean): Promise<void> {
+  fila = fila.then(() => reagendar(lista, doses, agora, esconder)).catch((e) => console.error('lembretes:', e));
   return fila;
 }
 
-async function reagendar(lista: Lembrete[], doses: Dose[], agora: Date) {
+async function reagendar(lista: Lembrete[], doses: Dose[], agora: Date, esconder: boolean) {
   const p = await plugin();
-  const novos = paraAgendar(lista, agora);
+  let novos = paraAgendar(lista, agora, esconder);
+  // Atrasada: só se não foi agendada nesta sessão nem está na bandeja (o alarme dela já tocou com o app fechado).
+  // Tocou com o app fechado e a pessoa já tirou da bandeja: avisa de novo ao abrir (a dose segue sem registro).
+  if (novos.some((a) => a.atrasado)) {
+    const ativos = new Set((await p.active().catch(() => [])).map((n) => n.id));
+    novos = novos.filter((a) => !a.atrasado || (!agendados.has(a.extra.id) && !ativos.has(a.id)));
+  }
   // A permissão só é pedida na primeira vez que há algum lembrete.
   if (novos.length > 0 && !(await p.isPermissionGranted())) {
     if ((await p.requestPermission()) !== 'granted') return;
@@ -146,10 +194,14 @@ async function reagendar(lista: Lembrete[], doses: Dose[], agora: Date) {
   await registrarTipos(p);
   const pendentes = await p.pending();
   const cancelar = pendentes
-    .filter((n) => !adiadoVale((n as { extra?: { id?: string } }).extra?.id, doses))
+    .filter((n) => !pendenteFica((n as { extra?: { id?: string } }).extra?.id, doses, avisados))
     .map((n) => n.id);
   if (cancelar.length > 0) await p.cancel(cancelar);
-  for (const a of novos) agendar(p, a);
+  for (const a of novos) {
+    agendar(p, a);
+    if (a.atrasado) avisados.add(a.extra.id);
+    if (parteDose(a.extra.id)) agendados.add(a.extra.id);
+  }
 }
 
 /** Agenda o "15 min" de uma dose. */
@@ -171,11 +223,8 @@ export async function ouvirAcoesAndroid(
   const p = await plugin();
   // O plugin entrega { actionId, notification } (o tipo exportado diz Options).
   const l = await p.onAction((payload) => {
-    const r = payload as unknown as { actionId?: string; notification?: { title?: string; body?: string; extra?: { id?: string } } };
-    const acao = acaoDoPlugin(r.actionId);
-    const id = r.notification?.extra?.id;
-    if (!acao || !id) return;
-    cb(acao, id, r.notification?.title ?? '', r.notification?.body ?? '');
+    const a = lerAcaoPlugin(payload);
+    if (a) cb(a.acao, a.id, a.titulo, a.corpo);
   });
   return () => { void l.unregister(); };
 }

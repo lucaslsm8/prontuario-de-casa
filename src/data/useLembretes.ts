@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { EM_TAURI } from './tempo';
 import { persistencia } from './persistencia';
 import { proximosLembretes } from './lembretes';
-import { adiarAndroid, noCelular, ouvirAcoesAndroid, reagendarAndroid, type AcaoAndroid } from './lembretesAndroid';
+import { adiarAndroid, lerAcaoPlugin, noCelular, ouvirAcoesAndroid, reagendarAndroid, type AcaoAndroid } from './lembretesAndroid';
 import type { State } from './store';
 import type { Dose } from './types';
 
@@ -25,7 +25,7 @@ export function useLembretes(state: State, pronto: boolean, marcarDose: MarcarDo
     const agora = new Date();
     const lista = proximosLembretes(state, agora);
     // No Android os avisos são agendados pelo plugin de notificações; o agendador do Rust é do desktop.
-    if (noCelular()) void reagendarAndroid(lista, state.doses, agora);
+    if (noCelular()) void reagendarAndroid(lista, state.doses, agora, state.config.esconderNomeNotif);
     else persistencia.agendarLembretes(lista).catch((e) => console.error('lembretes:', e));
   }, [state, pronto, hora]);
 
@@ -63,15 +63,25 @@ export function useLembretes(state: State, pronto: boolean, marcarDose: MarcarDo
     for (const a of pend) tratarRef.current(a.id, a.acao, a.titulo, a.corpo);
   }, [pronto]);
 
-  // Android: listener registrado logo na montagem (a ação que abriu o app chega por aqui).
+  // Android: listener registrado logo na montagem. Com o app aberto (ou em segundo plano) a ação chega por ele.
+  // Com o app fechado, o plugin dispara a ação antes de existir listener: ela fica na Intent de abertura e o
+  // LembretePlugin.kt a entrega uma vez aqui (`lembreteAcaoPendente`). Duplicada não pesa: `tratar` ignora repetidas.
   useEffect(() => {
     if (!noCelular()) return;
     let vivo = true;
     let parar: (() => void) | undefined;
-    ouvirAcoesAndroid((acao, id, titulo, corpo) => {
+    const receber = (acao: AcaoAndroid, id: string, titulo: string, corpo: string) => {
       if (!ref.current.pronto && acao !== 'adiar') fila.current.push({ acao, id, titulo, corpo });
       else tratarRef.current(id, acao, titulo, corpo);
-    })
+    };
+    persistencia
+      .lembreteAcaoPendente()
+      .then((r) => {
+        const a = lerAcaoPlugin(r);
+        if (a && vivo) receber(a.acao, a.id, a.titulo, a.corpo);
+      })
+      .catch((e) => console.error('lembretes:', e));
+    ouvirAcoesAndroid(receber)
       .then((u) => {
         if (vivo) parar = u;
         else u();
