@@ -28,6 +28,8 @@ ureq = "2"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 # Rede de casa: só o hash SHA-256 do MAC/BSSID fica guardado.
 sha2 = "0.10"
+# Chave X25519 deste aparelho (a Task de remoção/rotação da chave da família a usa).
+x25519-dalek = { version = "2", features = ["static_secrets"] }
 
 # Chave do banco no cofre do sistema (Gerenciador de Credenciais no Windows, Keychain no macOS).
 [target.'cfg(any(windows, target_os = "macos"))'.dependencies]

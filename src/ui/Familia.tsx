@@ -4,6 +4,7 @@ import { useStore } from '../data/store';
 import { persistencia } from '../data/persistencia';
 import { definirFamilia, sincronizar, useInfoSync } from '../data/sincronizacao';
 import { quando } from '../data/format';
+import { aparelhosDaFamilia } from '../data/aparelhos';
 import { ehPet } from '../data/pets';
 import { Folha, SenhaApp } from './Backup';
 import { Label, Lock } from './index';
@@ -21,7 +22,11 @@ export function CardFamilia({ desktop }: { desktop?: boolean }) {
   const pad = desktop ? '14px 20px' : '14px 16px';
   const store = useStore();
   const s = useInfoSync();
-  const [folha, setFolha] = useState<null | 'criar' | 'entrar' | 'convite' | 'sair'>(null);
+  const [folha, setFolha] = useState<null | 'criar' | 'entrar' | 'convite' | 'sair' | 'renomear'>(null);
+  const meuId = store.api.aparelhoId();
+  const aparelhos = aparelhosDaFamilia(store.state);
+  // Este aparelho primeiro; os outros do mais ao menos recente.
+  aparelhos.sort((a, b) => Number(b.id === meuId) - Number(a.id === meuId));
   const status = !s.familia ? '' : s.estado === 'sincronizando' ? 'Sincronizando…' : s.estado === 'erro' ? (s.token ? 'Token do GitHub sem acesso ou vencido' : `Não sincronizou: ${s.erro}`) : s.ultima ? `Sincronizado ${quando(s.ultima)} · pelo GitHub` : 'Ainda não sincronizou';
   return (
     <div className="card" style={{ fontSize: 14 }}>
@@ -43,10 +48,22 @@ export function CardFamilia({ desktop }: { desktop?: boolean }) {
             </span>
             <button type="button" className={`btn btn--outline ${btn}`} style={{ background: 'transparent' }} disabled={s.estado === 'sincronizando'} onClick={() => void sincronizar(store, { manual: true })}>Sincronizar agora</button>
           </div>
-          <div className="row" style={{ padding: pad }}>
-            <span className="muted">Este aparelho</span>
-            <span className="mono">{store.api.aparelhoId()}</span>
-          </div>
+          {aparelhos.length === 0 ? (
+            <div className="row" style={{ padding: pad }}>
+              <span className="muted">Este aparelho</span>
+              <span className="mono">{meuId}</span>
+            </div>
+          ) : aparelhos.map((a) => (
+            <div key={a.id} className="row" style={{ padding: pad, flexWrap: 'wrap', gap: 10 }}>
+              <span className="stack" style={{ gap: 2, minWidth: 0, overflowWrap: 'anywhere' }}>
+                <span>{a.nome}{a.id === meuId && <span className="muted"> · este aparelho</span>}</span>
+                <span style={{ fontSize: 13, color: 'var(--text-2)' }}>{a.plataforma === 'cel' ? 'Celular' : 'Computador'} · visto {a.id === meuId ? 'agora' : quando(a.visto)}</span>
+              </span>
+              {a.id === meuId && (
+                <button type="button" className={`btn btn--outline ${btn}`} style={{ background: 'transparent', minHeight: 44 }} onClick={() => setFolha('renomear')}>Renomear</button>
+              )}
+            </div>
+          ))}
           <div className="hstack" style={{ padding: pad, gap: 8, flexWrap: 'wrap' }}>
             <button type="button" className={`btn btn--ink ${btn}`} style={desktop ? undefined : { flex: 1 }} onClick={() => setFolha('convite')}>Convidar aparelho</button>
             <button type="button" className={`btn btn--outline ${btn}`} style={{ background: 'transparent', color: 'var(--danger)', ...(desktop ? {} : { flex: 1 }) }} onClick={() => setFolha('sair')}>Sair da família</button>
@@ -57,7 +74,21 @@ export function CardFamilia({ desktop }: { desktop?: boolean }) {
       {folha === 'entrar' && <EntrarNaFamilia desktop={desktop} onClose={() => setFolha(null)} />}
       {folha === 'convite' && <Convite desktop={desktop} onClose={() => setFolha(null)} />}
       {folha === 'sair' && <SairDaFamilia desktop={desktop} onClose={() => setFolha(null)} />}
+      {folha === 'renomear' && <RenomearAparelho desktop={desktop} atual={aparelhos.find((a) => a.id === meuId)?.nome ?? ''} onClose={() => setFolha(null)} />}
     </div>
+  );
+}
+
+function RenomearAparelho({ desktop, atual, onClose }: { desktop?: boolean; atual: string; onClose: () => void }) {
+  const { api } = useStore();
+  const [nome, setNome] = useState(atual);
+  const salvar = () => { api.renomearAparelho(nome); onClose(); };
+  return (
+    <Folha desktop={desktop} onClose={onClose} titulo="Renomear aparelho">
+      <span style={texto}>Esse nome aparece na lista de aparelhos de toda a família.</span>
+      <input className={`input${desktop ? ' input--desk' : ''}`} value={nome} maxLength={40} onChange={(e) => setNome(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && nome.trim()) salvar(); }} autoFocus aria-label="Nome do aparelho" />
+      <button type="button" className={`btn btn--ink ${desktop ? 'btn--h40d' : 'btn--h50'}`} disabled={!nome.trim()} onClick={salvar}>Salvar</button>
+    </Folha>
   );
 }
 

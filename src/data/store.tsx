@@ -10,7 +10,8 @@ import { emCasaAgora } from './redeCasa';
 import { eventosParaEnviar, migrarLog, novoAparelhoId, ordenarLog, resolverEu, ultimoHlc, type Identidade } from './log';
 import type { PatchPessoa } from './perfil';
 import { medicoesDoPatch, perfilDasMedicoes } from './medicoes';
-import type { Categoria, Config, Consulta, Dose, Exame, Pessoa, Plano, Remedio, Compartilhamento, Vacina, Prevencao, Sintoma, Procedimento, Pesagem, Medicao, Anexo } from './types';
+import type { Categoria, Config, Consulta, Dose, Exame, Pessoa, Plano, Remedio, Compartilhamento, Vacina, Prevencao, Sintoma, Procedimento, Pesagem, Medicao, Anexo, Aparelho } from './types';
+import { vistoPorAparelho, nomePadraoAparelho, plataformaDoId } from './aparelhos';
 
 // Estado do app = projeção do log de eventos.
 // Toda mudança vira um evento; o evento é gravado (cifrado) no banco e aplicado
@@ -31,6 +32,7 @@ export interface State {
   medicoes: Medicao[];
   anexos: Anexo[];
   compartilhamentos: Compartilhamento[];
+  aparelhos: Aparelho[];
   config: Config;
   bloqueado: boolean;
   temSenha: boolean;
@@ -51,7 +53,7 @@ const CONFIG_PADRAO: Config = {
 };
 
 function estadoBase(): State {
-  return { pessoas: [], remedios: [], doses: [], consultas: [], exames: [], planos: [], vacinas: [], prevencoes: [], sintomas: [], procedimentos: [], pesagens: [], medicoes: [], anexos: [], compartilhamentos: [], config: clone(CONFIG_PADRAO), bloqueado: false, temSenha: false };
+  return { pessoas: [], remedios: [], doses: [], consultas: [], exames: [], planos: [], vacinas: [], prevencoes: [], sintomas: [], procedimentos: [], pesagens: [], medicoes: [], anexos: [], compartilhamentos: [], aparelhos: [], config: clone(CONFIG_PADRAO), bloqueado: false, temSenha: false };
 }
 
 export function estadoExemplo(): State {
@@ -70,6 +72,7 @@ export function estadoExemplo(): State {
     medicoes: clone(seed.medicoes),
     anexos: [],
     compartilhamentos: clone(seed.compartilhamentos),
+    aparelhos: [],
     config: clone(seed.config),
     bloqueado: false,
     temSenha: true,
@@ -116,7 +119,8 @@ type Mudanca =
   | { type: 'levar'; consultaId: string; idx: number }
   | { type: 'lembrete'; consultaId: string; lembrete: string }
   | { type: 'config'; patch: Partial<Config> }
-  | { type: 'compartilhar'; de: string; para: string; categorias: Categoria[] };
+  | { type: 'compartilhar'; de: string; para: string; categorias: Categoria[] }
+  | { type: 'aparelho'; aparelhoId: string; nome: string; plataforma: 'pc' | 'cel'; chavePublica?: string; removido?: boolean };
 
 // Ações locais (não persistidas).
 type Local =
@@ -283,6 +287,12 @@ function reducer(s: State, a: Action): State {
       const outros = s.compartilhamentos.filter((c) => !(c.de === a.de && c.para === a.para));
       return { ...s, compartilhamentos: [...outros, { de: a.de, para: a.para, categorias: a.categorias }] };
     }
+    // Registro ou renomeação de aparelho: vale o mais recente (o log já vem na ordem do HLC). `visto` é calculado em `projetar`.
+    case 'aparelho': {
+      const antigo = s.aparelhos.find((x) => x.id === a.aparelhoId);
+      const novo: Aparelho = { id: a.aparelhoId, nome: a.nome, plataforma: a.plataforma, chavePublica: a.chavePublica ?? antigo?.chavePublica, removido: a.removido || undefined, visto: antigo?.visto ?? '' };
+      return { ...s, aparelhos: antigo ? s.aparelhos.map((x) => (x.id === a.aparelhoId ? novo : x)) : [...s.aparelhos, novo] };
+    }
     // Evento de outra versão (backup mais novo, sincronização): ignora em vez de perder o log.
     default:
       return s;
@@ -303,9 +313,12 @@ function acaoDoEvento(ev: Evento, aparelhoId?: string): Mudanca {
 
 /** Reconstrói o estado aplicando o log na ordem do HLC. Com `euId`, "souEu" passa a ser só essa pessoa. `config` de outro aparelho (`aparelhoId` é o deste) só traz as preferências da família. */
 export function projetar(eventos: Evento[], euId?: string | null, aparelhoId?: string): State {
-  const s = ordenarLog(eventos).reduce((acc, ev) => {
+  const bruto = ordenarLog(eventos).reduce((acc, ev) => {
     try { return reducer(acc, acaoDoEvento(ev, aparelhoId)); } catch { return acc; }
   }, estadoBase());
+  // "Visto por último" vem do log inteiro (cada aparelho assina os próprios eventos), não de um evento só.
+  const vistos = vistoPorAparelho(eventos);
+  const s = { ...bruto, aparelhos: bruto.aparelhos.map((x) => ({ ...x, visto: vistos.get(x.id) ?? x.visto })) };
   return euId === undefined ? s : marcarEu(s, euId);
 }
 
@@ -315,7 +328,7 @@ export function marcarEu(s: State, euId: string | null): State {
 }
 
 /** Identidade e último carimbo deste aparelho na sessão (só no modo real). */
-const sessao: { identidade: Identidade | null; ultimo: Hlc | null } = { identidade: null, ultimo: null };
+const sessao: { identidade: Identidade | null; ultimo: Hlc | null; registrandoAparelho?: boolean } = { identidade: null, ultimo: null };
 
 const plataforma = (): 'pc' | 'cel' | 'web' => (!EM_TAURI ? 'web' : /Android/i.test(navigator.userAgent) ? 'cel' : 'pc');
 
@@ -549,6 +562,27 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
         return eventosParaEnviar(migrarLog(ini.eventos, id), cursor);
       },
       aparelhoId: () => sessao.identidade?.aparelhoId ?? null,
+      /** Registra este aparelho na família (evento `aparelho`) uma vez: só depois de saber quem é o "eu" (o nome padrão usa o primeiro nome). */
+      async registrarAparelho() {
+        const id = sessao.identidade?.aparelhoId;
+        const eu = ref.current.pessoas.find((p) => p.souEu);
+        if (!MODO_REAL || !id || !eu || sessao.registrandoAparelho || ref.current.aparelhos.some((x) => x.id === id)) return;
+        sessao.registrandoAparelho = true;
+        try {
+          const plat = plataformaDoId(id);
+          const chavePublica = (await persistencia.chavePublicaAparelho().catch(() => '')) || undefined;
+          if (ref.current.aparelhos.some((x) => x.id === id)) return;
+          emitir({ type: 'aparelho', aparelhoId: id, nome: nomePadraoAparelho(plat, eu.nome), plataforma: plat, chavePublica });
+        } finally { sessao.registrandoAparelho = false; }
+      },
+      /** Renomeia este aparelho (novo evento `aparelho` com o mesmo id; vale o mais recente). */
+      renomearAparelho(nome: string) {
+        const id = sessao.identidade?.aparelhoId;
+        const atual = ref.current.aparelhos.find((x) => x.id === id);
+        const novo = nome.trim().slice(0, 40);
+        if (!id || !atual || !novo || novo === atual.nome) return;
+        emitir({ type: 'aparelho', aparelhoId: id, nome: novo, plataforma: atual.plataforma, chavePublica: atual.chavePublica });
+      },
 
       // Só para o navegador de telas em desenvolvimento.
       carregarExemplo: () => dispatch({ type: 'reset', state: estadoExemplo() }),

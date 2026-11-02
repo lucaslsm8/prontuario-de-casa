@@ -20,7 +20,7 @@ const HOJE_INI = '2026-10-29';
 
 const estado = (o: Partial<State> = {}): State => ({
   pessoas: [pessoa('roberto', 'Roberto', 'Masculino'), pessoa('helena', 'Helena', 'Feminino')],
-  remedios: [], doses: [], consultas: [], exames: [], planos: [], vacinas: [], prevencoes: [], sintomas: [], procedimentos: [], pesagens: [], medicoes: [], anexos: [], compartilhamentos: [],
+  remedios: [], doses: [], consultas: [], exames: [], planos: [], vacinas: [], prevencoes: [], sintomas: [], procedimentos: [], pesagens: [], medicoes: [], anexos: [], compartilhamentos: [], aparelhos: [],
   config: { esconderNomeNotif: true } as State['config'],
   bloqueado: false, temSenha: false, ...o,
 });

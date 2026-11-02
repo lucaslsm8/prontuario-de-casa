@@ -1,3 +1,4 @@
+mod aparelho;
 mod backup;
 mod banco;
 #[cfg(target_os = "android")]
@@ -501,6 +502,12 @@ async fn rede_atual(app: tauri::AppHandle, pedir: Option<bool>) -> R<Option<rede
     }
 }
 
+/// Chave pública X25519 (hex) deste aparelho; cria o par na primeira chamada.
+#[tauri::command]
+async fn chave_publica_aparelho(st: State<'_, Estado>) -> R<String> {
+    com_banco(&st, |b| aparelho::chave_publica(b))
+}
+
 #[tauri::command]
 async fn redes_casa(st: State<'_, Estado>) -> R<Vec<rede_casa::Rede>> {
     com_banco(&st, |b| ler_redes(b))
@@ -658,7 +665,8 @@ pub fn run() {
             rede_atual,
             redes_casa,
             rede_casa_adicionar,
-            rede_casa_remover
+            rede_casa_remover,
+            chave_publica_aparelho
         ])
         .run(tauri::generate_context!())
         .expect("erro ao iniciar o Prontuário de Casa");

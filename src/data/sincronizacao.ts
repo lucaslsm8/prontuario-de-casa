@@ -115,6 +115,12 @@ export function useSincronizacao() {
   const { familia } = useInfoSync();
   const pronto = store.status === 'pronto' && !store.state.bloqueado;
   useEffect(() => { void carregarFamilia(); }, []);
+  // Único ponto que registra este aparelho (evento `aparelho`): com família, log carregado e o "eu" conhecido. Não repete: sai se o log já tem o aparelho.
+  const euId = store.state.pessoas.find((p) => p.souEu)?.id;
+  useEffect(() => {
+    if (pronto && familia && euId) void store.api.registrarAparelho();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pronto, familia, euId]);
   useEffect(() => {
     if (!pronto || !familia) return;
     const rodar = () => void sincronizar(store);

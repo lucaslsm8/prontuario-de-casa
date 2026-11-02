@@ -73,6 +73,8 @@ export interface Persistencia {
   redesCasa(): Promise<RedeCasa[]>;
   redeCasaAdicionar(rede: RedeCasa): Promise<RedeCasa[]>;
   redeCasaRemover(id: string): Promise<RedeCasa[]>;
+  /** Chave pública X25519 (hex) deste aparelho; o Rust cria o par na primeira chamada. Vazio no navegador. */
+  chavePublicaAparelho(): Promise<string>;
 }
 
 export interface InfoFamilia { familiaId: string; repo: string }
@@ -118,6 +120,7 @@ function tauri(): Persistencia {
     redesCasa: () => call<RedeCasa[]>('redes_casa'),
     redeCasaAdicionar: ({ id, nome }) => call<RedeCasa[]>('rede_casa_adicionar', { id, nome }),
     redeCasaRemover: (id) => call<RedeCasa[]>('rede_casa_remover', { id }),
+    chavePublicaAparelho: () => call<string>('chave_publica_aparelho'),
   };
 }
 
@@ -178,6 +181,7 @@ function memoria(): Persistencia {
     redesCasa: async () => d.redes ?? [],
     redeCasaAdicionar: async (r) => { if (!(d.redes ?? []).some((x) => x.id === r.id)) d.redes = [...(d.redes ?? []), r]; salvar(); return d.redes ?? []; },
     redeCasaRemover: async (id) => { d.redes = (d.redes ?? []).filter((x) => x.id !== id); salvar(); return d.redes; },
+    chavePublicaAparelho: async () => '',
   };
 }
 

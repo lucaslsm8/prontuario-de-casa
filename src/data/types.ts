@@ -160,6 +160,9 @@ export interface Plano {
   anotacao?: string;
 }
 
+/** Aparelho da família (evento `aparelho`). `visto` é o ISO do último evento dele no log. */
+export interface Aparelho { id: string; nome: string; plataforma: 'pc' | 'cel'; chavePublica?: string; removido?: boolean; visto: string }
+
 export interface Compartilhamento { de: PessoaId; para: PessoaId; categorias: Categoria[] }
 
 export interface Config {
