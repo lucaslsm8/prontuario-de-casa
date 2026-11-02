@@ -4,6 +4,7 @@ import { temEu, useStore } from '../data/store';
 import { PARENTESCO, useFormPessoa } from '../data/formularios';
 import { useLayout } from '../layout';
 import { RestaurarBackup, SenhaApp } from '../ui/Backup';
+import { EntrarNaFamilia } from '../ui/Familia';
 import { ChipGroup, Field, FieldGroup, Lock, TopNav } from '../ui';
 import { SangueGrid } from '../ui/Sangue';
 import { MScreen } from './Shell';
@@ -43,6 +44,7 @@ export function CartasBoasVindas({ escuro }: { escuro?: boolean }) {
 export function BoasVindas() {
   const nav = useNavigate();
   const [restaurar, setRestaurar] = useState(false);
+  const [familia, setFamilia] = useState(false);
   return (
     <MScreen pad="24px 24px 34px" gap={32}>
       <CartasBoasVindas />
@@ -63,8 +65,12 @@ export function BoasVindas() {
         <button type="button" className="btn" style={{ height: 48, fontSize: 15, color: 'var(--teal)' }} onClick={() => setRestaurar(true)}>
           Restaurar um backup
         </button>
+        <button type="button" className="btn" style={{ height: 48, fontSize: 15, color: 'var(--teal)' }} onClick={() => setFamilia(true)}>
+          Entrar na família
+        </button>
       </div>
       {restaurar && <RestaurarBackup primeiroUso onClose={() => setRestaurar(false)} />}
+      {familia && <EntrarNaFamilia onClose={() => setFamilia(false)} />}
     </MScreen>
   );
 }

@@ -436,7 +436,7 @@ export function DPrivacidade() {
         </div>
       </div>
 
-      <CardFamilia />
+      <CardFamilia desktop />
 
       <CardAtualizacoes />
 

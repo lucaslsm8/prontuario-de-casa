@@ -6,6 +6,7 @@ import { compartilhado, eu, useStore } from '../data/store';
 import { familia } from '../data/pets';
 import { dataLonga, quando, tamanhoArquivo } from '../data/format';
 import { RestaurarBackup, SenhaApp, SenhaBackup } from '../ui/Backup';
+import { CardFamilia } from '../ui/Familia';
 import { Avatar, Check, Label, Lock, Pill, Row, Segmented, Toggle, TopNav } from '../ui';
 import { resumoCompartilhado } from './Familia';
 import { MScreen } from './Shell';
@@ -106,6 +107,8 @@ export function Privacidade() {
           <button type="button" className="btn btn--outline btn--h42 btn--grow" style={{ background: 'transparent' }} onClick={() => setFolha('restaurar')}>Restaurar</button>
         </div>
       </div>
+
+      <CardFamilia />
 
       {outros.length > 0 && (
         <>

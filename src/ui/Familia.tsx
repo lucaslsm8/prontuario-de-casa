@@ -9,53 +9,57 @@ import { Folha, SenhaApp } from './Backup';
 import { Label, Lock } from './index';
 
 const texto = { fontSize: 14, lineHeight: 1.5, color: 'var(--text-2)' } as const;
+// Telas soltas (Quem é você? / Proteja o app): coluna única, centralizada, serve de 390 px a desktop.
+const telaCheia = { display: 'grid', placeItems: 'center', minHeight: '100dvh', padding: '24px 0', background: 'var(--bg)', overflowY: 'auto' } as const;
 const erroTxt = { fontSize: 13, color: 'var(--danger)' } as const;
 
 /** Privacidade e backup › Família e aparelhos (desktop). */
-export function CardFamilia() {
+export function CardFamilia({ desktop }: { desktop?: boolean }) {
+  const btn = desktop ? 'btn--h38' : 'btn--h50';
+  const pad = desktop ? '14px 20px' : '14px 16px';
   const store = useStore();
   const s = useInfoSync();
   const [folha, setFolha] = useState<null | 'criar' | 'entrar' | 'convite' | 'sair'>(null);
   const status = !s.familia ? '' : s.estado === 'sincronizando' ? 'Sincronizando…' : s.estado === 'erro' ? (s.token ? 'Token do GitHub sem acesso ou vencido' : `Não sincronizou: ${s.erro}`) : s.ultima ? `Sincronizado ${quando(s.ultima)} · pelo GitHub` : 'Ainda não sincronizou';
   return (
     <div className="card" style={{ fontSize: 14 }}>
-      <div className="card-head card-head--20"><Label>Família e aparelhos</Label></div>
+      <div className={desktop ? 'card-head card-head--20' : 'card-head'}><Label>Família e aparelhos</Label></div>
       {!s.familia ? (
-        <div className="stack" style={{ padding: '16px 20px', gap: 12 }}>
+        <div className="stack" style={{ padding: desktop ? '16px 20px' : 16, gap: 12 }}>
           <span style={texto}>Sincronize seus aparelhos e os da família por um repositório privado no GitHub. Tudo vai cifrado: o GitHub só guarda arquivos ilegíveis.</span>
-          <div className="hstack" style={{ gap: 8 }}>
-            <button type="button" className="btn btn--ink btn--h38" onClick={() => setFolha('criar')}>Criar família</button>
-            <button type="button" className="btn btn--outline btn--h38" style={{ background: 'transparent' }} onClick={() => setFolha('entrar')}>Entrar com convite</button>
+          <div className="hstack" style={{ gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" className={`btn btn--ink ${btn}`} style={desktop ? undefined : { flex: 1 }} onClick={() => setFolha('criar')}>Criar família</button>
+            <button type="button" className={`btn btn--outline ${btn}`} style={{ background: 'transparent', ...(desktop ? {} : { flex: 1 }) }} onClick={() => setFolha('entrar')}>Entrar com convite</button>
           </div>
         </div>
       ) : (
         <>
-          <div className="row" style={{ padding: '14px 20px' }}>
-            <span className="stack" style={{ gap: 2 }}>
+          <div className="row" style={{ padding: pad, flexWrap: 'wrap', gap: 10 }}>
+            <span className="stack" style={{ gap: 2, minWidth: 0, overflowWrap: 'anywhere' }}>
               <span>Repositório <span className="mono">{s.familia.repo}</span></span>
               <span style={{ fontSize: 13, color: s.estado === 'erro' ? 'var(--danger)' : 'var(--text-2)' }}>{status}</span>
             </span>
-            <button type="button" className="btn btn--outline btn--h38" style={{ background: 'transparent' }} disabled={s.estado === 'sincronizando'} onClick={() => void sincronizar(store, { manual: true })}>Sincronizar agora</button>
+            <button type="button" className={`btn btn--outline ${btn}`} style={{ background: 'transparent' }} disabled={s.estado === 'sincronizando'} onClick={() => void sincronizar(store, { manual: true })}>Sincronizar agora</button>
           </div>
-          <div className="row" style={{ padding: '14px 20px' }}>
+          <div className="row" style={{ padding: pad }}>
             <span className="muted">Este aparelho</span>
             <span className="mono">{store.api.aparelhoId()}</span>
           </div>
-          <div className="hstack" style={{ padding: '14px 20px', gap: 8 }}>
-            <button type="button" className="btn btn--ink btn--h38" onClick={() => setFolha('convite')}>Convidar aparelho</button>
-            <button type="button" className="btn btn--outline btn--h38" style={{ background: 'transparent', color: 'var(--danger)' }} onClick={() => setFolha('sair')}>Sair da família</button>
+          <div className="hstack" style={{ padding: pad, gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" className={`btn btn--ink ${btn}`} style={desktop ? undefined : { flex: 1 }} onClick={() => setFolha('convite')}>Convidar aparelho</button>
+            <button type="button" className={`btn btn--outline ${btn}`} style={{ background: 'transparent', color: 'var(--danger)', ...(desktop ? {} : { flex: 1 }) }} onClick={() => setFolha('sair')}>Sair da família</button>
           </div>
         </>
       )}
-      {folha === 'criar' && <CriarFamilia onClose={() => setFolha(null)} />}
-      {folha === 'entrar' && <EntrarNaFamilia desktop onClose={() => setFolha(null)} />}
-      {folha === 'convite' && <Convite onClose={() => setFolha(null)} />}
-      {folha === 'sair' && <SairDaFamilia onClose={() => setFolha(null)} />}
+      {folha === 'criar' && <CriarFamilia desktop={desktop} onClose={() => setFolha(null)} />}
+      {folha === 'entrar' && <EntrarNaFamilia desktop={desktop} onClose={() => setFolha(null)} />}
+      {folha === 'convite' && <Convite desktop={desktop} onClose={() => setFolha(null)} />}
+      {folha === 'sair' && <SairDaFamilia desktop={desktop} onClose={() => setFolha(null)} />}
     </div>
   );
 }
 
-function CriarFamilia({ onClose }: { onClose: () => void }) {
+function CriarFamilia({ desktop, onClose }: { desktop?: boolean; onClose: () => void }) {
   const store = useStore();
   const [repo, setRepo] = useState('');
   const [token, setToken] = useState('');
@@ -70,12 +74,12 @@ function CriarFamilia({ onClose }: { onClose: () => void }) {
     } catch (e) { setErro(e instanceof Error ? e.message : String(e)); } finally { setOcupado(false); }
   };
   return (
-    <Folha desktop onClose={onClose} titulo="Criar família">
+    <Folha desktop={desktop} onClose={onClose} titulo="Criar família">
       <span style={texto}>1. No GitHub, crie um repositório <b>privado</b> vazio (ex.: prontuario-sync).<br />2. Em Settings › Developer settings › Fine-grained tokens, gere um token só para esse repositório, com <b>Contents: Read and write</b>.<br />3. Cole os dois aqui. O token fica cifrado neste aparelho.</span>
-      <input className="input input--desk" placeholder="dono/nome (ex.: lucas/prontuario-sync)" value={repo} onChange={(e) => setRepo(e.target.value)} autoFocus aria-label="Repositório" />
-      <input className="input input--desk input--mono" type="password" placeholder="github_pat_…" value={token} onChange={(e) => setToken(e.target.value)} aria-label="Token do GitHub" />
+      <input className={`input${desktop ? ' input--desk' : ''}`} placeholder="dono/nome (ex.: lucas/prontuario-sync)" value={repo} onChange={(e) => setRepo(e.target.value)} autoFocus aria-label="Repositório" />
+      <input className={`input${desktop ? ' input--desk' : ''} input--mono`} type="password" placeholder="github_pat_…" value={token} onChange={(e) => setToken(e.target.value)} aria-label="Token do GitHub" />
       {erro && <span style={erroTxt} role="alert">{erro}</span>}
-      <button type="button" className="btn btn--ink btn--h40d" disabled={!repo.trim() || !token.trim() || ocupado} onClick={criar}>{ocupado ? 'Conferindo o repositório…' : 'Criar família'}</button>
+      <button type="button" className={`btn btn--ink ${desktop ? 'btn--h40d' : 'btn--h50'}`} disabled={!repo.trim() || !token.trim() || ocupado} onClick={criar}>{ocupado ? 'Conferindo o repositório…' : 'Criar família'}</button>
     </Folha>
   );
 }
@@ -107,14 +111,14 @@ export function EntrarNaFamilia({ desktop, onClose }: { desktop?: boolean; onClo
   return (
     <Folha desktop={desktop} onClose={entrou ? () => {} : onClose} titulo="Entrar na família">
       <span style={texto}>Em um aparelho que já está na família, abra Privacidade e backup › Convidar aparelho e copie o convite. Cole aqui.</span>
-      <textarea className="input input--desk input--area input--mono" placeholder="PCASA1:…" value={convite} onChange={(e) => setConvite(e.target.value)} readOnly={entrou} autoFocus aria-label="Convite" />
+      <textarea className={`input${desktop ? ' input--desk' : ''} input--area input--mono`} placeholder="PCASA1:…" value={convite} onChange={(e) => setConvite(e.target.value)} readOnly={entrou} autoFocus aria-label="Convite" />
       {erro && <span style={erroTxt} role="alert">{erro}</span>}
       <button type="button" className={`btn btn--ink ${desktop ? 'btn--h40d' : 'btn--h50'}`} disabled={!convite.trim() || ocupado} onClick={entrar}>{ocupado ? 'Baixando os dados da família…' : entrou ? 'Tentar de novo' : 'Entrar'}</button>
     </Folha>
   );
 }
 
-function Convite({ onClose }: { onClose: () => void }) {
+function Convite({ desktop, onClose }: { desktop?: boolean; onClose: () => void }) {
   const { api } = useStore();
   const [convite, setConvite] = useState<string | null>(null);
   const [erro, setErro] = useState('');
@@ -128,22 +132,22 @@ function Convite({ onClose }: { onClose: () => void }) {
     } catch (e) { setErro(`Não foi possível copiar: ${e instanceof Error ? e.message : String(e)}`); }
   };
   return (
-    <Folha desktop onClose={onClose} titulo="Convidar aparelho" alerta>
+    <Folha desktop={desktop} onClose={onClose} titulo="Convidar aparelho" alerta>
       <span style={texto}>O convite leva a chave da família e o token do GitHub: quem tiver o texto entra na família. Passe só para os seus aparelhos e os da família, por um canal seu, e apague depois de usar.</span>
       {convite ? (
         <>
-          <textarea className="input input--desk input--area input--mono" readOnly value={convite} aria-label="Convite" onFocus={(e) => e.currentTarget.select()} />
-          <button type="button" className="btn btn--ink btn--h40d" onClick={copiar}>Copiar convite</button>
+          <textarea className={`input${desktop ? ' input--desk' : ''} input--area input--mono`} readOnly value={convite} aria-label="Convite" onFocus={(e) => e.currentTarget.select()} />
+          <button type="button" className={`btn btn--ink ${desktop ? 'btn--h40d' : 'btn--h50'}`} onClick={copiar}>Copiar convite</button>
         </>
       ) : (
-        <button type="button" className="btn btn--ink btn--h40d" onClick={mostrar}>Mostrar convite</button>
+        <button type="button" className={`btn btn--ink ${desktop ? 'btn--h40d' : 'btn--h50'}`} onClick={mostrar}>Mostrar convite</button>
       )}
       {erro && <span style={erroTxt} role="alert">{erro}</span>}
     </Folha>
   );
 }
 
-function SairDaFamilia({ onClose }: { onClose: () => void }) {
+function SairDaFamilia({ desktop, onClose }: { desktop?: boolean; onClose: () => void }) {
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState('');
   const sair = async () => {
@@ -155,10 +159,10 @@ function SairDaFamilia({ onClose }: { onClose: () => void }) {
     } catch (e) { setErro(e instanceof Error ? e.message : String(e)); } finally { setOcupado(false); }
   };
   return (
-    <Folha desktop onClose={onClose} titulo="Sair da família?" alerta>
+    <Folha desktop={desktop} onClose={onClose} titulo="Sair da família?" alerta>
       <span style={texto}>Este aparelho para de sincronizar. Os dados que já estão aqui continuam aqui; os outros aparelhos não perdem nada.</span>
       {erro && <span style={erroTxt} role="alert">{erro}</span>}
-      <button type="button" className="btn btn--h40d" style={{ background: 'var(--danger)', color: 'var(--surface)' }} disabled={ocupado} onClick={sair}>Sair da família</button>
+      <button type="button" className={`btn ${desktop ? 'btn--h40d' : 'btn--h50'}`} style={{ background: 'var(--danger)', color: 'var(--surface)' }} disabled={ocupado} onClick={sair}>Sair da família</button>
     </Folha>
   );
 }
@@ -169,7 +173,7 @@ export function QuemEVoce({ onEscolhido }: { onEscolhido?: () => void }) {
   const { state, api } = useStore();
   const pessoas = state.pessoas.filter((p) => !ehPet(p));
   return (
-    <div className="pu" style={{ placeItems: 'center', display: 'grid', minHeight: '100vh' }}>
+    <div style={telaCheia}>
       <div className="stack" style={{ gap: 18, width: 'min(420px, 100% - 32px)' }}>
         <div className="stack" style={{ gap: 8 }}>
           <span className="pu__rotulo">FAMÍLIA</span>
@@ -178,7 +182,7 @@ export function QuemEVoce({ onEscolhido }: { onEscolhido?: () => void }) {
         </div>
         <div className="card">
           {pessoas.map((p) => (
-            <button key={p.id} type="button" className="row" style={{ padding: '14px 20px', fontSize: 15, minHeight: 48 }} onClick={() => { api.definirEu(p.id); onEscolhido?.(); }}>
+            <button key={p.id} type="button" className="row" style={{ padding: '14px 16px', fontSize: 15, minHeight: 48 }} onClick={() => { api.definirEu(p.id); onEscolhido?.(); }}>
               <span>{p.nome}</span><span className="muted">›</span>
             </button>
           ))}
@@ -192,7 +196,7 @@ export function QuemEVoce({ onEscolhido }: { onEscolhido?: () => void }) {
 export function ProtejaEsteAparelho({ desktop, onFim }: { desktop?: boolean; onFim: () => void }) {
   const [folha, setFolha] = useState(false);
   return (
-    <div className="pu" style={{ placeItems: 'center', display: 'grid', gridTemplateColumns: '1fr', minHeight: '100vh' }}>
+    <div style={telaCheia}>
       <div className="stack" style={{ gap: 18, width: 'min(420px, 100% - 32px)' }}>
         <span className="pu__selo"><Lock large /></span>
         <div className="stack" style={{ gap: 8 }}>
@@ -204,8 +208,8 @@ export function ProtejaEsteAparelho({ desktop, onFim }: { desktop?: boolean; onF
           </span>
         </div>
         <div className="hstack" style={{ gap: 8, justifyContent: 'flex-end' }}>
-          <button type="button" className="btn btn--outline btn--h40d" style={{ minHeight: 44 }} onClick={onFim}>Agora não</button>
-          <button type="button" className="btn btn--ink btn--h40d" style={{ minHeight: 44 }} onClick={() => setFolha(true)} autoFocus>{desktop ? 'Criar senha' : 'Criar PIN'}</button>
+          <button type="button" className={`btn btn--outline ${desktop ? 'btn--h40d' : 'btn--h50'}`} style={{ minHeight: 44, ...(desktop ? {} : { flex: 1 }) }} onClick={onFim}>Agora não</button>
+          <button type="button" className={`btn btn--ink ${desktop ? 'btn--h40d' : 'btn--h50'}`} style={{ minHeight: 44, ...(desktop ? {} : { flex: 1 }) }} onClick={() => setFolha(true)} autoFocus>{desktop ? 'Criar senha' : 'Criar PIN'}</button>
         </div>
       </div>
       {folha && <SenhaApp desktop={desktop} onClose={() => setFolha(false)} onPronto={onFim} />}
