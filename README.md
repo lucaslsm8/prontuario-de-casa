@@ -2,7 +2,7 @@
 
 App pessoal (Windows/desktop + Android) para organizar a saúde da família: remédios com lembrete e estoque, consultas, exames, plano de saúde e ficha de emergência. Dados ficam no aparelho.
 
-Stack: **Tauri 2** (gera o `.exe` do Windows e, depois, o APK) + **React 18 / TypeScript / Vite**. Design de referência em [`docs/design/`](docs/design/HANDOFF.md).
+Stack: **Tauri 2** (gera o `.exe` do Windows e o APK do Android) + **React 18 / TypeScript / Vite**. Design de referência em [`docs/design/`](docs/design/HANDOFF.md).
 
 ## Estado atual (marco 2)
 
@@ -23,7 +23,11 @@ Stack: **Tauri 2** (gera o `.exe` do Windows e, depois, o APK) + **React 18 / Ty
 
 - **Sincronização pelo Wi-Fi**: os aparelhos da família na mesma rede também trocam eventos direto, cifrados com a chave da família. Veja [Sincronizar a família](#sincronizar-a-família).
 
-**Ainda não:** app Android. Plano em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md).
+- **App Android** (APK no GitHub Releases): chave do banco no AndroidKeyStore, biometria, leitor do QR do convite, lembretes de remédio com Tomei / 15 min / Pular na notificação (também com o app fechado) e atualização do APK pelo próprio app (SHA-256 conferido antes de abrir o instalador do Android).
+
+- **Rede de casa** (Privacidade e backup › Bloqueio): numa rede cadastrada o app abre sem senha nem biometria. Fica guardado só o SHA-256 do MAC do roteador (desktop) ou do BSSID do Wi-Fi (Android). Quem estiver perto de casa consegue imitar a rede; use só se aceitar esse risco. Com alguma rede de casa cadastrada, a sincronização pelo Wi-Fi só liga numa delas.
+
+- **Aparelhos da família**: lista com nome e "visto por último", renomear este aparelho e remover outro. Remover troca a chave da família sem ele e exige um token novo do GitHub (o removido conhece o antigo).
 
 ## Rodar no navegador (mais rápido para revisar o design)
 
@@ -98,11 +102,13 @@ A sincronização usa um repositório **privado** no GitHub que você cria. Os e
 3. Em Privacidade e backup › Família e aparelhos, clique em "Criar família" e cole `dono/nome` e o token. O token fica cifrado neste aparelho.
 
 **Outros aparelhos (Convidar aparelho → Entrar na família):**
-1. No aparelho que já está na família, em Privacidade e backup › Família e aparelhos, clique em "Convidar aparelho" e depois "Mostrar convite". Copie o texto (`PCASA1:…`).
-2. No outro aparelho, na tela de boas-vindas, use "Entrar na família" (ou "Entrar com convite" em Privacidade e backup) e cole o convite.
+1. No aparelho que já está na família, em Privacidade e backup › Família e aparelhos, clique em "Convidar aparelho" e depois "Mostrar convite". Aparecem o QR e o texto (`PCASA1:…`).
+2. No outro aparelho, na tela de boas-vindas, use "Entrar na família" (ou "Entrar com convite" em Privacidade e backup) e cole o convite ou, no Android, toque em "Ler QR".
 3. Escolha em "Quem é você?" a pessoa que usa aquele aparelho e crie a senha.
 
-O convite dá acesso à família: passe só para os seus aparelhos e apague o texto depois de usar.
+O convite dá acesso total à família (chave da família e token do GitHub): não fotografe nem compartilhe. Se ele vazar, use "Trocar token". O prazo de 10 minutos do convite não protege um convite vazado.
+
+**Remover aparelho:** em Família e aparelhos, "Remover" num aparelho perdido ou que saiu da família. Gere antes um token novo para o mesmo repositório: ele é obrigatório, vai cifrado só para os aparelhos que ficam (a folha mostra quais), e a chave da família é trocada sem o removido. Revogue o token antigo no GitHub depois que todos sincronizarem.
 
 **Pelo Wi-Fi:** com o app aberto, os aparelhos da família na mesma rede também trocam eventos direto, sem passar pelo GitHub (ao abrir, a cada 2 minutos e logo depois de uma mudança). O app se anuncia na rede local por mDNS (só um resumo do id da família e o id do aparelho) e conversa por um canal cifrado com a chave da família; aparelhos de outras famílias são ignorados. Funciona mesmo sem internet, e o card mostra "Sincronizado há … · pelo Wi-Fi".
 

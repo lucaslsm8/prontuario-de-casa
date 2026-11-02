@@ -36,6 +36,8 @@ Stack: Tauri 2 (Rust) + React 18 + TypeScript + Vite. Leia também `README.md` e
   - `backup.rs`: formato `.fsaude`.
   - `epoca.rs`: "Remover aparelho" troca a chave da família (época nova), selada com X25519 + HKDF para cada aparelho que fica (`chaves/<época>/<id>.bin`); o marco `chaves/<base>/proxima.bin` vai por último e decide a sucessora. Chaves antigas no kv `chaves_antigas:<fid>`; pacotes da época e ≥ 1 em `eventos/<id>/<e>-<n>.bin`.
   - `lib.rs`: comandos Tauri.
+  - Android: plugins Kotlin em `src-tauri/gen/android/app/src/main/java/br/familia/arquivosaude/` (`CofrePlugin`, `RedePlugin`, `InstaladorPlugin`, `LembretePlugin`), cada um com um `*_android.rs`. `LembretePlugin.acaoPendente` entrega uma vez a ação da notificação (Tomei / 15 min / Pular) que abriu o app fechado: o `tauri-plugin-notification` dispara `actionPerformed` no `load`, antes do listener do JS, e a ação se perderia. `useLembretes` consulta na montagem e põe na mesma fila das outras ações.
+  - Aparelhos (`store.tsx`, `case 'aparelho'` e `acaoDoEvento`): o evento `aparelho` só vale assinado pelo próprio aparelho, e a primeira `chavePublica` fica (TOFU). "Remover aparelho" exige token novo do GitHub.
   - Comandos `async` (não travam a janela). Argumentos em uma palavra, respostas em camelCase.
 
 ## Regras
@@ -44,20 +46,20 @@ Stack: Tauri 2 (Rust) + React 18 + TypeScript + Vite. Leia também `README.md` e
   - Exceção pedida pelo usuário (31/10/2026): a **agenda conectada** baixa o endereço iCal que a pessoa colou (comando Rust `baixar_agenda`, só https), ao abrir o app e no botão "Atualizar agenda". Nada é enviado.
   - Exceção pedida pelo usuário (31/10/2026): **atualizações** (`src/data/atualizacao.ts`, `tauri-plugin-updater`) baixam o `latest.json` e o instalador do GitHub Releases (`lucaslsm8/prontuario-de-casa`), ao abrir (opção "Procurar ao abrir o app") e no botão. Assinatura conferida com a chave pública do `tauri.conf.json`; a privada fica fora do repo (`~/.tauri/prontuario-de-casa.key` e segredo do GitHub).
   - Exceção pedida pelo usuário (01/11/2026): **sincronização da família** (`src-tauri/src/remoto.rs`, `sincronia.rs`) grava e lê pacotes **cifrados com a chave da família** num repositório **privado** do GitHub que o usuário criou (Contents API, token fine-grained só desse repositório, guardado no kv cifrado). Sem família configurada, nada é enviado. Testes manuais só com `npm run app:teste -- a|b` (outro identificador), nunca com o app real.
-  - Exceção pedida pelo usuário (02/11/2026): **sincronização pelo Wi-Fi** (`src-tauri/src/lan.rs`) só na **rede local**: anúncio mDNS `_prontuario._tcp.local.` (TXT só `f` = 16 hex do SHA-256 do familiaId e `a` = aparelhoId) e TCP numa porta efêmera, cifrado com Noise `NNpsk0_25519_ChaChaPoly_SHA256` e PSK derivada da chave da família da época atual (HKDF, "prontuario-lan"). Só com família configurada, app aberto e desbloqueado; removido não troca. Outra família falha no handshake e é ignorada.
+  - Exceção pedida pelo usuário (02/11/2026): **sincronização pelo Wi-Fi** (`src-tauri/src/lan.rs`) só na **rede local**: anúncio mDNS `_prontuario._tcp.local.` (TXT só `f` = 16 hex do SHA-256 do familiaId e `a` = aparelhoId) e TCP numa porta efêmera, cifrado com Noise `NNpsk0_25519_ChaChaPoly_SHA256` e PSK derivada da chave da família da época atual (HKDF, "prontuario-lan"). Só com família configurada, app aberto e desbloqueado; removido não troca. Outra família falha no handshake e é ignorada. Com alguma rede de casa cadastrada, só liga numa delas (reavaliado a cada `lan_iniciar`).
   - Exceção pedida pelo usuário (02/11/2026): **atualização do APK no Android** (`src-tauri/src/apk.rs`) consulta a API pública de releases deste repositório (`api.github.com/repos/lucaslsm8/prontuario-de-casa/releases/latest`) e baixa o `*_android.apk` e o `.sha256` do GitHub Releases, ao abrir (opção "Procurar ao abrir") e no botão. O SHA-256 é conferido antes de abrir o instalador do Android (`InstaladorPlugin.kt`). Nada é enviado.
 - Repositório público: dados de exemplo só com a família inventada (Almeida: Helena, Roberto, Pedro; pets Mel e Thor). Nunca commitar dados reais, backups `.fsaude`, bancos ou documentos pessoais.
 - Nunca grave dados de saúde em claro no disco. Novos dados persistentes entram como evento (front) ou `kv` cifrado (Rust).
+  - Limitação do Android: o `tauri-plugin-notification` guarda título e corpo de cada lembrete agendado em claro no SharedPreferences do app (pasta privada) até disparar. Com "Esconder nomes" ligado (padrão), a dose vai sem o nome do remédio e consulta/vacina/prevenção vão com texto genérico ("Lembrete do Prontuário de Casa" / "Hora de um cuidado", `paraAgendar` em `src/data/lembretesAndroid.ts`). Com ele desligado, o texto completo (remédio, título da consulta, profissional, local, pet) fica lá.
 - Ações destrutivas sempre com confirmação. "Apagar tudo" exige digitar APAGAR.
 - Transições: 150–200 ms ease-out (`var(--t)`, `var(--ease)`).
 - Alvo de toque mínimo de 44 px no mobile.
 
 ## Próximos marcos (ver docs/ARQUITETURA.md)
 
-1. Lembretes (notificações do sistema; ações Tomei / 15 min / Pular).
-2. Atualizações no Android (APK). No desktop já funcionam: `npm run app:build` (script `scripts/app-build.mjs`) e tag `v*` → `.github/workflows/release.yml`.
-3. Android (`npm run tauri android init`, Keystore, biometria).
-4. Sincronização entre aparelhos (log de eventos + LAN/Noise + pasta sincronizada com `age`).
-5. Visual V1 nas telas que ainda têm o layout antigo (Pessoa, Planos, Privacidade, telas do celular).
+Feito até a 0.5.0: lembretes no desktop (`lembretes.rs`) e no Android (plugin de notificações, Tomei / 15 min / Pular); atualizações no desktop (`npm run app:build`, `scripts/app-build.mjs`, tag `v*` → `.github/workflows/release.yml`) e no Android (APK pelo app); app Android (AndroidKeyStore, biometria, QR do convite, rede de casa); sincronização pelo GitHub e pelo Wi-Fi, com aparelhos da família e "Remover aparelho".
+
+1. Visual V1 nas telas que ainda têm o layout antigo (Pessoa, Planos, Privacidade, telas do celular).
+2. Pasta sincronizada com `age` (para quem mora em outra casa), se o GitHub não bastar.
 
 Lista de melhorias e o que já foi feito: `docs/melhorias.md`.
