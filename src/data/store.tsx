@@ -291,11 +291,13 @@ function reducer(s: State, a: Action): State {
     // Registro ou renomeação de aparelho: vale o mais recente (o log já vem na ordem do HLC). `visto` é calculado em `projetar`.
     // Aparelho removido continua removido: só volta se entrou de novo na família (registro numa época igual ou depois
     // da remoção). Assim um "renomear" atrasado do aparelho removido, ainda na chave velha, não o traz de volta.
+    // Chave pública: vale a primeira (TOFU). Renomear não troca a chave e uma chave diferente é ignorada, para que
+    // ninguém desvie a chave nova da família de "Remover aparelho". (Só o próprio aparelho se descreve: ver `acaoDoEvento`.)
     case 'aparelho': {
       const antigo = s.aparelhos.find((x) => x.id === a.aparelhoId);
       const segueRemovido = !!antigo?.removido && (a.epoca ?? 0) < (antigo.removidoEpoca ?? 0);
       const removido = a.removido || segueRemovido || undefined;
-      const novo: Aparelho = { id: a.aparelhoId, nome: a.nome, plataforma: a.plataforma, chavePublica: a.chavePublica ?? antigo?.chavePublica, removido, removidoEpoca: segueRemovido ? antigo?.removidoEpoca : undefined, visto: antigo?.visto ?? '' };
+      const novo: Aparelho = { id: a.aparelhoId, nome: a.nome, plataforma: a.plataforma, chavePublica: antigo?.chavePublica ?? a.chavePublica, removido, removidoEpoca: segueRemovido ? antigo?.removidoEpoca : undefined, visto: antigo?.visto ?? '' };
       return { ...s, aparelhos: antigo ? s.aparelhos.map((x) => (x.id === a.aparelhoId ? novo : x)) : [...s.aparelhos, novo] };
     }
     // "Remover aparelho": a chave da família já foi trocada (época `epoca`) sem ele.
@@ -312,9 +314,11 @@ const paraAcao = (ev: Evento) => ({ type: ev.tipo, ...ev.dados }) as Mudanca;
 /** Preferências que valem para a família inteira; o resto do `config` é de cada aparelho. */
 const CONFIG_DA_FAMILIA: readonly string[] = ['agenda'];
 
-/** Evento → ação; `config` de outro aparelho só traz as preferências da família. */
-function acaoDoEvento(ev: Evento, aparelhoId?: string): Mudanca {
+/** Evento → ação (null = ignorar); `config` de outro aparelho só traz as preferências da família.
+ *  Evento `aparelho` só vale assinado pelo próprio aparelho (cada um só se descreve a si mesmo). */
+function acaoDoEvento(ev: Evento, aparelhoId?: string): Mudanca | null {
   const a = paraAcao(ev);
+  if (a.type === 'aparelho' && ev.aparelho !== a.aparelhoId) return null;
   if (a.type !== 'config' || !aparelhoId || !ev.aparelho || ev.aparelho === aparelhoId) return a;
   return { ...a, patch: Object.fromEntries(Object.entries(a.patch).filter(([k]) => CONFIG_DA_FAMILIA.includes(k))) as Partial<Config> };
 }
@@ -322,7 +326,10 @@ function acaoDoEvento(ev: Evento, aparelhoId?: string): Mudanca {
 /** Reconstrói o estado aplicando o log na ordem do HLC. Com `euId`, "souEu" passa a ser só essa pessoa. `config` de outro aparelho (`aparelhoId` é o deste) só traz as preferências da família. */
 export function projetar(eventos: Evento[], euId?: string | null, aparelhoId?: string): State {
   const bruto = ordenarLog(eventos).reduce((acc, ev) => {
-    try { return reducer(acc, acaoDoEvento(ev, aparelhoId)); } catch { return acc; }
+    try {
+      const a = acaoDoEvento(ev, aparelhoId);
+      return a ? reducer(acc, a) : acc;
+    } catch { return acc; }
   }, estadoBase());
   // "Visto por último" vem do log inteiro (cada aparelho assina os próprios eventos), não de um evento só.
   const vistos = vistoPorAparelho(eventos);

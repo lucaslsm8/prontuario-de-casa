@@ -67,9 +67,39 @@ describe('aparelhos', () => {
     // O removido ainda não sabe e renomeia, na época 0: continua removido.
     const atrasado = projetar([...base, reg('4', 'cel-b', '0000000000004-0000-cel-b', '2026-10-30T13:00:00.000Z', 'Celular novo', { epoca: 0 })]);
     expect(aparelhosDaFamilia(atrasado).map((a) => a.id)).toEqual(['pc-a']);
-    // Entrou de novo com convite (época 1): volta para a lista.
-    const voltou = projetar([...base, reg('4', 'cel-b', '0000000000004-0000-cel-b', '2026-10-30T13:00:00.000Z', 'Celular', { epoca: 1, chavePublica: 'cc' })]);
-    expect(voltou.aparelhos.find((a) => a.id === 'cel-b')).toMatchObject({ removido: undefined, chavePublica: 'cc' });
+    // Entrou de novo com convite (época 1): volta para a lista, com a mesma chave (a do aparelho é estável).
+    const voltou = projetar([...base, reg('4', 'cel-b', '0000000000004-0000-cel-b', '2026-10-30T13:00:00.000Z', 'Celular', { epoca: 1, chavePublica: 'bb' })]);
+    expect(voltou.aparelhos.find((a) => a.id === 'cel-b')).toMatchObject({ removido: undefined, chavePublica: 'bb' });
+  });
+
+  it('evento `aparelho` só vale do próprio aparelho', () => {
+    const log = [
+      reg('1', 'pc-a', '0000000000001-0000-pc-a', '2026-10-30T10:00:00.000Z', 'PC de Helena', { chavePublica: 'aa' }),
+      // cel-b tenta descrever pc-a (nome e chave): ignorado.
+      ev('2', 'cel-b', '0000000000002-0000-cel-b', '2026-10-30T11:00:00.000Z', 'aparelho', { aparelhoId: 'pc-a', nome: 'Falso', plataforma: 'pc', chavePublica: 'xx' }),
+      // cel-b tenta criar um aparelho que não é ele: ignorado.
+      ev('3', 'cel-b', '0000000000003-0000-cel-b', '2026-10-30T11:00:00.000Z', 'aparelho', { aparelhoId: 'pc-fantasma', nome: 'Fantasma', plataforma: 'pc', chavePublica: 'ff' }),
+      // Sem assinatura: ignorado.
+      { id: '4', em: '2026-10-30T11:00:00.000Z', tipo: 'aparelho', dados: { aparelhoId: 'pc-a', nome: 'Sem dono', plataforma: 'pc' } },
+    ];
+    const s = projetar(log);
+    expect(s.aparelhos.map((a) => [a.id, a.nome, a.chavePublica])).toEqual([['pc-a', 'PC de Helena', 'aa']]);
+  });
+
+  it('chave pública: vale a primeira (renomear não troca; chave diferente é ignorada)', () => {
+    const s = projetar([
+      reg('1', 'pc-a', '0000000000001-0000-pc-a', '2026-10-30T10:00:00.000Z', 'PC de Helena', { chavePublica: 'aa' }),
+      reg('2', 'pc-a', '0000000000002-0000-pc-a', '2026-10-30T11:00:00.000Z', 'Notebook', { chavePublica: 'xx' }),
+      reg('3', 'pc-a', '0000000000003-0000-pc-a', '2026-10-30T12:00:00.000Z', 'Notebook da sala'),
+    ]);
+    expect(s.aparelhos[0]).toMatchObject({ nome: 'Notebook da sala', chavePublica: 'aa' });
+    // Sem chave no primeiro registro (versão antiga): a primeira que aparecer fica.
+    const t = projetar([
+      reg('1', 'pc-a', '0000000000001-0000-pc-a', '2026-10-30T10:00:00.000Z', 'PC'),
+      reg('2', 'pc-a', '0000000000002-0000-pc-a', '2026-10-30T11:00:00.000Z', 'PC', { chavePublica: 'aa' }),
+      reg('3', 'pc-a', '0000000000003-0000-pc-a', '2026-10-30T12:00:00.000Z', 'PC', { chavePublica: 'bb' }),
+    ]);
+    expect(t.aparelhos[0].chavePublica).toBe('aa');
   });
 
   it('plano da remoção: chave nova para quem tem chave pública; sem chave sai junto', () => {
