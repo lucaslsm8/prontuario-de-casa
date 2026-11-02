@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Só o cache do app: o APK baixado pela atualização (InstaladorPlugin.kt) vai daqui para o instalador do Android. -->
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-  <external-path name="my_images" path="." />
-  <cache-path name="my_cache_images" path="." />
+  <cache-path name="apk" path="." />
 </paths>
