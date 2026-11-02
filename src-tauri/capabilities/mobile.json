@@ -1,8 +1,8 @@
 {
   "$schema": "../gen/schemas/mobile-schema.json",
   "identifier": "mobile",
-  "description": "Biometria para abrir o app (só no celular)",
+  "description": "Biometria para abrir o app e leitor de QR do convite (só no celular)",
   "platforms": ["android", "iOS"],
   "windows": ["main"],
-  "permissions": ["biometric:default"]
+  "permissions": ["biometric:default", "barcode-scanner:default"]
 }

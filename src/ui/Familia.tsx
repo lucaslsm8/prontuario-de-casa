@@ -7,6 +7,8 @@ import { quando } from '../data/format';
 import { ehPet } from '../data/pets';
 import { Folha, SenhaApp } from './Backup';
 import { Label, Lock } from './index';
+import { QrConvite } from './QrConvite';
+import { leitorQrDisponivel, lerConviteQr } from '../data/leitorQr';
 
 const texto = { fontSize: 14, lineHeight: 1.5, color: 'var(--text-2)' } as const;
 // Telas soltas (Quem é você? / Proteja o app): coluna única, centralizada, serve de 390 px a desktop.
@@ -84,7 +86,7 @@ function CriarFamilia({ desktop, onClose }: { desktop?: boolean; onClose: () => 
   );
 }
 
-/** Colar o convite (desktop agora; o QR vem na Etapa 4). Usado no card e no primeiro uso. */
+/** Colar o convite ou, no Android, ler o QR. Usado no card e no primeiro uso. */
 export function EntrarNaFamilia({ desktop, onClose }: { desktop?: boolean; onClose: () => void }) {
   const store = useStore();
   const [convite, setConvite] = useState('');
@@ -98,22 +100,34 @@ export function EntrarNaFamilia({ desktop, onClose }: { desktop?: boolean; onClo
     if (r.ok) return onClose();
     setErro(`Entrou na família, mas não foi possível baixar os dados: ${r.erro ?? 'erro desconhecido'}`);
   };
-  const entrar = async () => {
+  const entrar = async (texto = convite) => {
     setOcupado(true); setErro('');
     try {
       if (!entrou) {
-        definirFamilia(await persistencia.familiaEntrar(convite));
+        definirFamilia(await persistencia.familiaEntrar(texto));
         setEntrou(true);
       }
       await baixar();
     } catch (e) { setErro(e instanceof Error ? e.message : String(e)); } finally { setOcupado(false); }
   };
+  const lerQr = async () => {
+    setErro('');
+    try {
+      const lido = await lerConviteQr();
+      if (!lido) return setErro('Esse QR não é um convite da família. Tente de novo ou cole o convite.');
+      setConvite(lido);
+      await entrar(lido);
+    } catch (e) { setErro(e instanceof Error ? e.message : String(e)); }
+  };
   return (
     <Folha desktop={desktop} onClose={entrou ? () => {} : onClose} titulo="Entrar na família">
-      <span style={texto}>Em um aparelho que já está na família, abra Privacidade e backup › Convidar aparelho e copie o convite. Cole aqui.</span>
+      <span style={texto}>Em um aparelho que já está na família, abra Privacidade e backup › Convidar aparelho e copie o convite. Cole aqui{leitorQrDisponivel() ? ' ou leia o QR' : ''}.</span>
+      {leitorQrDisponivel() && !entrou && (
+        <button type="button" className="btn btn--outline btn--h50" style={{ background: 'transparent', minHeight: 44 }} disabled={ocupado} onClick={lerQr}>Ler QR</button>
+      )}
       <textarea className={`input${desktop ? ' input--desk' : ''} input--area input--mono`} placeholder="PCASA1:…" value={convite} onChange={(e) => setConvite(e.target.value)} readOnly={entrou} autoFocus aria-label="Convite" />
       {erro && <span style={erroTxt} role="alert">{erro}</span>}
-      <button type="button" className={`btn btn--ink ${desktop ? 'btn--h40d' : 'btn--h50'}`} disabled={!convite.trim() || ocupado} onClick={entrar}>{ocupado ? 'Baixando os dados da família…' : entrou ? 'Tentar de novo' : 'Entrar'}</button>
+      <button type="button" className={`btn btn--ink ${desktop ? 'btn--h40d' : 'btn--h50'}`} disabled={!convite.trim() || ocupado} onClick={() => entrar()}>{ocupado ? 'Baixando os dados da família…' : entrou ? 'Tentar de novo' : 'Entrar'}</button>
     </Folha>
   );
 }
@@ -133,9 +147,10 @@ function Convite({ desktop, onClose }: { desktop?: boolean; onClose: () => void 
   };
   return (
     <Folha desktop={desktop} onClose={onClose} titulo="Convidar aparelho" alerta>
-      <span style={texto}>O convite leva a chave da família e o token do GitHub: quem tiver o texto entra na família. Passe só para os seus aparelhos e os da família, por um canal seu, e apague depois de usar.</span>
+      <span style={texto}>O convite vale por 10 minutos e leva a chave da família e o token do GitHub: quem tiver o texto entra na família. Passe só para os seus aparelhos e os da família, por um canal seu, e apague depois de usar.</span>
       {convite ? (
         <>
+          <QrConvite texto={convite} />
           <textarea className={`input${desktop ? ' input--desk' : ''} input--area input--mono`} readOnly value={convite} aria-label="Convite" onFocus={(e) => e.currentTarget.select()} />
           <button type="button" className={`btn btn--ink ${desktop ? 'btn--h40d' : 'btn--h50'}`} onClick={copiar}>Copiar convite</button>
         </>

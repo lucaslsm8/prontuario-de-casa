@@ -124,9 +124,13 @@ async fn familia_criar(st: State<'_, Estado>, repo: String, token: String) -> R<
     Ok(info_de(&f))
 }
 
+fn agora_ms() -> u64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as u64)
+}
+
 #[tauri::command]
 async fn familia_entrar(st: State<'_, Estado>, convite: String) -> R<InfoFamilia> {
-    let f = familia::ler_convite(&convite)?;
+    let f = familia::ler_convite(&convite, agora_ms())?;
     if let Some(atual) = com_banco(&st, |b| ler_familia(b))? {
         if atual.familia_id != f.familia_id {
             return Err("este aparelho já está numa família; saia dela antes de entrar em outra".into());
@@ -151,7 +155,8 @@ async fn familia_sair(st: State<'_, Estado>) -> R<()> {
 
 #[tauri::command]
 async fn familia_convite(st: State<'_, Estado>) -> R<String> {
-    Ok(familia::convite(&exigir_familia(&st)?))
+    // O convite vale por 10 minutos.
+    Ok(familia::convite(&exigir_familia(&st)?, Some(agora_ms() + 10 * 60 * 1000)))
 }
 
 fn ler_kv<T: serde::de::DeserializeOwned + Default>(b: &Banco, chave: &str) -> R<T> {
@@ -606,6 +611,9 @@ pub fn run() {
     // Celular: abrir com biometria.
     #[cfg(mobile)]
     let builder = builder.plugin(tauri_plugin_biometric::init());
+    // Celular: ler o QR do convite da família.
+    #[cfg(mobile)]
+    let builder = builder.plugin(tauri_plugin_barcode_scanner::init());
     builder
         .setup(|app| {
             let servico = app.config().identifier.clone();

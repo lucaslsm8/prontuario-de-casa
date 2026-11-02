@@ -46,16 +46,24 @@ impl Familia {
     }
 }
 
-pub fn convite(f: &Familia) -> String {
-    let j = json!({ "v": 1, "f": f.familia_id, "r": f.repo, "t": f.token, "k": f.chave });
+/// `expira_ms`: instante (ms desde 1970) em que o convite vence; `None` = sem prazo.
+pub fn convite(f: &Familia, expira_ms: Option<u64>) -> String {
+    let mut j = json!({ "v": 1, "f": f.familia_id, "r": f.repo, "t": f.token, "k": f.chave });
+    if let Some(x) = expira_ms {
+        j["x"] = json!(x);
+    }
     format!("{PREFIXO}{}", base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(j.to_string()))
 }
 
-pub fn ler_convite(texto: &str) -> R<Familia> {
+/// `agora_ms`: instante atual (ms desde 1970), para conferir o prazo.
+pub fn ler_convite(texto: &str, agora_ms: u64) -> R<Familia> {
     let invalido = || "convite inválido: copie o texto inteiro, começando por PCASA1:".to_string();
     let corpo = texto.trim().strip_prefix(PREFIXO).ok_or_else(invalido)?;
     let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(corpo).map_err(|_| invalido())?;
     let v: Value = serde_json::from_slice(&bytes).map_err(|_| invalido())?;
+    if v.get("x").and_then(Value::as_u64).is_some_and(|x| agora_ms > x) {
+        return Err("convite vencido; gere outro".into());
+    }
     let s = |k: &str| v.get(k).and_then(Value::as_str).map(String::from).ok_or_else(invalido);
     let f = Familia { familia_id: s("f")?, repo: s("r")?, token: s("t")?, chave: s("k")? };
     if !repo_valido(&f.repo) {
@@ -91,9 +99,21 @@ mod testes {
     #[test]
     fn convite_ida_e_volta() {
         let f = Familia::nova("lucas/prontuario-sync", "github_pat_x");
-        assert_eq!(ler_convite(&convite(&f)).unwrap(), f);
-        assert!(ler_convite("PCASA1:@@@").is_err());
-        assert!(ler_convite("qualquer coisa").is_err());
+        assert_eq!(ler_convite(&convite(&f, None), 0).unwrap(), f);
+        assert!(ler_convite("PCASA1:@@@", 0).is_err());
+        assert!(ler_convite("qualquer coisa", 0).is_err());
+    }
+
+    #[test]
+    fn convite_com_prazo() {
+        let f = Familia::nova("lucas/prontuario-sync", "github_pat_x");
+        let c = convite(&f, Some(1_000));
+        assert_eq!(ler_convite(&c, 999).unwrap(), f);
+        assert_eq!(ler_convite(&c, 1_000).unwrap(), f);
+        let e = ler_convite(&c, 1_001).unwrap_err();
+        assert!(e.contains("vencido"), "{e}");
+        // Convite antigo (sem "x") nunca vence.
+        assert_eq!(ler_convite(&convite(&f, None), u64::MAX).unwrap(), f);
     }
 
     #[test]
@@ -121,7 +141,7 @@ mod testes {
         f.chave = "é".repeat(32);
         assert_eq!(f.chave.len(), 64);
         assert!(f.chave_bytes().is_err());
-        assert!(ler_convite(&convite(&f)).is_err());
+        assert!(ler_convite(&convite(&f, None), 0).is_err());
         f.chave = "€".repeat(21) + "a";
         assert_eq!(f.chave.len(), 64);
         assert!(f.chave_bytes().is_err());
@@ -129,6 +149,6 @@ mod testes {
         f.chave = "+f".repeat(32);
         assert_eq!(f.chave.len(), 64);
         assert!(f.chave_bytes().is_err());
-        assert!(ler_convite(&convite(&f)).is_err());
+        assert!(ler_convite(&convite(&f, None), 0).is_err());
     }
 }
