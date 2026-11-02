@@ -59,8 +59,12 @@ export interface Persistencia {
   familiaEntrar(convite: string): Promise<InfoFamilia>;
   /** Sai da família neste aparelho. */
   familiaSair(): Promise<void>;
-  /** Código de convite da família atual. */
-  familiaConvite(): Promise<string>;
+  /** Código de convite da família atual (antes, segue as trocas de chave: o convite sai na época mais nova). */
+  familiaConvite(aparelho: string): Promise<string>;
+  /** "Verificar de novo": confere no remoto se este aparelho ainda está fora da família. */
+  familiaVerificar(aparelho: string): Promise<InfoFamilia>;
+  /** Token novo do GitHub só neste aparelho (confere antes de guardar; a chave não muda). */
+  familiaTrocarToken(token: string): Promise<InfoFamilia>;
   /** Remove outro aparelho: troca a chave da família e manda a nova (e o token novo, se veio) cifrada para cada um
    *  dos `destinatarios` (os que ficam e têm chave pública). Devolve a família na época nova. */
   familiaRemoverAparelho(aparelho: string, removido: string, destinatarios: { id: string; chave: string }[], token?: string): Promise<InfoFamilia>;
@@ -116,7 +120,9 @@ function tauri(): Persistencia {
     familiaCriar: (repo, token) => call<InfoFamilia>('familia_criar', { repo, token }),
     familiaEntrar: (convite) => call<InfoFamilia>('familia_entrar', { convite }),
     familiaSair: () => call('familia_sair'),
-    familiaConvite: () => call<string>('familia_convite'),
+    familiaConvite: (aparelho) => call<string>('familia_convite', { aparelho }),
+    familiaVerificar: (aparelho) => call<InfoFamilia>('familia_verificar', { aparelho }),
+    familiaTrocarToken: (token) => call<InfoFamilia>('familia_trocar_token', { token }),
     familiaRemoverAparelho: (aparelho, removido, destinatarios, token) => call<InfoFamilia>('familia_remover_aparelho', { aparelho, removido, destinatarios, token: token ?? null }),
     syncCursor: () => call<CursorEnvio>('sync_cursor'),
     syncEnviar: (aparelho, eventos) => call<number>('sync_enviar', { aparelho, eventos }),
@@ -179,6 +185,8 @@ function memoria(): Persistencia {
     familiaSair: async () => {},
     familiaConvite: async () => { throw new Error('A família só funciona no app instalado.'); },
     familiaRemoverAparelho: async () => { throw new Error('A família só funciona no app instalado.'); },
+    familiaVerificar: async () => { throw new Error('A família só funciona no app instalado.'); },
+    familiaTrocarToken: async () => { throw new Error('A família só funciona no app instalado.'); },
     syncCursor: async () => ({ ultimoId: null, recebidos: [] }),
     syncEnviar: async () => 0,
     syncReceber: async () => 0,

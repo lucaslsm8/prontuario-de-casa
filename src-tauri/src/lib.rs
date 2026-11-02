@@ -95,6 +95,10 @@ fn kv_removido(fid: &str) -> String {
 fn kv_rotacao(fid: &str) -> String {
     format!("rotacao:{fid}")
 }
+/// Entrou com convite e ainda não completou um recebimento: sem selo na época nova = convite velho, não removido.
+fn kv_recem(fid: &str) -> String {
+    format!("convite:{fid}")
+}
 
 fn esta_removido(b: &Banco, fid: &str) -> R<bool> {
     Ok(ler_kv::<Option<u32>>(b, &kv_removido(fid))?.is_some())
@@ -183,6 +187,7 @@ async fn familia_entrar(st: State<'_, Estado>, convite: String) -> R<InfoFamilia
         antigas.retain(|e, _| *e < fica.epoca);
         b.kv_set(&kv_antigas(&fica.familia_id), &serde_json::to_value(&antigas).map_err(|e| e.to_string())?)?;
         b.kv_set(&kv_removido(&fica.familia_id), &Value::Null)?;
+        b.kv_set(&kv_recem(&fica.familia_id), &json!(fica.epoca))?;
         Ok(fica)
     })?;
     guardar_familia(&st, &f)?;
@@ -196,7 +201,17 @@ async fn familia_sair(st: State<'_, Estado>) -> R<()> {
 }
 
 #[tauri::command]
-async fn familia_convite(st: State<'_, Estado>) -> R<String> {
+async fn familia_convite(st: State<'_, Estado>, aparelho: String) -> R<String> {
+    // Antes, segue as trocas de chave: o convite sai na época mais nova (senão quem entra fica sem selo).
+    // Sem rede, segue com a época que tem (quem entrar e achar uma época nova ouve "peça um convite novo").
+    {
+        let _vez = st.sync.lock().await;
+        if let Err(e) = atualizar_epoca(&st, &aparelho, false).await {
+            if e == epoca::REMOVIDO {
+                return Err(e);
+            }
+        }
+    }
     // O convite vale por 10 minutos e leva as chaves das épocas anteriores (quem entra lê o histórico todo).
     let f = exigir_familia(&st)?;
     let antigas: familia::Antigas = com_banco(&st, |b| {
@@ -243,15 +258,19 @@ fn gravar_lidos(b: &Banco, fid: &str, l: &sincronia::Lidos, epoca: u32) -> R<()>
 }
 
 /// Antes de enviar ou receber: segue as trocas de chave da família (`epoca::atualizar`) e grava a época nova.
-/// Removido = erro REMOVIDO, e a marca fica no kv: daí em diante nada sobe nem desce, sem rede.
-async fn atualizar_epoca(st: &State<'_, Estado>, aparelho: &str) -> R<familia::Familia> {
-    let (f, antigas, privada) = com_banco(st, |b| {
+/// Removido = erro REMOVIDO, e a marca fica no kv: daí em diante nada sobe nem desce, sem rede, até
+/// `reverificar` (botão "Verificar de novo"), que confere no remoto de novo e tira a marca se não for mais o caso.
+/// Recém-chegado por convite (ainda sem um recebimento completo) sem selo na época nova: CONVITE_ANTIGO, sem marca.
+async fn atualizar_epoca(st: &State<'_, Estado>, aparelho: &str, reverificar: bool) -> R<familia::Familia> {
+    let (f, antigas, privada, removido, recem) = com_banco(st, |b| {
         let f = ler_familia(b)?.ok_or("este aparelho não está numa família")?;
-        if esta_removido(b, &f.familia_id)? {
+        let removido = esta_removido(b, &f.familia_id)?;
+        if removido && !reverificar {
             return Err(epoca::REMOVIDO.to_string());
         }
         let antigas: familia::Antigas = ler_kv(b, &kv_antigas(&f.familia_id))?;
-        Ok((f, antigas, aparelho::segredo(b)?.to_bytes()))
+        let recem = ler_kv::<Option<u32>>(b, &kv_recem(&f.familia_id))?.is_some();
+        Ok((f, antigas, aparelho::segredo(b)?.to_bytes(), removido, recem))
     })?;
     let (antes, ap) = (f.epoca, aparelho.to_string());
     let (f, antigas, situacao) = rede(move || {
@@ -260,25 +279,36 @@ async fn atualizar_epoca(st: &State<'_, Estado>, aparelho: &str) -> R<familia::F
         Ok((f, antigas, s))
     })
     .await?;
-    match situacao {
-        epoca::Situacao::Igual => Ok(f),
-        epoca::Situacao::Avancou => {
-            com_banco(st, |b| {
-                // Só grava se a família no kv ainda é a mesma, na época de antes (não saiu nem entrou de novo no meio).
-                if ler_familia(b)?.is_some_and(|a| a.familia_id == f.familia_id && a.epoca == antes) {
-                    // As chaves antigas primeiro: se cair entre as duas gravações, nenhuma chave se perde.
-                    b.kv_set(&kv_antigas(&f.familia_id), &serde_json::to_value(&antigas).map_err(|e| e.to_string())?)?;
-                    b.kv_set("familia", &serde_json::to_value(&f).map_err(|e| e.to_string())?)?;
-                }
-                Ok(())
-            })?;
-            Ok(f)
-        }
-        epoca::Situacao::Removido(t) => {
-            com_banco(st, |b| b.kv_set(&kv_removido(&f.familia_id), &json!(t)))?;
-            Err(epoca::REMOVIDO.into())
+    if let epoca::Situacao::Removido(_) = situacao {
+        let (erro, marcar) = epoca::sem_selo(recem);
+        if !marcar {
+            return Err(erro.into());
         }
     }
+    com_banco(st, |b| {
+        // Só grava se a família no kv ainda é a mesma, na época de antes (não saiu nem entrou de novo no meio).
+        if !ler_familia(b)?.is_some_and(|a| a.familia_id == f.familia_id && a.epoca == antes) {
+            return Err("a família mudou neste aparelho durante a sincronização; tente de novo".to_string());
+        }
+        match situacao {
+            epoca::Situacao::Igual => {}
+            epoca::Situacao::Avancou => {
+                // As chaves antigas primeiro: se cair entre as duas gravações, nenhuma chave se perde.
+                b.kv_set(&kv_antigas(&f.familia_id), &serde_json::to_value(&antigas).map_err(|e| e.to_string())?)?;
+                b.kv_set("familia", &serde_json::to_value(&f).map_err(|e| e.to_string())?)?;
+                b.kv_set(&kv_recem(&f.familia_id), &Value::Null)?;
+            }
+            epoca::Situacao::Removido(t) => {
+                b.kv_set(&kv_removido(&f.familia_id), &json!(t))?;
+                return Err(epoca::REMOVIDO.to_string());
+            }
+        }
+        if removido {
+            b.kv_set(&kv_removido(&f.familia_id), &Value::Null)?;
+        }
+        Ok(())
+    })?;
+    Ok(f)
 }
 
 /// Sobe o recorte que o front montou (os eventos depois de `ultimoId`); devolve quantos eventos subiram.
@@ -289,7 +319,7 @@ async fn sync_enviar(st: State<'_, Estado>, aparelho: String, eventos: Vec<Value
     if eventos.is_empty() {
         return Ok(0);
     }
-    let f = atualizar_epoca(&st, &aparelho).await?;
+    let f = atualizar_epoca(&st, &aparelho, false).await?;
     let chave_envio = format!("sync_envio:{}", f.familia_id);
     let p: sincronia::Pendencia = com_banco(&st, |b| ler_kv(b, &chave_envio))?;
     let (prox, epoca) = (p.proximo_n(f.epoca), f.epoca);
@@ -309,7 +339,7 @@ async fn sync_enviar(st: State<'_, Estado>, aparelho: String, eventos: Vec<Value
 #[tauri::command]
 async fn sync_receber(st: State<'_, Estado>, aparelho: String) -> R<usize> {
     let Ok(_vez) = st.sync.try_lock() else { return Ok(0) };
-    let f = atualizar_epoca(&st, &aparelho).await?;
+    let f = atualizar_epoca(&st, &aparelho, false).await?;
     let fid = f.familia_id.clone();
     let (mut lidos, chaves) = com_banco(&st, |b| Ok((ler_lidos(b, &fid)?, epoca::chaves(&f, &ler_kv(b, &kv_antigas(&fid))?)?)))?;
     // Aparelhos vistos em eventos aceitos (inclusive de fora da família): os eventos deles não sobem daqui de novo.
@@ -352,7 +382,37 @@ async fn sync_receber(st: State<'_, Estado>, aparelho: String) -> R<usize> {
             n += 1;
         }
     }
+    // Um recebimento completo: daqui em diante, ficar sem selo numa época nova é "removido", não "convite velho".
+    com_banco(&st, |b| b.kv_set(&kv_recem(&fid), &Value::Null))?;
     Ok(entraram)
+}
+
+/// "Verificar de novo": confere no remoto se este aparelho ainda está fora da família (tira a marca se não estiver).
+#[tauri::command]
+async fn familia_verificar(st: State<'_, Estado>, aparelho: String) -> R<InfoFamilia> {
+    let _vez = st.sync.lock().await;
+    let f = atualizar_epoca(&st, &aparelho, true).await?;
+    Ok(info_de(&f, false))
+}
+
+/// "Trocar token": token novo do GitHub só neste aparelho (o fine-grained vence). Confere antes de guardar; a chave
+/// da família não muda.
+#[tauri::command]
+async fn familia_trocar_token(st: State<'_, Estado>, token: String) -> R<InfoFamilia> {
+    let token = token.trim().to_string();
+    if token.is_empty() {
+        return Err("cole o token novo".into());
+    }
+    let _vez = st.sync.lock().await;
+    let f = exigir_familia(&st)?;
+    let (repo, t) = (f.repo.clone(), token.clone());
+    rede(move || remoto::GitHub::new(&repo, &t).conferir()).await?;
+    com_banco(&st, |b| {
+        let mut atual = ler_familia(b)?.filter(|a| a.familia_id == f.familia_id).ok_or("a família mudou neste aparelho; tente de novo")?;
+        atual.token = token;
+        b.kv_set("familia", &serde_json::to_value(&atual).map_err(|e| e.to_string())?)?;
+        Ok(info_de(&atual, esta_removido(b, &atual.familia_id)?))
+    })
 }
 
 #[derive(serde::Deserialize)]
@@ -377,7 +437,7 @@ async fn familia_remover_aparelho(st: State<'_, Estado>, aparelho: String, remov
     // Espera a sincronização em andamento (não pode trocar a chave no meio de um envio).
     let _vez = st.sync.lock().await;
     let token = token.map(|t| t.trim().to_string()).filter(|t| !t.is_empty());
-    let f = atualizar_epoca(&st, &aparelho).await?;
+    let f = atualizar_epoca(&st, &aparelho, false).await?;
     let mut dest: std::collections::BTreeMap<String, String> = destinatarios.into_iter().filter(|d| d.id != removido && d.id != aparelho).map(|d| (d.id, d.chave)).collect();
     dest.insert(aparelho.clone(), com_banco(&st, |b| aparelho::chave_publica(b))?);
     let chave_rot = kv_rotacao(&f.familia_id);
@@ -408,7 +468,7 @@ async fn familia_remover_aparelho(st: State<'_, Estado>, aparelho: String, remov
         return Err(e);
     }
     // O marco é nosso: adota a chave nova pelo próprio arquivo selado, como os outros aparelhos.
-    let f = atualizar_epoca(&st, &aparelho).await?;
+    let f = atualizar_epoca(&st, &aparelho, false).await?;
     if f.epoca < r.epoca {
         return Err("a troca de chave não terminou; tente de novo".into());
     }
@@ -821,6 +881,8 @@ pub fn run() {
             familia_sair,
             familia_convite,
             familia_remover_aparelho,
+            familia_verificar,
+            familia_trocar_token,
             sync_cursor,
             sync_enviar,
             sync_receber,

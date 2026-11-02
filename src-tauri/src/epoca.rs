@@ -2,12 +2,14 @@
 //! nova `t`, com uma chave nova selada para cada aparelho que fica, este incluído (`chaves/<t>/<aparelhoId>.bin`:
 //! X25519 efêmero + HKDF-SHA256 + XChaCha20-Poly1305, AAD "<familiaId>|<t>|<aparelhoId>").
 //!
-//! Por último vai o marco `chaves/<b>/proxima.bin` (t em 4 bytes + manifesto cifrado com a chave nova). Ele é
-//! gravado só se ainda não existe, então cada época tem no máximo uma sucessora: duas remoções ao mesmo tempo não
+//! Por último vai o marco `chaves/<b>/proxima.bin`: t e o manifesto (cifrado com a chave nova), tudo cifrado com
+//! uma chave derivada da chave da época `b`. Só quem é da família na época `b` faz um marco que confere; um marco
+//! que não confere é erro (tenta de novo depois), nunca "removido". Ele é gravado só se ainda não existe, então cada época tem no máximo uma sucessora: duas remoções ao mesmo tempo não
 //! dividem a família, a que perder recebe um conflito. Sem o marco, nada mudou para ninguém: uma troca que caiu no
 //! meio é retomada com os mesmos bytes (`Rotacao`, guardada no kv) ou abandonada (a próxima usa outra `t`).
 //!
-//! O sal do HKDF é a chave da época anterior: quem não é da família (ex.: só com o token) não fabrica uma chave nova.
+//! O sal do HKDF vem da chave da época anterior (HKDF próprio, "selo-sal"): quem não é da família (ex.: só com o
+//! token) não fabrica uma chave nova.
 //! Quem lê procura o marco da própria época; achando, abre o próprio arquivo, confere o marco e adota a chave.
 //! Marco sem arquivo para este aparelho (ou com um arquivo que não confere) = este aparelho foi removido.
 
@@ -28,6 +30,10 @@ type R<T> = Result<T, String>;
 pub const CONFLITO: &str = "CONFLITO:";
 /// Erro que o front reconhece para mostrar "Este aparelho foi removido da família".
 pub const REMOVIDO: &str = "REMOVIDO: Este aparelho foi removido da família";
+/// Quem entrou com um convite de antes de uma troca de chave (e ainda não sincronizou) não é "removido": o convite é velho.
+pub const CONVITE_ANTIGO: &str = "CONVITE: o convite é de antes de uma troca de chave da família; peça um convite novo";
+/// Maior salto de época aceito: uma pasta `chaves/4294967295` criada por quem tem o token é ignorada.
+const SALTO_MAX: u32 = 1000;
 
 const INFO: &[u8] = b"prontuario-de-casa/selo/v1";
 const B64: base64::engine::GeneralPurpose = base64::engine::general_purpose::STANDARD;
@@ -74,6 +80,23 @@ pub fn abrir(chave_priv: &[u8; 32], selado: &[u8], aad: &[u8], sal: &[u8; 32]) -
     Cofre::new(&k).decifrar(resto, aad).map_err(|_| erro())
 }
 
+/// Chave derivada da chave de uma época para um uso só (separação de domínio).
+fn derivada(chave: &[u8; 32], rotulo: &[u8]) -> [u8; 32] {
+    let mut k = [0u8; 32];
+    Hkdf::<Sha256>::new(None, chave).expand(rotulo, &mut k).expect("32 bytes cabem no HKDF-SHA256");
+    k
+}
+
+/// Sal dos selos da época que sucede a de `chave_base`.
+fn sal_do_selo(chave_base: &[u8; 32]) -> [u8; 32] {
+    derivada(chave_base, b"prontuario-de-casa/selo-sal")
+}
+
+/// Chave que autentica o marco da época de `chave_base`.
+fn chave_do_marco(chave_base: &[u8; 32]) -> [u8; 32] {
+    derivada(chave_base, b"prontuario-de-casa/marco")
+}
+
 pub fn arquivo(epoca: u32, aparelho: &str) -> String {
     format!("chaves/{epoca}/{aparelho}.bin")
 }
@@ -88,6 +111,11 @@ fn aad_selo(familia: &str, epoca: u32, aparelho: &str) -> Vec<u8> {
 
 fn aad_marco(familia: &str, base: u32, epoca: u32) -> Vec<u8> {
     format!("{familia}|{base}|proxima|{epoca}").into_bytes()
+}
+
+/// AAD da camada de fora do marco (a da chave da época `base`); `t` vai dentro e é conferido no AAD de dentro.
+fn aad_marco_base(familia: &str, base: u32) -> Vec<u8> {
+    format!("{familia}|{base}|proxima").into_bytes()
 }
 
 /// Id de aparelho que pode virar nome de arquivo ("pc-ab12cd", "cel-…").
@@ -115,15 +143,26 @@ pub enum Situacao {
     Removido(u32),
 }
 
+/// Sem selo numa época nova: quem entrou por convite e ainda não completou um recebimento tem um convite velho
+/// (erro sem marca, pede outro convite); os outros foram removidos (erro com marca no kv). Devolve (erro, marcar).
+pub fn sem_selo(recem_chegado: bool) -> (&'static str, bool) {
+    if recem_chegado { (CONVITE_ANTIGO, false) } else { (REMOVIDO, true) }
+}
+
 /// Segue a cadeia de marcos a partir da época de `f`, adotando cada chave nova (e o token novo, se veio junto).
 /// A chave que sai vai para `antigas`. Erro de rede ou arquivo que não abre = Err (tenta de novo depois).
 pub fn atualizar(remoto: &dyn Remoto, f: &mut Familia, antigas: &mut Antigas, eu: &str, chave_priv: &[u8; 32]) -> R<Situacao> {
     let mut avancou = false;
-    while let Some(m) = remoto.baixar(&marco(f.epoca))? {
+    while let Some(bruto) = remoto.baixar(&marco(f.epoca))? {
         let base = f.epoca;
-        let t = m.get(..4).map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]])).filter(|t| *t > base).ok_or_else(|| format!("marco da época {base} inválido"))?;
+        let k_base = f.chave_bytes()?;
+        // O marco tem de conferir com a chave da época atual antes de qualquer conclusão: um marco forjado
+        // (só com o token) é erro, nunca "removido".
+        let invalido = || format!("o marco da troca de chave da época {base} não confere; tente de novo mais tarde");
+        let m = Cofre::new(&chave_do_marco(&k_base)).decifrar(&bruto, &aad_marco_base(&f.familia_id, base)).map_err(|_| invalido())?;
+        let t = m.get(..4).map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]])).filter(|t| *t > base && *t - base <= SALTO_MAX).ok_or_else(invalido)?;
         let Some(selado) = remoto.baixar(&arquivo(t, eu))? else { return Ok(Situacao::Removido(t)) };
-        let claro = abrir(chave_priv, &selado, &aad_selo(&f.familia_id, t, eu), &f.chave_bytes()?).map_err(|_| format!("a chave nova da família (época {t}) não abre neste aparelho"))?;
+        let claro = abrir(chave_priv, &selado, &aad_selo(&f.familia_id, t, eu), &sal_do_selo(&k_base)).map_err(|_| format!("a chave nova da família (época {t}) não abre neste aparelho"))?;
         let v: Value = serde_json::from_slice(&claro).map_err(|_| format!("chave nova da família (época {t}) inválida"))?;
         let nova = chave_de_hex(v.get("chave").and_then(Value::as_str).unwrap_or_default())?;
         // O arquivo pode ser de uma troca que perdeu a corrida: só vale se a chave confere com o marco.
@@ -172,8 +211,11 @@ fn epocas_no_remoto(remoto: &dyn Remoto) -> R<Vec<u32>> {
 /// pastas que já existem: uma tentativa abandonada nunca ocupa os nomes da próxima.
 pub fn preparar(remoto: &dyn Remoto, f: &Familia, removido: &str, destinatarios: BTreeMap<String, String>, token: Option<String>) -> R<Rotacao> {
     let base = f.epoca;
-    let epoca = epocas_no_remoto(remoto)?.into_iter().max().unwrap_or(0).max(base) + 1;
-    let sal = f.chave_bytes()?;
+    // Pastas absurdas (além do salto máximo) não contam.
+    let maior = epocas_no_remoto(remoto)?.into_iter().filter(|e| *e <= base.saturating_add(SALTO_MAX - 1)).max().unwrap_or(0).max(base);
+    let epoca = maior.checked_add(1).ok_or("época da família no limite")?;
+    let k_base = f.chave_bytes()?;
+    let sal = sal_do_selo(&k_base);
     let nova = aleatorio::<32>();
     let mut conteudo = json!({ "chave": chave_hex(&nova) });
     if let Some(t) = &token {
@@ -191,6 +233,7 @@ pub fn preparar(remoto: &dyn Remoto, f: &Familia, removido: &str, destinatarios:
     let manifesto = json!({ "removido": removido, "destinatarios": destinatarios.keys().filter(|id| id.as_str() != removido).collect::<Vec<_>>() });
     let mut m = epoca.to_le_bytes().to_vec();
     m.extend(Cofre::new(&nova).cifrar(manifesto.to_string().as_bytes(), &aad_marco(&f.familia_id, base, epoca)).map_err(|e| e.to_string())?);
+    let m = Cofre::new(&chave_do_marco(&k_base)).cifrar(&m, &aad_marco_base(&f.familia_id, base)).map_err(|e| e.to_string())?;
     arquivos.push((marco(base), B64.encode(m)));
     Ok(Rotacao { base, epoca, removido: removido.to_string(), token, destinatarios, arquivos })
 }
@@ -507,6 +550,79 @@ mod testes {
         publicar(&m, &preparar(&m, &falsa, "pc-a", dest(&[&b]), Some("token-do-intruso".into())).unwrap()).unwrap();
         assert!(atualizar(&m, &mut b.f, &mut b.antigas, b.id, &b.privada).is_err());
         assert_eq!((b.f.epoca, b.f.token.as_str()), (0, "t"));
+    }
+
+    #[test]
+    fn marco_forjado_e_erro_e_nao_removido() {
+        // Quem só tem o token escreve um marco qualquer (4 bytes, sem arquivo para ninguém): erro, não "removido".
+        let m = Memoria::default();
+        let f = Familia::nova("a/b", "t");
+        let mut b = Aparelho::novo("cel-b", &f);
+        m.gravar("chaves/0/proxima.bin", &7u32.to_le_bytes()).unwrap();
+        let e = atualizar(&m, &mut b.f, &mut b.antigas, b.id, &b.privada).unwrap_err();
+        assert!(e.contains("não confere"), "{e}");
+        assert_eq!(b.f.epoca, 0);
+        // Marco de verdade com época absurda também não passa.
+        let m2 = Memoria::default();
+        let k = f.chave_bytes().unwrap();
+        let mut dentro = u32::MAX.to_le_bytes().to_vec();
+        dentro.extend_from_slice(&[0u8; 40]);
+        m2.gravar("chaves/0/proxima.bin", &Cofre::new(&chave_do_marco(&k)).cifrar(&dentro, &aad_marco_base(&f.familia_id, 0)).unwrap()).unwrap();
+        assert!(atualizar(&m2, &mut b.f, &mut b.antigas, b.id, &b.privada).is_err());
+    }
+
+    #[test]
+    fn remocao_de_verdade_continua_removido_para_quem_saiu() {
+        let m = Memoria::default();
+        let f = Familia::nova("a/b", "t");
+        let (a, mut x) = (Aparelho::novo("pc-a", &f), Aparelho::novo("pc-x", &f));
+        publicar(&m, &preparar(&m, &a.f, "pc-x", dest(&[&a, &x]), None).unwrap()).unwrap();
+        assert_eq!(x.atualizar(&m), Situacao::Removido(1));
+    }
+
+    #[test]
+    fn pasta_de_epoca_absurda_nao_conta() {
+        let m = Memoria::default();
+        let f = Familia::nova("a/b", "t");
+        let (mut a, mut b) = (Aparelho::novo("pc-a", &f), Aparelho::novo("cel-b", &f));
+        m.gravar("chaves/4294967295/lixo.bin", b"x").unwrap();
+        let r = preparar(&m, &a.f, "pc-x", dest(&[&a, &b]), None).unwrap();
+        assert_eq!(r.epoca, 1);
+        publicar(&m, &r).unwrap();
+        assert_eq!(a.atualizar(&m), Situacao::Avancou);
+        assert_eq!(b.atualizar(&m), Situacao::Avancou);
+    }
+
+    #[test]
+    fn convite_de_antes_da_troca_deixa_quem_entra_de_fora() {
+        // A convida (época 0) e logo depois a família troca de chave: quem entra com esse convite não tem selo.
+        let m = Memoria::default();
+        let f = Familia::nova("a/b", "t");
+        let (mut a, b) = (Aparelho::novo("pc-a", &f), Aparelho::novo("cel-b", &f));
+        let convite_velho = a.f.clone();
+        publicar(&m, &preparar(&m, &b.f, "pc-x", dest(&[&a, &b]), None).unwrap()).unwrap();
+        let mut novo = Aparelho::novo("tab-n", &convite_velho);
+        // Para o aparelho novo, a família "saiu sem ele" (o front mostra CONVITE_ANTIGO, não removido: lib.rs).
+        assert_eq!(novo.atualizar(&m), Situacao::Removido(1));
+        // Quem convida atualiza antes de gerar o convite: o convite sai na época 1 e quem entra fica.
+        assert_eq!(a.atualizar(&m), Situacao::Avancou);
+        novo.f = a.f.clone();
+        assert_eq!(novo.atualizar(&m), Situacao::Igual);
+    }
+
+    #[test]
+    fn sem_selo_de_recem_chegado_e_convite_velho() {
+        assert_eq!(sem_selo(true), (CONVITE_ANTIGO, false));
+        assert_eq!(sem_selo(false), (REMOVIDO, true));
+        assert!(CONVITE_ANTIGO.starts_with("CONVITE:") && REMOVIDO.starts_with("REMOVIDO:"));
+    }
+
+    #[test]
+    fn sal_e_chave_do_marco_separados_da_chave_da_epoca() {
+        let k = aleatorio::<32>();
+        assert_ne!(sal_do_selo(&k), k);
+        assert_ne!(chave_do_marco(&k), k);
+        assert_ne!(sal_do_selo(&k), chave_do_marco(&k));
     }
 
     #[test]

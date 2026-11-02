@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useStore } from '../data/store';
 import { persistencia } from '../data/persistencia';
-import { atualizarFamilia, definirFamilia, sincronizar, useInfoSync } from '../data/sincronizacao';
+import { atualizarFamilia, definirFamilia, ehRemovido, marcarRemovido, mensagemErro, sincronizar, useInfoSync } from '../data/sincronizacao';
 import { quando } from '../data/format';
 import { aparelhosDaFamilia, planoRemocao } from '../data/aparelhos';
 import type { Aparelho } from '../data/types';
@@ -23,7 +23,7 @@ export function CardFamilia({ desktop }: { desktop?: boolean }) {
   const pad = desktop ? '14px 20px' : '14px 16px';
   const store = useStore();
   const s = useInfoSync();
-  const [folha, setFolha] = useState<null | 'criar' | 'entrar' | 'convite' | 'sair' | 'renomear'>(null);
+  const [folha, setFolha] = useState<null | 'criar' | 'entrar' | 'convite' | 'sair' | 'renomear' | 'token'>(null);
   const [removendo, setRemovendo] = useState<Aparelho | null>(null);
   const meuId = store.api.aparelhoId();
   const aparelhos = aparelhosDaFamilia(store.state);
@@ -47,6 +47,8 @@ export function CardFamilia({ desktop }: { desktop?: boolean }) {
           <span style={texto}>Outro aparelho trocou a chave da família sem este. Ele não sincroniza mais; os dados que já estão aqui continuam aqui. Para voltar, peça um convite novo.</span>
           <div className="hstack" style={{ gap: 8, flexWrap: 'wrap' }}>
             <button type="button" className={`btn btn--ink ${btn}`} style={desktop ? undefined : { flex: 1 }} onClick={() => setFolha('entrar')}>Entrar com convite</button>
+            <button type="button" className={`btn btn--outline ${btn}`} style={{ background: 'transparent', ...(desktop ? {} : { flex: 1 }) }} onClick={() => void sincronizar(store, { manual: true })}>Verificar de novo</button>
+            <button type="button" className={`btn btn--outline ${btn}`} style={{ background: 'transparent', ...(desktop ? {} : { flex: 1 }) }} onClick={() => setFolha('token')}>Trocar token</button>
             <button type="button" className={`btn btn--outline ${btn}`} style={{ background: 'transparent', color: 'var(--danger)', ...(desktop ? {} : { flex: 1 }) }} onClick={() => setFolha('sair')}>Sair da família</button>
           </div>
         </div>
@@ -79,6 +81,7 @@ export function CardFamilia({ desktop }: { desktop?: boolean }) {
           ))}
           <div className="hstack" style={{ padding: pad, gap: 8, flexWrap: 'wrap' }}>
             <button type="button" className={`btn btn--ink ${btn}`} style={desktop ? undefined : { flex: 1 }} onClick={() => setFolha('convite')}>Convidar aparelho</button>
+            <button type="button" className={`btn btn--outline ${btn}`} style={{ background: 'transparent', ...(desktop ? {} : { flex: 1 }) }} onClick={() => setFolha('token')}>Trocar token</button>
             <button type="button" className={`btn btn--outline ${btn}`} style={{ background: 'transparent', color: 'var(--danger)', ...(desktop ? {} : { flex: 1 }) }} onClick={() => setFolha('sair')}>Sair da família</button>
           </div>
         </>
@@ -87,6 +90,7 @@ export function CardFamilia({ desktop }: { desktop?: boolean }) {
       {folha === 'entrar' && <EntrarNaFamilia desktop={desktop} onClose={() => setFolha(null)} />}
       {folha === 'convite' && <Convite desktop={desktop} onClose={() => setFolha(null)} />}
       {folha === 'sair' && <SairDaFamilia desktop={desktop} onClose={() => setFolha(null)} />}
+      {folha === 'token' && <TrocarToken desktop={desktop} onClose={() => setFolha(null)} />}
       {removendo && <RemoverAparelho desktop={desktop} alvo={removendo} onClose={() => setRemovendo(null)} />}
       {folha === 'renomear' && <RenomearAparelho desktop={desktop} atual={aparelhos.find((a) => a.id === meuId)?.nome ?? ''} onClose={() => setFolha(null)} />}
     </div>
@@ -127,7 +131,16 @@ function RemoverAparelho({ desktop, alvo, onClose }: { desktop?: boolean; alvo: 
       store.api.toast({ texto: `${alvo.nome} saiu da família` });
       onClose();
       void sincronizar(store);
-    } catch (e) { setErro(e instanceof Error ? e.message : String(e)); } finally { setOcupado(false); }
+    } catch (e) {
+      // Outro aparelho tirou este da família antes: para de sincronizar aqui.
+      if (ehRemovido(e)) {
+        marcarRemovido();
+        store.api.toast({ texto: 'Este aparelho foi removido da família' });
+        onClose();
+        return;
+      }
+      setErro(mensagemErro(e).texto);
+    } finally { setOcupado(false); }
   };
   return (
     <Folha desktop={desktop} onClose={ocupado ? () => {} : onClose} titulo="Remover aparelho?" alerta>
@@ -135,12 +148,38 @@ function RemoverAparelho({ desktop, alvo, onClose }: { desktop?: boolean; alvo: 
       {semChave.length > 0 && (
         <span style={texto}>{semChave.length === 1 ? 'Este aparelho ainda usa uma versão antiga do app e vai sair da família também' : 'Estes aparelhos ainda usam uma versão antiga do app e vão sair da família também'}: <b>{semChave.map((a) => a.nome).join(', ')}</b>. Depois de atualizar o app neles, convide de novo.</span>
       )}
+      <span style={texto}>Aparelhos que entraram há pouco e ainda não sincronizaram vão precisar de um convite novo.</span>
       <span style={texto}>O aparelho removido conhece o token do GitHub. Gere um token novo para o mesmo repositório e cole abaixo: ele vai cifrado para os outros aparelhos. Revogue o token antigo no GitHub só depois que todos sincronizarem.</span>
       <input className={`input${desktop ? ' input--desk' : ''} input--mono`} type="password" placeholder="Novo token (opcional)" value={token} onChange={(e) => setToken(e.target.value)} disabled={ocupado} aria-label="Novo token (opcional)" />
       <span style={texto}>Para confirmar, digite o nome do aparelho: <b>{alvo.nome}</b></span>
       <input className={`input${desktop ? ' input--desk' : ''}`} value={nome} onChange={(e) => setNome(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && confere && !ocupado) void remover(); }} disabled={ocupado} autoFocus aria-label="Nome do aparelho, para confirmar" />
       {erro && <span style={erroTxt} role="alert">{erro}</span>}
       <button type="button" className={`btn ${desktop ? 'btn--h40d' : 'btn--h50'}`} style={{ background: 'var(--danger)', color: 'var(--surface)' }} disabled={!confere || ocupado} onClick={remover}>{ocupado ? 'Trocando a chave da família…' : erro ? 'Tentar de novo' : 'Remover aparelho'}</button>
+    </Folha>
+  );
+}
+
+/** Token novo do GitHub só neste aparelho (o fine-grained vence). A chave da família não muda. */
+function TrocarToken({ desktop, onClose }: { desktop?: boolean; onClose: () => void }) {
+  const store = useStore();
+  const [token, setToken] = useState('');
+  const [erro, setErro] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  const salvar = async () => {
+    setOcupado(true); setErro('');
+    try {
+      atualizarFamilia(await persistencia.familiaTrocarToken(token));
+      store.api.toast({ texto: 'Token trocado' });
+      onClose();
+      void sincronizar(store, { manual: true });
+    } catch (e) { setErro(mensagemErro(e).texto); } finally { setOcupado(false); }
+  };
+  return (
+    <Folha desktop={desktop} onClose={ocupado ? () => {} : onClose} titulo="Trocar token">
+      <span style={texto}>Gere um token novo no GitHub para o mesmo repositório, com <b>Contents: Read and write</b>, e cole aqui. Ele vale só para este aparelho e fica cifrado aqui.</span>
+      <input className={`input${desktop ? ' input--desk' : ''} input--mono`} type="password" placeholder="github_pat_…" value={token} onChange={(e) => setToken(e.target.value)} disabled={ocupado} autoFocus aria-label="Token novo do GitHub" />
+      {erro && <span style={erroTxt} role="alert">{erro}</span>}
+      <button type="button" className={`btn btn--ink ${desktop ? 'btn--h40d' : 'btn--h50'}`} disabled={!token.trim() || ocupado} onClick={salvar}>{ocupado ? 'Conferindo o token…' : 'Salvar token'}</button>
     </Folha>
   );
 }
@@ -182,6 +221,12 @@ export function EntrarNaFamilia({ desktop, onClose }: { desktop?: boolean; onClo
   const baixar = async () => {
     const r = await sincronizar(store, { manual: true });
     if (r.ok) return onClose();
+    // Convite de antes de uma troca de chave: pede outro (dá para colar o novo aqui mesmo).
+    if (r.conviteAntigo) {
+      setEntrou(false);
+      setConvite('');
+      return setErro('Esse convite é de antes de uma troca de chave da família. Peça um convite novo e cole aqui.');
+    }
     setErro(`Entrou na família, mas não foi possível baixar os dados: ${r.erro ?? 'erro desconhecido'}`);
   };
   const entrar = async (texto = convite) => {
@@ -220,7 +265,13 @@ function Convite({ desktop, onClose }: { desktop?: boolean; onClose: () => void 
   const { api } = useStore();
   const [convite, setConvite] = useState<string | null>(null);
   const [erro, setErro] = useState('');
-  const mostrar = async () => { setErro(''); try { setConvite(await persistencia.familiaConvite()); } catch (e) { setErro(e instanceof Error ? e.message : String(e)); } };
+  const mostrar = async () => {
+    setErro('');
+    try { setConvite(await persistencia.familiaConvite(api.aparelhoId() ?? '')); } catch (e) {
+      if (ehRemovido(e)) marcarRemovido();
+      setErro(mensagemErro(e).texto);
+    }
+  };
   const copiar = async () => {
     if (!convite) return;
     setErro('');

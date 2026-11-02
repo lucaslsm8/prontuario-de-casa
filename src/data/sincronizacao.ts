@@ -27,8 +27,12 @@ export const useInfoSync = () => useSyncExternalStore((f) => { ouvintes.add(f); 
 /** Erro do Rust quando a família trocou a chave sem este aparelho. */
 export const ehRemovido = (e: unknown) => (e instanceof Error ? e.message : String(e)).startsWith('REMOVIDO:');
 
+/** Erro do Rust de quem entrou com um convite de antes de uma troca de chave: pedir outro convite. */
+export const ehConviteAntigo = (e: unknown) => (e instanceof Error ? e.message : String(e)).startsWith('CONVITE:');
+
 export function mensagemErro(e: unknown): { texto: string; token: boolean } {
   const t = e instanceof Error ? e.message : String(e);
+  if (t.startsWith('CONVITE:') || t.startsWith('REMOVIDO:')) return { texto: t.slice(t.indexOf(':') + 1).trim(), token: false };
   return t.startsWith('TOKEN:') ? { texto: t.slice(6).trim(), token: true } : { texto: t, token: false };
 }
 
@@ -44,13 +48,16 @@ export async function carregarFamilia() {
   }
 }
 export const definirFamilia = (familia: InfoFamilia | null) => mudar({ familia, estado: 'parado', erro: undefined, token: undefined, ultima: undefined, removido: !!familia?.removido });
+/** O Rust disse que este aparelho foi removido: para de sincronizar (os dados daqui ficam). */
+export const marcarRemovido = () => mudar({ estado: 'parado', removido: true, erro: undefined, token: undefined, ...(info.familia ? { familia: { ...info.familia, removido: true } } : {}) });
 /** A família mudou de época (aparelho removido, chave nova): atualiza sem mexer no resto. */
 export const atualizarFamilia = (familia: InfoFamilia) => mudar({ familia, removido: !!familia.removido });
 /** O estado atual, fora do React (testes). */
 export const infoSync = () => info;
 
 type Store = ReturnType<typeof useStore>;
-export interface ResultadoSync { ok: boolean; erro?: string }
+/** `conviteAntigo`: entrou com um convite de antes de uma troca de chave (peça outro). */
+export interface ResultadoSync { ok: boolean; erro?: string; conviteAntigo?: boolean }
 
 let emAndamento = false;
 /** Pedidos que chegaram durante uma rodada: rodam juntos numa rodada a mais e recebem o resultado dela. */
@@ -62,7 +69,23 @@ export async function sincronizar(store: { api: Pick<Store['api'], 'aparelhoId' 
   const { api } = store;
   const aparelho = api.aparelhoId();
   if (!info.familia || !aparelho) return { ok: false, erro: 'Este aparelho não está numa família.' };
-  if (info.removido) return { ok: false, erro: 'Este aparelho foi removido da família.' };
+  if (info.removido) {
+    // Automático: não tenta. Manual ("Verificar de novo", "Sincronizar agora"): confere no remoto de novo.
+    if (!manual) return { ok: false, erro: 'Este aparelho foi removido da família.' };
+    try {
+      atualizarFamilia(await persistencia.familiaVerificar(aparelho));
+    } catch (e) {
+      if (ehRemovido(e)) {
+        marcarRemovido();
+        api.toast({ texto: 'Este aparelho continua fora da família' });
+        return { ok: false, erro: 'Este aparelho foi removido da família.' };
+      }
+      const { texto, token } = mensagemErro(e);
+      mudar({ estado: 'erro', erro: texto, token });
+      api.toast({ texto: `Não foi possível verificar: ${texto}` });
+      return { ok: false, erro: texto };
+    }
+  }
   if (emAndamento) {
     pendente ??= { manual: false, avisar: [] };
     pendente.manual ||= manual;
@@ -100,14 +123,14 @@ export async function sincronizar(store: { api: Pick<Store['api'], 'aparelhoId' 
   } catch (e) {
     if (ehRemovido(e)) {
       // Para de sincronizar; nada daqui é apagado.
-      mudar({ estado: 'parado', removido: true, erro: undefined, token: undefined, ...(info.familia ? { familia: { ...info.familia, removido: true } } : {}) });
+      marcarRemovido();
       if (manual) api.toast({ texto: 'Este aparelho foi removido da família' });
       r = { ok: false, erro: 'Este aparelho foi removido da família.' };
     } else {
       const { texto, token } = mensagemErro(e);
       mudar({ estado: 'erro', erro: texto, token });
       if (manual) api.toast({ texto: `Não foi possível sincronizar: ${texto}` });
-      r = { ok: false, erro: texto };
+      r = { ok: false, erro: texto, ...(ehConviteAntigo(e) ? { conviteAntigo: true } : {}) };
     }
   }
   emAndamento = false;
