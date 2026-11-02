@@ -21,6 +21,11 @@ class ArgsRedeAtual {
     var pedir: Boolean = false
 }
 
+@InvokeArg
+class ArgsMulticast {
+    var adquirir: Boolean = false
+}
+
 /**
  * Rede de casa: BSSID e SSID do Wi-Fi atual. O Android só entrega com a permissão de localização
  * (pedida só quando a pessoa toca "Esta é a rede de casa"); sem ela, volta vazio ou 02:00:00:00:00:00,
@@ -33,6 +38,7 @@ class ArgsRedeAtual {
 )
 class RedePlugin(private val activity: Activity) : Plugin(activity) {
     private val alias = "localizacao"
+    private var multicast: WifiManager.MulticastLock? = null
 
     @Command
     fun atual(invoke: Invoke) {
@@ -65,6 +71,27 @@ class RedePlugin(private val activity: Activity) : Plugin(activity) {
             // Qualquer falha conta como "rede indisponível".
         }
         invoke.resolve(r)
+    }
+
+    /**
+     * Sincronização pelo Wi-Fi: o mDNS só recebe multicast com o MulticastLock (CHANGE_WIFI_MULTICAST_STATE,
+     * permissão normal, sem pedido em tempo de execução). O Rust adquire ao ligar e libera ao desligar.
+     */
+    @Command
+    fun multicastLock(invoke: Invoke) {
+        val args = invoke.parseArgs(ArgsMulticast::class.java)
+        try {
+            if (args.adquirir) {
+                val l = multicast ?: (activity.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager)
+                    .createMulticastLock("prontuario-lan").also { it.setReferenceCounted(false); multicast = it }
+                if (!l.isHeld) l.acquire()
+            } else {
+                multicast?.let { if (it.isHeld) it.release() }
+            }
+        } catch (_: Exception) {
+            // Sem o lock a descoberta só fica muda; nada mais muda.
+        }
+        invoke.resolve(JSObject())
     }
 
     private fun noWifi(): Boolean {

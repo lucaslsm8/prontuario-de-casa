@@ -1,4 +1,4 @@
-//! Android: BSSID e SSID do Wi-Fi atual pelo RedePlugin (Kotlin). Sem permissão de localização,
+//! Android: BSSID e SSID do Wi-Fi atual pelo RedePlugin (Kotlin), e o MulticastLock do mDNS. Sem permissão de localização,
 //! ou fora do Wi-Fi, volta vazio (ou 02:00:00:00:00:00), que conta como "indisponível".
 
 use crate::rede_casa::{self, Rede};
@@ -29,4 +29,12 @@ pub async fn atual<R: Runtime>(app: &AppHandle<R>, pedir: bool) -> Option<Rede> 
     let h = app.try_state::<RedeAndroid<R>>()?;
     let r: Resposta = h.0.run_mobile_plugin_async("atual", serde_json::json!({ "pedir": pedir })).await.ok()?;
     rede_casa::rede_do_wifi(r.bssid.as_deref()?, r.ssid.as_deref())
+}
+
+/// mDNS no Android: sem o `WifiManager.MulticastLock` o sistema descarta os pacotes multicast que chegam.
+/// Adquirido enquanto a sincronização pelo Wi-Fi está ligada (app aberto); falha aqui só deixa a descoberta muda.
+pub async fn multicast_lock<R: Runtime>(app: &AppHandle<R>, adquirir: bool) {
+    if let Some(h) = app.try_state::<RedeAndroid<R>>() {
+        let _: Result<serde_json::Value, _> = h.0.run_mobile_plugin_async("multicastLock", serde_json::json!({ "adquirir": adquirir })).await;
+    }
 }

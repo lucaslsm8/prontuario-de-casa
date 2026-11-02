@@ -32,6 +32,10 @@ sha2 = "0.10"
 x25519-dalek = { version = "2", features = ["static_secrets"] }
 # Chave nova da família selada para cada aparelho (X25519 + HKDF-SHA256 + XChaCha20-Poly1305).
 hkdf = "0.12"
+# Sincronização direta pelo Wi-Fi: descoberta por mDNS e canal Noise (NNpsk0) com PSK da chave da família.
+mdns-sd = "0.21"
+snow = "0.10"
+tokio = { version = "1", features = ["net", "io-util", "time", "sync", "macros", "rt"] }
 
 # Chave do banco no cofre do sistema (Gerenciador de Credenciais no Windows, Keychain no macOS).
 [target.'cfg(any(windows, target_os = "macos"))'.dependencies]

@@ -9,6 +9,7 @@ mod epoca;
 mod familia;
 #[cfg(target_os = "android")]
 mod instalador_android;
+mod lan;
 mod lembretes;
 mod notificacao;
 mod pacote;
@@ -479,6 +480,26 @@ async fn familia_remover_aparelho(st: State<'_, Estado>, aparelho: String, remov
     Ok(info_de(&f, false))
 }
 
+// ── Sincronização pelo Wi-Fi ────────────────────────────────────────────────
+// O front liga com o app aberto, desbloqueado e numa família; desliga ao bloquear, sair ou ir para segundo plano.
+
+#[tauri::command]
+async fn lan_iniciar(app: tauri::AppHandle) -> R<()> {
+    lan::iniciar(&app).await
+}
+
+#[tauri::command]
+async fn lan_parar(app: tauri::AppHandle) -> R<()> {
+    lan::parar(&app).await;
+    Ok(())
+}
+
+/// Troca com os aparelhos da família achados na rede local; devolve { pares, chegaram }.
+#[tauri::command]
+async fn lan_sincronizar_agora(app: tauri::AppHandle) -> R<lan::Resumo> {
+    Ok(lan::sincronizar_agora(&app).await)
+}
+
 // ── Início ──────────────────────────────────────────────────────────────────
 
 #[derive(Serialize)]
@@ -896,6 +917,7 @@ pub fn run() {
                 Ok(b) => (Some(b), None),
                 Err(e) => (None, Some(e)),
             };
+            app.manage(lan::Lan::default());
             app.manage(Estado { servico, dir, pasta_padrao_backup, banco: Mutex::new(banco), erro: Mutex::new(erro), sync: Default::default() });
             notificacao::registrar();
             let ag = lembretes::Agendador::novo();
@@ -932,6 +954,9 @@ pub fn run() {
             sync_cursor,
             sync_enviar,
             sync_receber,
+            lan_iniciar,
+            lan_parar,
+            lan_sincronizar_agora,
             rede_atual,
             redes_casa,
             rede_casa_adicionar,

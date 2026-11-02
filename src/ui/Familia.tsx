@@ -29,7 +29,7 @@ export function CardFamilia({ desktop }: { desktop?: boolean }) {
   const aparelhos = aparelhosDaFamilia(store.state);
   // Este aparelho primeiro; os outros do mais ao menos recente.
   aparelhos.sort((a, b) => Number(b.id === meuId) - Number(a.id === meuId));
-  const status = !s.familia ? '' : s.estado === 'sincronizando' ? 'Sincronizando…' : s.estado === 'erro' ? (s.token ? 'Token do GitHub sem acesso ou vencido' : `Não sincronizou: ${s.erro}`) : s.ultima ? `Sincronizado ${quando(s.ultima)} · pelo GitHub` : 'Ainda não sincronizou';
+  const status = !s.familia ? '' : s.estado === 'sincronizando' ? 'Sincronizando…' : s.estado === 'erro' ? (s.token ? 'Token do GitHub sem acesso ou vencido' : `Não sincronizou: ${s.erro}`) : s.ultima ? `Sincronizado ${quando(s.ultima)} · pelo ${s.via === 'Wi-Fi' ? 'Wi-Fi' : 'GitHub'}` : 'Ainda não sincronizou';
   return (
     <div className="card" style={{ fontSize: 14 }}>
       <div className={desktop ? 'card-head card-head--20' : 'card-head'}><Label>Família e aparelhos</Label></div>

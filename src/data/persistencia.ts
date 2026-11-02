@@ -74,6 +74,13 @@ export interface Persistencia {
   syncEnviar(aparelho: string, eventos: Evento[]): Promise<number>;
   /** Baixa os pacotes dos outros aparelhos; devolve quantos eventos chegaram. */
   syncReceber(aparelho: string): Promise<number>;
+  /** Sincronização pelo Wi-Fi (lan.rs): liga o anúncio/servidor com o app aberto e desbloqueado; desliga ao sair. */
+  lanIniciar(): Promise<void>;
+  lanParar(): Promise<void>;
+  /** Troca com os aparelhos da família achados na rede local. */
+  lanSincronizarAgora(): Promise<ResumoLan>;
+  /** Chegou algo pelo Wi-Fi fora de `lanSincronizarAgora` (evento `sync-lan-chegou`); devolve a função que para de ouvir. */
+  lanOuvir(f: (chegaram: number) => void): Promise<() => void>;
   /** Rede atual (id = hash do MAC do gateway / BSSID), ou null se indisponível. `pedir`: pede a permissão no Android. */
   redeAtual(pedir?: boolean): Promise<RedeCasa | null>;
   /** Redes de casa deste aparelho (kv cifrado, não sincroniza). */
@@ -87,6 +94,8 @@ export interface Persistencia {
 /** `epoca`: época da chave da família (sobe a cada aparelho removido). `removido`: este aparelho foi removido. */
 export interface InfoFamilia { familiaId: string; repo: string; epoca?: number; removido?: boolean }
 export interface RedeCasa { id: string; nome: string }
+/** `pares`: aparelhos com quem a troca deu certo; `chegaram`: eventos novos. */
+export interface ResumoLan { pares: number; chegaram: number }
 
 // ── App instalado ───────────────────────────────────────────────────────────
 
@@ -127,6 +136,13 @@ function tauri(): Persistencia {
     syncCursor: () => call<CursorEnvio>('sync_cursor'),
     syncEnviar: (aparelho, eventos) => call<number>('sync_enviar', { aparelho, eventos }),
     syncReceber: (aparelho) => call<number>('sync_receber', { aparelho }),
+    lanIniciar: () => call('lan_iniciar'),
+    lanParar: () => call('lan_parar'),
+    lanSincronizarAgora: () => call<ResumoLan>('lan_sincronizar_agora'),
+    lanOuvir: async (f) => {
+      const { listen } = await import('@tauri-apps/api/event');
+      return listen<number>('sync-lan-chegou', (e) => f(Number(e.payload) || 0));
+    },
     redeAtual: (pedir) => call<RedeCasa | null>('rede_atual', { pedir: !!pedir }),
     redesCasa: () => call<RedeCasa[]>('redes_casa'),
     redeCasaAdicionar: ({ id, nome }) => call<RedeCasa[]>('rede_casa_adicionar', { id, nome }),
@@ -190,6 +206,10 @@ function memoria(): Persistencia {
     syncCursor: async () => ({ ultimoId: null, recebidos: [] }),
     syncEnviar: async () => 0,
     syncReceber: async () => 0,
+    lanIniciar: async () => {},
+    lanParar: async () => {},
+    lanSincronizarAgora: async () => ({ pares: 0, chegaram: 0 }),
+    lanOuvir: async () => () => {},
     // Rede fictícia, para testar a tela e o "em casa" no navegador.
     redeAtual: async () => ({ id: '0'.repeat(64), nome: 'Rede (gateway a4:2b…)' }),
     redesCasa: async () => d.redes ?? [],

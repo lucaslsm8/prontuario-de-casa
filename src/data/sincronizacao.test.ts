@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const p = vi.hoisted(() => ({ familiaInfo: vi.fn(), syncEnviar: vi.fn(), syncReceber: vi.fn(), familiaVerificar: vi.fn() }));
+const p = vi.hoisted(() => ({ familiaInfo: vi.fn(), syncEnviar: vi.fn(), syncReceber: vi.fn(), familiaVerificar: vi.fn(), lanSincronizarAgora: vi.fn() }));
 vi.mock('./tempo', async (orig) => ({ ...(await orig<typeof import('./tempo')>()), MODO_REAL: true }));
 vi.mock('./persistencia', async (orig) => ({ ...(await orig<typeof import('./persistencia')>()), persistencia: p }));
 
-import { carregarFamilia, definirFamilia, infoSync as info, mensagemErro, sincronizar } from './sincronizacao';
+import { aoChegarPeloWifi, carregarFamilia, definirFamilia, infoSync as info, mensagemErro, sincronizar, sincronizarPeloWifi } from './sincronizacao';
 
 const familia = { familiaId: 'f1', repo: 'a/b' };
 const store = () => ({ api: { aparelhoId: () => 'pc-a', eventosParaEnviar: vi.fn(async () => []), recarregar: vi.fn(async () => {}), toast: vi.fn() } });
@@ -125,5 +125,84 @@ describe('sincronização', () => {
     p.syncReceber.mockResolvedValue(0);
     expect(await sincronizar(s, { manual: true })).toEqual({ ok: true });
     expect(info().removido).toBe(false);
+  });
+  it('Wi-Fi na mesma rodada: o que chega por lá reprojeta e o status diz "pelo Wi-Fi"', async () => {
+    p.syncEnviar.mockResolvedValue(0);
+    p.syncReceber.mockResolvedValue(0);
+    p.lanSincronizarAgora.mockResolvedValue({ pares: 1, chegaram: 2 });
+    const s = store();
+    expect(await sincronizar(s, { manual: true })).toEqual({ ok: true });
+    expect(s.api.recarregar).toHaveBeenCalledTimes(1);
+    expect(info()).toMatchObject({ estado: 'ok', via: 'Wi-Fi' });
+    expect(s.api.toast).toHaveBeenCalledWith({ texto: '2 mudanças chegaram da família' });
+    // Chegou pelo GitHub: volta a dizer GitHub.
+    p.syncReceber.mockResolvedValue(1);
+    p.lanSincronizarAgora.mockResolvedValue({ pares: 1, chegaram: 0 });
+    await sincronizar(s);
+    expect(info().via).toBe('GitHub');
+  });
+
+  it('sem internet, mas com um aparelho no Wi-Fi: a rodada vale pelo Wi-Fi; token vencido continua erro', async () => {
+    p.syncEnviar.mockRejectedValue(new Error('sem conexão com o GitHub'));
+    p.syncReceber.mockRejectedValue(new Error('sem conexão com o GitHub'));
+    p.lanSincronizarAgora.mockResolvedValue({ pares: 1, chegaram: 1 });
+    const s = store();
+    expect(await sincronizar(s)).toEqual({ ok: true });
+    expect(s.api.recarregar).toHaveBeenCalled();
+    expect(info()).toMatchObject({ estado: 'ok', via: 'Wi-Fi' });
+    p.syncReceber.mockRejectedValue(new Error('TOKEN: o token do GitHub não tem acesso ou venceu'));
+    expect((await sincronizar(s)).ok).toBe(false);
+    expect(info()).toMatchObject({ estado: 'erro', token: true });
+    // Sem ninguém no Wi-Fi, o erro de rede aparece como antes.
+    p.syncReceber.mockRejectedValue(new Error('sem conexão com o GitHub'));
+    p.lanSincronizarAgora.mockResolvedValue({ pares: 0, chegaram: 0 });
+    expect(await sincronizar(s)).toEqual({ ok: false, erro: 'sem conexão com o GitHub' });
+  });
+
+  it('o Wi-Fi com erro ou fora do app instalado nunca derruba a rodada', async () => {
+    p.syncEnviar.mockResolvedValue(0);
+    p.syncReceber.mockResolvedValue(0);
+    p.lanSincronizarAgora.mockRejectedValue(new Error('lan ocupada'));
+    expect(await sincronizar(store())).toEqual({ ok: true });
+    expect(info().via).toBe('GitHub');
+  });
+
+  it('removido: o Wi-Fi não roda', async () => {
+    p.syncEnviar.mockRejectedValue(new Error('REMOVIDO: Este aparelho foi removido da família'));
+    p.syncReceber.mockResolvedValue(0);
+    await sincronizar(store());
+    expect(p.lanSincronizarAgora).not.toHaveBeenCalled();
+    await sincronizarPeloWifi(store());
+    await aoChegarPeloWifi(store(), 3);
+    expect(p.lanSincronizarAgora).not.toHaveBeenCalled();
+  });
+
+  it('rodada só do Wi-Fi e chegada de outro aparelho reprojetam pelo mesmo caminho', async () => {
+    p.lanSincronizarAgora.mockResolvedValue({ pares: 1, chegaram: 3 });
+    const s = store();
+    await sincronizarPeloWifi(s);
+    expect(s.api.recarregar).toHaveBeenCalledTimes(1);
+    expect(info()).toMatchObject({ estado: 'ok', via: 'Wi-Fi' });
+    await aoChegarPeloWifi(s, 0);
+    expect(s.api.recarregar).toHaveBeenCalledTimes(1);
+    await aoChegarPeloWifi(s, 2);
+    expect(s.api.recarregar).toHaveBeenCalledTimes(2);
+    // Ninguém na rede: nada muda.
+    p.lanSincronizarAgora.mockResolvedValue({ pares: 0, chegaram: 0 });
+    await sincronizarPeloWifi(s);
+    expect(s.api.recarregar).toHaveBeenCalledTimes(2);
+  });
+
+  it('chegada pelo Wi-Fi durante uma rodada pede uma rodada a mais', async () => {
+    let soltar = () => {};
+    p.syncEnviar.mockImplementationOnce(() => new Promise((r) => { soltar = () => r(0); })).mockResolvedValue(0);
+    p.syncReceber.mockResolvedValue(0);
+    const s = store();
+    const rodada = sincronizar(s);
+    await aoChegarPeloWifi(s, 1);
+    soltar();
+    await rodada;
+    await vi.waitFor(() => expect(p.syncReceber).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(s.api.recarregar).toHaveBeenCalledTimes(1));
   });
 });

@@ -4,6 +4,8 @@
     <!-- Rede de casa (RedePlugin.kt): BSSID do Wi-Fi. A localização é pedida só ao cadastrar a rede. -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Sincronização pelo Wi-Fi: o mDNS precisa do MulticastLock. -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!-- Lembretes de remédio (plugin de notificações): POST_NOTIFICATIONS, RECEIVE_BOOT_COMPLETED e WAKE_LOCK

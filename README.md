@@ -21,7 +21,9 @@ Stack: **Tauri 2** (gera o `.exe` do Windows e, depois, o APK) + **React 18 / Ty
 
 - **Sincronização pelo GitHub** (desktop): os aparelhos da família trocam eventos por um repositório privado seu, tudo cifrado. Veja [Sincronizar a família](#sincronizar-a-família).
 
-**Ainda não:** app Android e sincronização pela rede local (Wi-Fi). Plano em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md).
+- **Sincronização pelo Wi-Fi**: os aparelhos da família na mesma rede também trocam eventos direto, cifrados com a chave da família. Veja [Sincronizar a família](#sincronizar-a-família).
+
+**Ainda não:** app Android. Plano em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md).
 
 ## Rodar no navegador (mais rápido para revisar o design)
 
@@ -101,6 +103,11 @@ A sincronização usa um repositório **privado** no GitHub que você cria. Os e
 3. Escolha em "Quem é você?" a pessoa que usa aquele aparelho e crie a senha.
 
 O convite dá acesso à família: passe só para os seus aparelhos e apague o texto depois de usar.
+
+**Pelo Wi-Fi:** com o app aberto, os aparelhos da família na mesma rede também trocam eventos direto, sem passar pelo GitHub (ao abrir, a cada 2 minutos e logo depois de uma mudança). O app se anuncia na rede local por mDNS (só um resumo do id da família e o id do aparelho) e conversa por um canal cifrado com a chave da família; aparelhos de outras famílias são ignorados. Funciona mesmo sem internet, e o card mostra "Sincronizado há … · pelo Wi-Fi".
+
+- **Windows:** na primeira vez, o Firewall do Windows pode perguntar se o Prontuário de Casa pode se comunicar em redes. Permita em **redes privadas** (a de casa). Sem isso, a sincronização pelo Wi-Fi não acha este computador; a do GitHub continua funcionando. Para mudar depois: Segurança do Windows › Firewall e proteção de rede › Permitir um aplicativo pelo firewall.
+- **Android:** só funciona com o app aberto na tela; em segundo plano o celular sincroniza na próxima vez que for aberto.
 
 ## Estrutura
 
