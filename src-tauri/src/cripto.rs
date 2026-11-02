@@ -107,8 +107,10 @@ fn de_hex(s: &str) -> Option<[u8; 32]> {
 const CONTA: &str = "chave-do-banco";
 
 /// Chave do banco deste aparelho. Windows/macOS: cofre do sistema.
-/// Outros (Linux, Android nesta etapa): arquivo na pasta privada do app.
+/// Linux: arquivo `chave.bin` na pasta privada do app.
+/// Android não usa esta função: a chave vem do CofrePlugin (AndroidKeyStore), ver `cofre_android.rs`.
 /// `servico` é o identificador do app (`br.familia.arquivosaude` no app real), para um app de teste não tocar na chave do app real.
+#[cfg_attr(target_os = "android", allow(dead_code))]
 pub fn chave_do_aparelho(servico: &str, dir: &Path, criar: bool) -> R<[u8; 32]> {
     #[cfg(any(windows, target_os = "macos"))]
     {
@@ -146,7 +148,8 @@ pub fn chave_do_aparelho(servico: &str, dir: &Path, criar: bool) -> R<[u8; 32]> 
     }
 }
 
-/// Remove a chave do aparelho (usado em "Apagar todos os dados").
+/// Remove a chave do aparelho (usado em "Apagar todos os dados"). Android usa `cofre_android::apagar`.
+#[cfg_attr(target_os = "android", allow(dead_code))]
 pub fn apagar_chave(servico: &str, dir: &Path) {
     #[cfg(any(windows, target_os = "macos"))]
     {

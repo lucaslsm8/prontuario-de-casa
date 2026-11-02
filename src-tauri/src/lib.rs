@@ -1,5 +1,7 @@
 mod backup;
 mod banco;
+#[cfg(target_os = "android")]
+mod cofre_android;
 mod cripto;
 mod familia;
 mod lembretes;
@@ -30,10 +32,25 @@ struct Estado {
 
 type R<T> = Result<T, String>;
 
-fn abrir_banco(servico: &str, dir: &Path) -> R<Banco> {
+/// Chave do banco deste aparelho. Android: CofrePlugin (AndroidKeyStore), que cria a chave se faltar.
+/// Outros: `cripto::chave_do_aparelho` (cofre do sistema no Windows/macOS, arquivo no Linux).
+fn chave_para<Rt: tauri::Runtime>(app: &tauri::AppHandle<Rt>, servico: &str, dir: &Path, novo: bool) -> R<[u8; 32]> {
+    #[cfg(target_os = "android")]
+    {
+        let _ = (servico, dir, novo);
+        cofre_android::chave(app)
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = app;
+        cripto::chave_do_aparelho(servico, dir, novo).map_err(|e| e.to_string())
+    }
+}
+
+fn abrir_banco<Rt: tauri::Runtime>(app: &tauri::AppHandle<Rt>, servico: &str, dir: &Path) -> R<Banco> {
     let caminho = dir.join(ARQUIVO_BANCO);
     let novo = !caminho.exists();
-    let chave = cripto::chave_do_aparelho(servico, dir, novo).map_err(|e| e.to_string())?;
+    let chave = chave_para(app, servico, dir, novo)?;
     Banco::abrir(&caminho, &chave)
 }
 
@@ -453,14 +470,17 @@ async fn backup_restaurar(st: State<'_, Estado>, caminho: String, senha: String)
 // ── Apagar tudo ─────────────────────────────────────────────────────────────
 
 #[tauri::command]
-async fn apagar_tudo(st: State<'_, Estado>) -> R<()> {
+async fn apagar_tudo(app: tauri::AppHandle, st: State<'_, Estado>) -> R<()> {
     let mut g = st.banco.lock().map_err(|_| "banco ocupado")?;
     *g = None; // fecha a conexão antes de apagar os arquivos
     for sufixo in ["", "-wal", "-shm"] {
         let _ = std::fs::remove_file(st.dir.join(format!("{ARQUIVO_BANCO}{sufixo}")));
     }
+    #[cfg(target_os = "android")]
+    cofre_android::apagar(&app);
+    #[cfg(not(target_os = "android"))]
     cripto::apagar_chave(&st.servico, &st.dir);
-    *g = Some(abrir_banco(&st.servico, &st.dir)?);
+    *g = Some(abrir_banco(&app, &st.servico, &st.dir)?);
     if let Ok(mut e) = st.erro.lock() {
         *e = None;
     }
@@ -521,6 +541,9 @@ pub fn run() {
     // Atualizações: o app consulta o latest.json do GitHub Releases e só instala com assinatura válida.
     #[cfg(desktop)]
     let builder = builder.plugin(tauri_plugin_updater::Builder::new().build()).plugin(tauri_plugin_process::init());
+    // Android: a chave do banco fica no AndroidKeyStore (CofrePlugin.kt).
+    #[cfg(target_os = "android")]
+    let builder = builder.plugin(cofre_android::init());
     builder
         .setup(|app| {
             let servico = app.config().identifier.clone();
@@ -528,7 +551,7 @@ pub fn run() {
             std::fs::create_dir_all(&dir)?;
             let docs = app.path().document_dir().unwrap_or_else(|_| dir.clone());
             let pasta_padrao_backup = docs.join("Arquivo da família");
-            let (banco, erro) = match abrir_banco(&servico, &dir) {
+            let (banco, erro) = match abrir_banco(app.handle(), &servico, &dir) {
                 Ok(b) => (Some(b), None),
                 Err(e) => (None, Some(e)),
             };
