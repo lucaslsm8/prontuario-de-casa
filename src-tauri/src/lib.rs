@@ -544,6 +544,9 @@ pub fn run() {
     // Android: a chave do banco fica no AndroidKeyStore (CofrePlugin.kt).
     #[cfg(target_os = "android")]
     let builder = builder.plugin(cofre_android::init());
+    // Celular: abrir com biometria.
+    #[cfg(mobile)]
+    let builder = builder.plugin(tauri_plugin_biometric::init());
     builder
         .setup(|app| {
             let servico = app.config().identifier.clone();

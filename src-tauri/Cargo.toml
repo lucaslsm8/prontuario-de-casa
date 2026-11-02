@@ -41,6 +41,10 @@ windows-registry = "0.6"
 tauri-plugin-process = "2"
 tauri-plugin-updater = "2"
 
+# Biometria (digital/rosto) para abrir o app no celular.
+[target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
+tauri-plugin-biometric = "2"
+
 [dev-dependencies]
 tempfile = "3"
 

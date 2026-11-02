@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { HOJE, MODO_EXEMPLO } from '../data/tempo';
+import { autenticarBiometria, biometriaDisponivel } from '../data/biometria';
 import { compartilhado, eu, useStore } from '../data/store';
 import { familia } from '../data/pets';
 import { dataLonga, quando, tamanhoArquivo } from '../data/format';
@@ -37,6 +38,10 @@ export function Privacidade() {
   const me = eu(state);
   const [params] = useSearchParams();
   const [apagar, setApagar] = useState(false);
+  const [bioOk, setBioOk] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!MODO_EXEMPLO) biometriaDisponivel().then(setBioOk);
+  }, []);
   const [palavra, setPalavra] = useState('');
   const [folha, setFolha] = useState<null | 'senha' | 'restaurar' | 'pin'>(params.get('restaurar') ? 'restaurar' : null);
   // Pets ficam fora do compartilhamento.
@@ -56,7 +61,14 @@ export function Privacidade() {
         {MODO_EXEMPLO ? (
           <Row mutedLabel={false} label="Abrir com biometria" valor={<Toggle on={c.biometria} onChange={(v) => api.setConfig({ biometria: v })} label="Abrir com biometria" />} />
         ) : (
-          <Row mutedLabel={false} label="PIN de desbloqueio" onClick={() => setFolha('pin')} valor={<span className="muted">{state.temSenha ? 'trocar' : 'criar'} ›</span>} />
+          <>
+            <Row
+              mutedLabel={false}
+              label="Abrir com biometria"
+              valor={bioOk === false ? <span className="muted">Indisponível neste aparelho</span> : <Toggle on={c.biometria && bioOk === true} onChange={(v) => api.setConfig({ biometria: v })} label="Abrir com biometria" />}
+            />
+            <Row mutedLabel={false} label="PIN de desbloqueio" onClick={() => setFolha('pin')} valor={<span className="muted">{state.temSenha ? 'trocar' : 'criar'} ›</span>} />
+          </>
         )}
         <Row
           mutedLabel={false}
@@ -153,7 +165,19 @@ export function Desbloqueio() {
   const [pin, setPin] = useState('');
   const [errou, setErrou] = useState(false);
   const tecla = { height: 72, borderRadius: '50%', background: 'var(--ink-2)', display: 'grid', placeItems: 'center' } as const;
-  const biometria = MODO_EXEMPLO && state.config.biometria; // biometria real entra com o app Android
+  const [bioOk, setBioOk] = useState(false);
+  useEffect(() => {
+    if (!MODO_EXEMPLO) biometriaDisponivel().then(setBioOk);
+  }, []);
+  const biometria = MODO_EXEMPLO ? state.config.biometria : state.config.biometria && bioOk;
+  const tentarBiometria = () => {
+    autenticarBiometria('Abrir o Prontuário de Casa').then((ok) => { if (ok) api.bloquear(false); });
+  };
+  // Ao abrir a tela, pede a biometria uma vez (o PIN continua valendo).
+  useEffect(() => {
+    if (!MODO_EXEMPLO && biometria) tentarBiometria();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [biometria]);
 
   useEffect(() => {
     if (pin.length !== 6) return;
@@ -183,7 +207,7 @@ export function Desbloqueio() {
         {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((n) => (
           <button type="button" key={n} style={tecla} onClick={() => { setErrou(false); setPin((p) => (p.length < 6 ? p + n : n)); }}>{n}</button>
         ))}
-        <button type="button" style={{ height: 72, fontSize: 13, color: 'var(--teal-on-dark)' }} onClick={() => api.bloquear(false)} disabled={!biometria}>
+        <button type="button" style={{ height: 72, fontSize: 13, color: 'var(--teal-on-dark)' }} onClick={MODO_EXEMPLO ? () => api.bloquear(false) : tentarBiometria} disabled={!biometria}>
           {biometria ? 'Biometria' : ''}
         </button>
         <button type="button" style={tecla} onClick={() => { setErrou(false); setPin((p) => (p.length < 6 ? p + '0' : '0')); }}>0</button>
