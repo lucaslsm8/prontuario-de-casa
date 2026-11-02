@@ -45,7 +45,7 @@ const CONFIG_PADRAO: Config = {
   esconderNomeNotif: true,
   fichaSemDesbloqueio: false,
   backup: { freq: 'semanal', pasta: 'Documentos / Arquivo da família', temSenha: false },
-  update: { auto: true, freq: 'dia', backupAntes: true, ultimaVerificacao: '—', instalada: '0.3.0' },
+  update: { auto: true, freq: 'dia', backupAntes: true, ultimaVerificacao: '—', instalada: '0.4.0' },
   sync: {},
 };
 

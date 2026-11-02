@@ -1,6 +1,6 @@
 [package]
 name = "arquivo-saude"
-version = "0.3.0"
+version = "0.4.0"
 description = "Arquivo de saúde da família"
 authors = ["lucaslsm8"]
 edition = "2021"
