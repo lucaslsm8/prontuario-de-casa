@@ -1,5 +1,6 @@
-- Família: sincronize seus aparelhos e os da família por um repositório privado no GitHub, tudo cifrado
-- Criar família, convidar aparelho e entrar na família pelo convite
-- "Quem é você?" ao entrar numa família, com senha para o aparelho novo
-- Restaurar backup num aparelho da família junta os dados em vez de substituir
-- Correções de robustez e segurança no bloqueio
+- Rede de casa: em casa, o app abre sem pedir senha (desktop e Android)
+- Convite por QR: o aparelho novo entra na família lendo o código
+- Aparelhos da família: veja quem está na família e remova um aparelho trocando a chave (só fica completo trocando também o token)
+- Lembretes de remédio no Android, com Tomei e Pular na notificação
+- Atualização do APK pelo próprio app no Android
+- Sincronização pelo Wi-Fi: aparelhos na mesma rede trocam os dados direto, cifrados com a chave da família
