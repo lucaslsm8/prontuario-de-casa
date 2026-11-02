@@ -157,6 +157,7 @@ pub fn apagar_chave(servico: &str, dir: &Path) {
     }
     #[cfg(not(any(windows, target_os = "macos")))]
     {
+        let _ = servico;
         let _ = std::fs::remove_file(dir.join("chave.bin"));
     }
 }

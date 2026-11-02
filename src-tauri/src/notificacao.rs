@@ -34,6 +34,7 @@ pub fn registrar() {}
 #[cfg_attr(not(windows), allow(dead_code))]
 fn focar(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
+        #[cfg(desktop)]
         let _ = w.unminimize();
         let _ = w.show();
         let _ = w.set_focus();
