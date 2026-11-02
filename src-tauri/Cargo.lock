@@ -135,6 +135,7 @@ dependencies = [
  "tempfile",
  "tokio",
  "ureq",
+ "url",
  "windows-registry",
  "x25519-dalek",
 ]

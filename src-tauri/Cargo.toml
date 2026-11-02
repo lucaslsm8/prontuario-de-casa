@@ -25,6 +25,8 @@ rand = "0.8"
 base64 = "0.22"
 # Download da agenda do Google (endereço iCal que a pessoa colou).
 ureq = "2"
+# Atualização do APK: confere os endereços de download por parse (host e caminho do repositório).
+url = "2"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 # Rede de casa: só o hash SHA-256 do MAC/BSSID fica guardado.
 sha2 = "0.10"

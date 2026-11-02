@@ -10,7 +10,8 @@ use std::path::Path;
 use std::time::Duration;
 
 pub const URL_ULTIMA: &str = "https://api.github.com/repos/lucaslsm8/prontuario-de-casa/releases/latest";
-const PREFIXO_DOWNLOAD: &str = "https://github.com/lucaslsm8/prontuario-de-casa/releases/download/";
+const HOST_DOWNLOAD: &str = "github.com";
+const CAMINHO_DOWNLOAD: &str = "/lucaslsm8/prontuario-de-casa/releases/download/";
 const LIMITE_APK: u64 = 200 * 1024 * 1024;
 
 #[derive(Debug, PartialEq, Serialize)]
@@ -58,6 +59,24 @@ pub fn ler_release(json: &Value) -> Option<(String, String, String, String)> {
     Some((versao, notas, achar("_android.apk")?, achar("_android.apk.sha256")?))
 }
 
+/// Endereço de download de uma release deste repositório: https, host `github.com` (sem porta nem usuário), caminho
+/// em `/lucaslsm8/prontuario-de-casa/releases/download/` e nada de `..` (nem codificado) para sair dele.
+/// Vale para o APK e para o `.sha256`. O GitHub redireciona depois para o armazenamento dele.
+pub fn url_permitida(texto: &str) -> bool {
+    let minusculo = texto.to_ascii_lowercase();
+    if minusculo.contains("..") || minusculo.contains("%2e") || texto.contains('\\') {
+        return false;
+    }
+    let Ok(u) = url::Url::parse(texto) else { return false };
+    u.scheme() == "https"
+        && u.host_str() == Some(HOST_DOWNLOAD)
+        && u.port().is_none()
+        && u.username().is_empty()
+        && u.password().is_none()
+        && u.path().starts_with(CAMINHO_DOWNLOAD)
+        && u.path().len() > CAMINHO_DOWNLOAD.len()
+}
+
 /// "<hex>  <arquivo>" (formato do sha256sum) → hex minúsculo de 64 dígitos.
 pub fn ler_sha256(texto: &str) -> Option<String> {
     let h = texto.split_whitespace().next()?.to_ascii_lowercase();
@@ -94,13 +113,16 @@ pub fn verificar(instalada: &str) -> Result<Option<Nova>, String> {
     if !mais_nova(&versao, instalada) {
         return Ok(None);
     }
+    if !url_permitida(&url) || !url_permitida(&url_hash) {
+        return Err("endereço de download não permitido".into());
+    }
     let sha256 = ler_sha256(&pegar_texto(&url_hash, 4096)?).ok_or("o arquivo de conferência (SHA-256) está inválido")?;
     Ok(Some(Nova { versao, notas, url, sha256 }))
 }
 
 /// Baixa o APK para `destino`, confere o SHA-256 e apaga o arquivo se não bater.
 pub fn baixar(url: &str, sha256: &str, destino: &Path) -> Result<(), String> {
-    if !url.starts_with(PREFIXO_DOWNLOAD) {
+    if !url_permitida(url) {
         return Err("endereço de download não permitido".into());
     }
     let resp = ureq::get(url).set("User-Agent", "prontuario-de-casa").timeout(Duration::from_secs(120)).call().map_err(erro_http)?;
@@ -198,5 +220,29 @@ mod tests {
         let d = std::env::temp_dir().join("apk_teste_nao_existe.apk");
         assert!(baixar("https://exemplo.com/a.apk", &"0".repeat(64), &d).is_err());
         assert!(!d.exists());
+        let fora = "https://github.com/lucaslsm8/prontuario-de-casa/releases/download/../../outro/x.apk";
+        assert!(baixar(fora, &"0".repeat(64), &d).is_err());
+        assert!(!d.exists());
+    }
+
+    #[test]
+    fn enderecos_de_download() {
+        let base = "https://github.com/lucaslsm8/prontuario-de-casa/releases/download/v0.5.0/";
+        assert!(url_permitida(&format!("{base}Prontuario.de.Casa_0.5.0_android.apk")));
+        assert!(url_permitida(&format!("{base}Prontuario.de.Casa_0.5.0_android.apk.sha256")));
+        // Outro host, http, porta, usuário, outro repositório, sem arquivo.
+        assert!(!url_permitida("https://exemplo.com/lucaslsm8/prontuario-de-casa/releases/download/v0.5.0/a.apk"));
+        assert!(!url_permitida("https://github.com.exemplo.com/lucaslsm8/prontuario-de-casa/releases/download/v0.5.0/a.apk"));
+        assert!(!url_permitida("https://github.com@exemplo.com/lucaslsm8/prontuario-de-casa/releases/download/v0.5.0/a.apk"));
+        assert!(!url_permitida("http://github.com/lucaslsm8/prontuario-de-casa/releases/download/v0.5.0/a.apk"));
+        assert!(!url_permitida("https://github.com:8443/lucaslsm8/prontuario-de-casa/releases/download/v0.5.0/a.apk"));
+        assert!(!url_permitida("https://eu@github.com/lucaslsm8/prontuario-de-casa/releases/download/v0.5.0/a.apk"));
+        assert!(!url_permitida("https://github.com/outro/prontuario-de-casa/releases/download/v0.5.0/a.apk"));
+        assert!(!url_permitida("https://github.com/lucaslsm8/prontuario-de-casa/releases/download/"));
+        // Sair do caminho com "..", codificado ou com barra invertida.
+        assert!(!url_permitida(&format!("{base}../../../outro/a.apk")));
+        assert!(!url_permitida(&format!("{base}%2e%2e/%2E%2E/a.apk")));
+        assert!(!url_permitida(&format!("{base}x\\a.apk")));
+        assert!(!url_permitida("não é url"));
     }
 }
