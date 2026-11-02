@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { HashRouter, Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { temEu, useStore } from './data/store';
 import { MODO_EXEMPLO, MODO_REAL } from './data/tempo';
+import { emCasaAgora } from './data/redeCasa';
 import { Lock } from './ui';
 import { ProtejaEsteAparelho, QuemEVoce } from './ui/Familia';
 import { MobileShell } from './mobile/Shell';
@@ -220,11 +221,15 @@ function useBloqueioPorInatividade(layout: Layout) {
   useEffect(() => {
     if (!ativo) return;
     const ms = (parseInt(tempo, 10) || 1) * (tempo.includes('segundo') ? 1000 : 60000);
-    let t = window.setTimeout(() => api.bloquear(true), ms);
-    const reset = () => { window.clearTimeout(t); t = window.setTimeout(() => api.bloquear(true), ms); };
+    let vivo = true;
+    let t = 0;
+    // Na rede de casa cadastrada não bloqueia: só recomeça a contagem.
+    const venceu = () => { void emCasaAgora().then((casa) => { if (!vivo) return; if (casa) reset(); else api.bloquear(true); }); };
+    const reset = () => { window.clearTimeout(t); t = window.setTimeout(venceu, ms); };
+    reset();
     const evs = ['pointerdown', 'keydown', 'wheel', 'touchstart'];
     evs.forEach((e) => window.addEventListener(e, reset, { passive: true }));
-    return () => { window.clearTimeout(t); evs.forEach((e) => window.removeEventListener(e, reset)); };
+    return () => { vivo = false; window.clearTimeout(t); evs.forEach((e) => window.removeEventListener(e, reset)); };
   }, [ativo, tempo, api]);
 }
 

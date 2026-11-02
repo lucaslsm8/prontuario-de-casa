@@ -26,6 +26,8 @@ base64 = "0.22"
 # Download da agenda do Google (endereço iCal que a pessoa colou).
 ureq = "2"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+# Rede de casa: só o hash SHA-256 do MAC/BSSID fica guardado.
+sha2 = "0.10"
 
 # Chave do banco no cofre do sistema (Gerenciador de Credenciais no Windows, Keychain no macOS).
 [target.'cfg(any(windows, target_os = "macos"))'.dependencies]

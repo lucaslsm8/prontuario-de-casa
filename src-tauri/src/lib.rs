@@ -7,6 +7,9 @@ mod familia;
 mod lembretes;
 mod notificacao;
 mod pacote;
+#[cfg(target_os = "android")]
+mod rede_android;
+mod rede_casa;
 mod remoto;
 mod sincronia;
 
@@ -467,6 +470,59 @@ async fn backup_restaurar(st: State<'_, Estado>, caminho: String, senha: String)
     })
 }
 
+// ── Redes de casa (abrir sem senha) ─────────────────────────────────────────
+// Por aparelho, no kv cifrado `redes_casa`; não sincroniza. Lista vazia = desligado.
+
+fn ler_redes(b: &Banco) -> R<Vec<rede_casa::Rede>> {
+    Ok(b.kv_get(rede_casa::CHAVE_KV)?.and_then(|v| serde_json::from_value(v).ok()).unwrap_or_default())
+}
+
+fn gravar_redes(b: &Banco, lista: &[rede_casa::Rede]) -> R<()> {
+    b.kv_set(rede_casa::CHAVE_KV, &serde_json::to_value(lista).map_err(|e| e.to_string())?)
+}
+
+/// Rede atual ({ id, nome }) ou null se não der para identificar. `pedir` (só Android):
+/// pede a permissão de localização, usado no botão "Esta é a rede de casa".
+#[tauri::command]
+async fn rede_atual(app: tauri::AppHandle, pedir: Option<bool>) -> R<Option<rede_casa::Rede>> {
+    #[cfg(target_os = "android")]
+    {
+        Ok(rede_android::atual(&app, pedir.unwrap_or(false)).await)
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = (app, pedir);
+        tauri::async_runtime::spawn_blocking(rede_casa::rede_atual_desktop).await.map_err(|_| "falha ao ler a rede".to_string())
+    }
+}
+
+#[tauri::command]
+async fn redes_casa(st: State<'_, Estado>) -> R<Vec<rede_casa::Rede>> {
+    com_banco(&st, |b| ler_redes(b))
+}
+
+#[tauri::command]
+async fn rede_casa_adicionar(st: State<'_, Estado>, id: String, nome: String) -> R<Vec<rede_casa::Rede>> {
+    if !rede_casa::id_valido(&id) {
+        return Err("rede inválida".into());
+    }
+    let nome: String = nome.trim().chars().take(60).collect();
+    com_banco(&st, |b| {
+        let lista = rede_casa::adicionar(ler_redes(b)?, rede_casa::Rede { id, nome });
+        gravar_redes(b, &lista)?;
+        Ok(lista)
+    })
+}
+
+#[tauri::command]
+async fn rede_casa_remover(st: State<'_, Estado>, id: String) -> R<Vec<rede_casa::Rede>> {
+    com_banco(&st, |b| {
+        let lista = rede_casa::remover(ler_redes(b)?, &id);
+        gravar_redes(b, &lista)?;
+        Ok(lista)
+    })
+}
+
 // ── Apagar tudo ─────────────────────────────────────────────────────────────
 
 #[tauri::command]
@@ -544,6 +600,9 @@ pub fn run() {
     // Android: a chave do banco fica no AndroidKeyStore (CofrePlugin.kt).
     #[cfg(target_os = "android")]
     let builder = builder.plugin(cofre_android::init());
+    // Android: BSSID do Wi-Fi para a rede de casa (RedePlugin.kt).
+    #[cfg(target_os = "android")]
+    let builder = builder.plugin(rede_android::init());
     // Celular: abrir com biometria.
     #[cfg(mobile)]
     let builder = builder.plugin(tauri_plugin_biometric::init());
@@ -587,7 +646,11 @@ pub fn run() {
             familia_convite,
             sync_cursor,
             sync_enviar,
-            sync_receber
+            sync_receber,
+            rede_atual,
+            redes_casa,
+            rede_casa_adicionar,
+            rede_casa_remover
         ])
         .run(tauri::generate_context!())
         .expect("erro ao iniciar o Prontuário de Casa");

@@ -6,6 +6,7 @@ import { useViradaDoDia } from './useViradaDoDia';
 import { avisarMudanca } from './sincronizacao';
 import { persistencia, novoId, type Evento, type InfoBackup, type Inicio } from './persistencia';
 import { fmtHlc, proximoHlc, type Hlc } from './hlc';
+import { emCasaAgora } from './redeCasa';
 import { eventosParaEnviar, migrarLog, novoAparelhoId, ordenarLog, resolverEu, ultimoHlc, type Identidade } from './log';
 import type { PatchPessoa } from './perfil';
 import { medicoesDoPatch, perfilDasMedicoes } from './medicoes';
@@ -580,7 +581,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     let vivo = true;
     (async () => {
       try {
-        const ini = await persistencia.iniciar();
+        // A rede de casa é consultada junto com a abertura (até 1,5 s); qualquer falha = fora de casa.
+        const [ini, emCasa] = await Promise.all([persistencia.iniciar(), emCasaAgora()]);
         if (!vivo) return;
         if (ini.erro) {
           setErro(ini.erro);
@@ -590,8 +592,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const s = await abrirLog(ini);
         if (!vivo) return;
         const config = mesclarConfig(s.config, { backup: backupParaConfig(ini.backup), update: { ...s.config.update, instalada: ini.versao } });
-        // Com senha, abre sempre bloqueado, tenha ou não "eu" (o "Quem é você?" só aparece depois de desbloquear).
-        dispatch({ type: 'reset', state: { ...s, config, temSenha: ini.temSenha, bloqueado: ini.temSenha } });
+        // Com senha, abre bloqueado, tenha ou não "eu" (o "Quem é você?" só aparece depois de desbloquear).
+        // Na rede de casa cadastrada, abre sem senha nem biometria.
+        dispatch({ type: 'reset', state: { ...s, config, temSenha: ini.temSenha, bloqueado: ini.temSenha && !emCasa } });
         setStatus('pronto');
         // Backup semanal automático, se estiver na hora.
         const feito = await persistencia.backupSeDevido().catch(() => null);

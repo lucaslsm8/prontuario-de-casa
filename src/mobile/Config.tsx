@@ -7,6 +7,7 @@ import { familia } from '../data/pets';
 import { dataLonga, quando, tamanhoArquivo } from '../data/format';
 import { RestaurarBackup, SenhaApp, SenhaBackup } from '../ui/Backup';
 import { CardFamilia } from '../ui/Familia';
+import { RedesCasa } from '../ui/RedesCasa';
 import { Avatar, Check, Label, Lock, Pill, Row, Segmented, Toggle, TopNav } from '../ui';
 import { resumoCompartilhado } from './Familia';
 import { MScreen } from './Shell';
@@ -77,6 +78,7 @@ export function Privacidade() {
           onClick={() => api.setConfig({ bloqueioMobile: BLOQUEIO[(BLOQUEIO.indexOf(c.bloqueioMobile) + 1) % BLOQUEIO.length] })}
           valor={<span className="muted">{c.bloqueioMobile} ›</span>}
         />
+        <RedesCasa />
         <Row
           mutedLabel={false}
           label={

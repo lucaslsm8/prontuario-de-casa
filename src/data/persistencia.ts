@@ -67,9 +67,16 @@ export interface Persistencia {
   syncEnviar(aparelho: string, eventos: Evento[]): Promise<number>;
   /** Baixa os pacotes dos outros aparelhos; devolve quantos eventos chegaram. */
   syncReceber(aparelho: string): Promise<number>;
+  /** Rede atual (id = hash do MAC do gateway / BSSID), ou null se indisponível. `pedir`: pede a permissão no Android. */
+  redeAtual(pedir?: boolean): Promise<RedeCasa | null>;
+  /** Redes de casa deste aparelho (kv cifrado, não sincroniza). */
+  redesCasa(): Promise<RedeCasa[]>;
+  redeCasaAdicionar(rede: RedeCasa): Promise<RedeCasa[]>;
+  redeCasaRemover(id: string): Promise<RedeCasa[]>;
 }
 
 export interface InfoFamilia { familiaId: string; repo: string }
+export interface RedeCasa { id: string; nome: string }
 
 // ── App instalado ───────────────────────────────────────────────────────────
 
@@ -107,6 +114,10 @@ function tauri(): Persistencia {
     syncCursor: () => call<CursorEnvio>('sync_cursor'),
     syncEnviar: (aparelho, eventos) => call<number>('sync_enviar', { aparelho, eventos }),
     syncReceber: (aparelho) => call<number>('sync_receber', { aparelho }),
+    redeAtual: (pedir) => call<RedeCasa | null>('rede_atual', { pedir: !!pedir }),
+    redesCasa: () => call<RedeCasa[]>('redes_casa'),
+    redeCasaAdicionar: ({ id, nome }) => call<RedeCasa[]>('rede_casa_adicionar', { id, nome }),
+    redeCasaRemover: (id) => call<RedeCasa[]>('rede_casa_remover', { id }),
   };
 }
 
@@ -115,7 +126,7 @@ function tauri(): Persistencia {
 
 function memoria(): Persistencia {
   const KEY = 'arquivo-dev';
-  type Dev = { eventos: Evento[]; senha?: string; identidade?: Identidade; backup: InfoBackup; copia?: { eventos: Evento[]; senha: string } };
+  type Dev = { eventos: Evento[]; senha?: string; identidade?: Identidade; redes?: RedeCasa[]; backup: InfoBackup; copia?: { eventos: Evento[]; senha: string } };
   const vazio = (): Dev => ({ eventos: [], backup: { pasta: 'Documentos / Arquivo da família', freq: 'semanal', temSenha: false } });
   const ler = (): Dev => {
     try { return JSON.parse(localStorage.getItem(KEY) ?? '') as Dev; } catch { return vazio(); }
@@ -162,6 +173,11 @@ function memoria(): Persistencia {
     syncCursor: async () => ({ ultimoId: null, recebidos: [] }),
     syncEnviar: async () => 0,
     syncReceber: async () => 0,
+    // Rede fictícia, para testar a tela e o "em casa" no navegador.
+    redeAtual: async () => ({ id: '0'.repeat(64), nome: 'Rede (gateway a4:2b…)' }),
+    redesCasa: async () => d.redes ?? [],
+    redeCasaAdicionar: async (r) => { if (!(d.redes ?? []).some((x) => x.id === r.id)) d.redes = [...(d.redes ?? []), r]; salvar(); return d.redes ?? []; },
+    redeCasaRemover: async (id) => { d.redes = (d.redes ?? []).filter((x) => x.id !== id); salvar(); return d.redes; },
   };
 }
 

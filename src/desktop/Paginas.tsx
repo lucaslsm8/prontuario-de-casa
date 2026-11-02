@@ -14,6 +14,8 @@ import { useAbrir } from './Shell';
 import { GaleriaAnexos } from '../ui/Anexos';
 import { AcoesRegistro } from './Acoes';
 import { CardFamilia } from '../ui/Familia';
+import { RedesCasa } from '../ui/RedesCasa';
+import { DConfirmar } from './Formulario';
 import { AgendaIcs } from '../ui/AgendaIcs';
 import { FaixaNumeros } from '../ui/Numeros';
 import { IcAgenda, IcCheck, IcEstoque, IcExame, IcRemedio } from '../ui/Icones';
@@ -353,6 +355,11 @@ function CardAtualizacoes() {
   );
 }
 
+/** Confirmação de remoção (rede de casa) no diálogo do desktop. */
+function ConfirmarPerigo(p: { titulo: string; texto: string; confirmar: string; onConfirm: () => void; onClose: () => void }) {
+  return <DConfirmar perigo {...p} />;
+}
+
 export function DPrivacidade() {
   const { state, api } = useStore();
   const nav = useNavigate();
@@ -408,6 +415,7 @@ export function DPrivacidade() {
           <button type="button" className="row" style={{ padding: '14px 20px' }} onClick={() => api.setConfig({ bloqueioDesktop: BLOQ[(BLOQ.indexOf(c.bloqueioDesktop) + 1) % BLOQ.length] })}>
             <span>Bloquear após inatividade</span><span className="muted">{c.bloqueioDesktop} ›</span>
           </button>
+          <RedesCasa desktop Confirmar={ConfirmarPerigo} />
           <div className="row" style={{ padding: '14px 20px' }}><span>Esconder nomes de remédios nas notificações</span><Toggle small on={c.esconderNomeNotif} onChange={(v) => api.setConfig({ esconderNomeNotif: v })} label="Esconder nomes de remédios" /></div>
         </div>
         <div className="card" style={{ fontSize: 14 }}>
