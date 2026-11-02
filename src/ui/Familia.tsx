@@ -110,7 +110,8 @@ function RenomearAparelho({ desktop, atual, onClose }: { desktop?: boolean; atua
   );
 }
 
-/** "Remover aparelho": troca a chave da família sem ele. Confirma digitando o nome; oferece trocar o token junto. */
+/** "Remover aparelho": troca a chave da família sem ele. Exige o token novo (o removido conhece o antigo e leria a
+ *  chave nova no repositório), mostra quem recebe a chave nova e confirma digitando o nome. */
 function RemoverAparelho({ desktop, alvo, onClose }: { desktop?: boolean; alvo: Aparelho; onClose: () => void }) {
   const store = useStore();
   const meuId = store.api.aparelhoId();
@@ -120,11 +121,14 @@ function RemoverAparelho({ desktop, alvo, onClose }: { desktop?: boolean; alvo: 
   const [erro, setErro] = useState('');
   const [ocupado, setOcupado] = useState(false);
   const confere = nome.trim() === alvo.nome.trim();
+  const pronto = confere && !!token.trim();
+  // Quem recebe a chave nova: este aparelho (o Rust inclui sozinho) e os outros com chave pública.
+  const nomes = ['este aparelho', ...destinatarios.map((d) => store.state.aparelhos.find((a) => a.id === d.id)?.nome ?? d.id)];
   const remover = async () => {
-    if (!meuId || !confere) return;
+    if (!meuId || !pronto) return;
     setOcupado(true); setErro('');
     try {
-      const f = await persistencia.familiaRemoverAparelho(meuId, alvo.id, destinatarios, token.trim() || undefined);
+      const f = await persistencia.familiaRemoverAparelho(meuId, alvo.id, destinatarios, token.trim());
       atualizarFamilia(f);
       store.api.removerAparelho(alvo.id, f.epoca ?? 0);
       for (const a of semChave) store.api.removerAparelho(a.id, f.epoca ?? 0);
@@ -149,12 +153,13 @@ function RemoverAparelho({ desktop, alvo, onClose }: { desktop?: boolean; alvo: 
         <span style={texto}>{semChave.length === 1 ? 'Este aparelho ainda usa uma versão antiga do app e vai sair da família também' : 'Estes aparelhos ainda usam uma versão antiga do app e vão sair da família também'}: <b>{semChave.map((a) => a.nome).join(', ')}</b>. Depois de atualizar o app neles, convide de novo.</span>
       )}
       <span style={texto}>Aparelhos que entraram há pouco e ainda não sincronizaram vão precisar de um convite novo.</span>
-      <span style={texto}>O aparelho removido conhece o token do GitHub. Gere um token novo para o mesmo repositório e cole abaixo: ele vai cifrado para os outros aparelhos. Revogue o token antigo no GitHub só depois que todos sincronizarem.</span>
-      <input className={`input${desktop ? ' input--desk' : ''} input--mono`} type="password" placeholder="Novo token (opcional)" value={token} onChange={(e) => setToken(e.target.value)} disabled={ocupado} aria-label="Novo token (opcional)" />
+      <span style={texto}>O aparelho removido conhece o token do GitHub: com ele, ainda leria a chave nova no repositório. Por isso o token novo é obrigatório. Gere um token novo para o mesmo repositório, com <b>Contents: Read and write</b>, e cole abaixo: ele vai cifrado para os outros aparelhos. Revogue o token antigo no GitHub só depois que todos sincronizarem.</span>
+      <input className={`input${desktop ? ' input--desk' : ''} input--mono`} type="password" placeholder="github_pat_…" value={token} onChange={(e) => setToken(e.target.value)} disabled={ocupado} required aria-required="true" aria-label="Novo token do GitHub" />
+      <span style={texto}>A chave nova vai para: <b>{nomes.join(', ')}</b></span>
       <span style={texto}>Para confirmar, digite o nome do aparelho: <b>{alvo.nome}</b></span>
-      <input className={`input${desktop ? ' input--desk' : ''}`} value={nome} onChange={(e) => setNome(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && confere && !ocupado) void remover(); }} disabled={ocupado} autoFocus aria-label="Nome do aparelho, para confirmar" />
+      <input className={`input${desktop ? ' input--desk' : ''}`} value={nome} onChange={(e) => setNome(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && pronto && !ocupado) void remover(); }} disabled={ocupado} autoFocus aria-label="Nome do aparelho, para confirmar" />
       {erro && <span style={erroTxt} role="alert">{erro}</span>}
-      <button type="button" className={`btn ${desktop ? 'btn--h40d' : 'btn--h50'}`} style={{ background: 'var(--danger)', color: 'var(--surface)' }} disabled={!confere || ocupado} onClick={remover}>{ocupado ? 'Trocando a chave da família…' : erro ? 'Tentar de novo' : 'Remover aparelho'}</button>
+      <button type="button" className={`btn ${desktop ? 'btn--h40d' : 'btn--h50'}`} style={{ background: 'var(--danger)', color: 'var(--surface)' }} disabled={!pronto || ocupado} onClick={remover}>{ocupado ? 'Trocando a chave da família…' : erro ? 'Tentar de novo' : 'Remover aparelho'}</button>
     </Folha>
   );
 }
@@ -282,7 +287,7 @@ function Convite({ desktop, onClose }: { desktop?: boolean; onClose: () => void 
   };
   return (
     <Folha desktop={desktop} onClose={onClose} titulo="Convidar aparelho" alerta>
-      <span style={texto}>O convite vale por 10 minutos e leva a chave da família e o token do GitHub: quem tiver o texto entra na família. Passe só para os seus aparelhos e os da família, por um canal seu, e apague depois de usar.</span>
+      <span style={texto}>O convite dá acesso total à família: não fotografe nem compartilhe. Se ele vazar, use Trocar token.</span>
       {convite ? (
         <>
           <QrConvite texto={convite} />
