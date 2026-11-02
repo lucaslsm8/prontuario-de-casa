@@ -15,3 +15,6 @@ src-tauri/gen/schemas
 *.db-shm
 *.key
 *.pdf
+*.jks
+*.keystore
+src-tauri/gen/android/keystore.properties

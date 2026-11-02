@@ -25,6 +25,22 @@ android {
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
     }
+    signingConfigs {
+        create("release") {
+            val props = Properties().apply {
+                val f = rootProject.file("keystore.properties")
+                if (f.exists()) f.inputStream().use { load(it) }
+            }
+            val arquivo = System.getenv("ANDROID_KEYSTORE_PATH") ?: props.getProperty("storeFile")
+            val senha = System.getenv("ANDROID_KEYSTORE_SENHA") ?: props.getProperty("password")
+            if (arquivo != null && senha != null) {
+                storeFile = file(arquivo)
+                storePassword = senha
+                keyAlias = "prontuario"
+                keyPassword = senha
+            }
+        }
+    }
     buildTypes {
         getByName("debug") {
             manifestPlaceholders["usesCleartextTraffic"] = "true"
@@ -39,6 +55,7 @@ android {
             }
         }
         getByName("release") {
+            signingConfigs.getByName("release").takeIf { it.storeFile != null }?.let { signingConfig = it }
             optimization {
                enable = true
             }

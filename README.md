@@ -78,6 +78,14 @@ Testes do Rust (criptografia, banco, backup): `cd src-tauri && cargo test`.
 
 Uma vez só: em Settings › Secrets and variables › Actions, crie o segredo `TAURI_SIGNING_PRIVATE_KEY` com o conteúdo de `%USERPROFILE%\.tauri\prontuario-de-casa.key`. Guarde essa chave num lugar seguro: sem ela não dá para publicar atualizações que o app aceite.
 
+### Android
+
+O mesmo workflow gera o APK assinado e o anexa ao mesmo release (`Prontuario.de.Casa_<versão>_android.apk` e `.sha256`). Uma vez só:
+
+1. Rode `npm run android:chave`: cria a chave em `~/.tauri/prontuario-android.jks` (senha em `~/.tauri/prontuario-android.senha`) e imprime dois comandos PowerShell.
+2. Rode esses dois comandos para cadastrar os segredos `ANDROID_KEYSTORE_B64` e `ANDROID_KEYSTORE_SENHA` no GitHub. Sem eles, o job `android` falha de propósito (não publica APK sem assinatura).
+3. **Guarde** `~/.tauri/prontuario-android.jks` e a senha num lugar seguro: sem eles, o Android não aceita atualizar o app instalado com uma versão nova.
+
 ## Sincronizar a família
 
 A sincronização usa um repositório **privado** no GitHub que você cria. Os eventos vão cifrados; o GitHub só guarda arquivos ilegíveis.

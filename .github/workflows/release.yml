@@ -55,3 +55,75 @@ jobs:
           releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
+
+  # APK assinado, anexado ao mesmo rascunho de release criado pelo job "windows".
+  # Precisa dos segredos ANDROID_KEYSTORE_B64 e ANDROID_KEYSTORE_SENHA (npm run android:chave).
+  android:
+    needs: windows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Conferir segredos da assinatura
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KEYSTORE_SENHA: ${{ secrets.ANDROID_KEYSTORE_SENHA }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ] || [ -z "$KEYSTORE_SENHA" ]; then
+            echo "::error::Faltam os segredos ANDROID_KEYSTORE_B64 e ANDROID_KEYSTORE_SENHA (rode npm run android:chave). Não publico APK sem assinatura."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      - name: NDK
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;28.2.13676358"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
+
+      - name: Chave de assinatura
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KEYSTORE_SENHA: ${{ secrets.ANDROID_KEYSTORE_SENHA }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/prontuario.jks"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/prontuario.jks" >> "$GITHUB_ENV"
+          echo "::add-mask::$KEYSTORE_SENHA"
+          echo "ANDROID_KEYSTORE_SENHA=$KEYSTORE_SENHA" >> "$GITHUB_ENV"
+
+      - run: npx tauri android build --apk
+
+      - name: Enviar ao release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          VERSAO="${TAG#v}"
+          ORIGEM=src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
+          if [ ! -f "$ORIGEM" ]; then
+            echo "::error::APK assinado não encontrado em $ORIGEM"
+            find src-tauri/gen/android/app/build/outputs -name '*.apk'
+            exit 1
+          fi
+          APK="Prontuario.de.Casa_${VERSAO}_android.apk"
+          cp "$ORIGEM" "$APK"
+          sha256sum "$APK" > "$APK.sha256"
+          gh release upload "$TAG" "$APK" "$APK.sha256" --clobber --repo "$GITHUB_REPOSITORY"
