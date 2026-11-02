@@ -34,6 +34,7 @@ Stack: Tauri 2 (Rust) + React 18 + TypeScript + Vite. Leia também `README.md` e
   - `banco.rs`: SQLite com tabelas `eventos` e `kv`, cada valor cifrado com XChaCha20-Poly1305 (id como AAD).
   - `cripto.rs`: chave do aparelho no Gerenciador de Credenciais (Windows) / Keychain (macOS), em arquivo no Linux/Android. Argon2id para PIN e backup.
   - `backup.rs`: formato `.fsaude`.
+  - `epoca.rs`: "Remover aparelho" troca a chave da família (época nova), selada com X25519 + HKDF para cada aparelho que fica (`chaves/<época>/<id>.bin`); o marco `chaves/<base>/proxima.bin` vai por último e decide a sucessora. Chaves antigas no kv `chaves_antigas:<fid>`; pacotes da época e ≥ 1 em `eventos/<id>/<e>-<n>.bin`.
   - `lib.rs`: comandos Tauri.
   - Comandos `async` (não travam a janela). Argumentos em uma palavra, respostas em camelCase.
 

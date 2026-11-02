@@ -2,9 +2,10 @@
 import { useState } from 'react';
 import { useStore } from '../data/store';
 import { persistencia } from '../data/persistencia';
-import { definirFamilia, sincronizar, useInfoSync } from '../data/sincronizacao';
+import { atualizarFamilia, definirFamilia, sincronizar, useInfoSync } from '../data/sincronizacao';
 import { quando } from '../data/format';
-import { aparelhosDaFamilia } from '../data/aparelhos';
+import { aparelhosDaFamilia, planoRemocao } from '../data/aparelhos';
+import type { Aparelho } from '../data/types';
 import { ehPet } from '../data/pets';
 import { Folha, SenhaApp } from './Backup';
 import { Label, Lock } from './index';
@@ -23,6 +24,7 @@ export function CardFamilia({ desktop }: { desktop?: boolean }) {
   const store = useStore();
   const s = useInfoSync();
   const [folha, setFolha] = useState<null | 'criar' | 'entrar' | 'convite' | 'sair' | 'renomear'>(null);
+  const [removendo, setRemovendo] = useState<Aparelho | null>(null);
   const meuId = store.api.aparelhoId();
   const aparelhos = aparelhosDaFamilia(store.state);
   // Este aparelho primeiro; os outros do mais ao menos recente.
@@ -37,6 +39,15 @@ export function CardFamilia({ desktop }: { desktop?: boolean }) {
           <div className="hstack" style={{ gap: 8, flexWrap: 'wrap' }}>
             <button type="button" className={`btn btn--ink ${btn}`} style={desktop ? undefined : { flex: 1 }} onClick={() => setFolha('criar')}>Criar família</button>
             <button type="button" className={`btn btn--outline ${btn}`} style={{ background: 'transparent', ...(desktop ? {} : { flex: 1 }) }} onClick={() => setFolha('entrar')}>Entrar com convite</button>
+          </div>
+        </div>
+      ) : s.removido ? (
+        <div className="stack" style={{ padding: desktop ? '16px 20px' : 16, gap: 12 }} role="status">
+          <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--danger)' }}>Este aparelho foi removido da família</span>
+          <span style={texto}>Outro aparelho trocou a chave da família sem este. Ele não sincroniza mais; os dados que já estão aqui continuam aqui. Para voltar, peça um convite novo.</span>
+          <div className="hstack" style={{ gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" className={`btn btn--ink ${btn}`} style={desktop ? undefined : { flex: 1 }} onClick={() => setFolha('entrar')}>Entrar com convite</button>
+            <button type="button" className={`btn btn--outline ${btn}`} style={{ background: 'transparent', color: 'var(--danger)', ...(desktop ? {} : { flex: 1 }) }} onClick={() => setFolha('sair')}>Sair da família</button>
           </div>
         </div>
       ) : (
@@ -59,8 +70,10 @@ export function CardFamilia({ desktop }: { desktop?: boolean }) {
                 <span>{a.nome}{a.id === meuId && <span className="muted"> · este aparelho</span>}</span>
                 <span style={{ fontSize: 13, color: 'var(--text-2)' }}>{a.plataforma === 'cel' ? 'Celular' : 'Computador'} · visto {a.id === meuId ? 'agora' : quando(a.visto)}</span>
               </span>
-              {a.id === meuId && (
+              {a.id === meuId ? (
                 <button type="button" className={`btn btn--outline ${btn}`} style={{ background: 'transparent', minHeight: 44 }} onClick={() => setFolha('renomear')}>Renomear</button>
+              ) : (
+                <button type="button" className={`btn btn--outline ${btn}`} style={{ background: 'transparent', color: 'var(--danger)', minHeight: 44 }} onClick={() => setRemovendo(a)}>Remover</button>
               )}
             </div>
           ))}
@@ -74,6 +87,7 @@ export function CardFamilia({ desktop }: { desktop?: boolean }) {
       {folha === 'entrar' && <EntrarNaFamilia desktop={desktop} onClose={() => setFolha(null)} />}
       {folha === 'convite' && <Convite desktop={desktop} onClose={() => setFolha(null)} />}
       {folha === 'sair' && <SairDaFamilia desktop={desktop} onClose={() => setFolha(null)} />}
+      {removendo && <RemoverAparelho desktop={desktop} alvo={removendo} onClose={() => setRemovendo(null)} />}
       {folha === 'renomear' && <RenomearAparelho desktop={desktop} atual={aparelhos.find((a) => a.id === meuId)?.nome ?? ''} onClose={() => setFolha(null)} />}
     </div>
   );
@@ -88,6 +102,45 @@ function RenomearAparelho({ desktop, atual, onClose }: { desktop?: boolean; atua
       <span style={texto}>Esse nome aparece na lista de aparelhos de toda a família.</span>
       <input className={`input${desktop ? ' input--desk' : ''}`} value={nome} maxLength={40} onChange={(e) => setNome(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && nome.trim()) salvar(); }} autoFocus aria-label="Nome do aparelho" />
       <button type="button" className={`btn btn--ink ${desktop ? 'btn--h40d' : 'btn--h50'}`} disabled={!nome.trim()} onClick={salvar}>Salvar</button>
+    </Folha>
+  );
+}
+
+/** "Remover aparelho": troca a chave da família sem ele. Confirma digitando o nome; oferece trocar o token junto. */
+function RemoverAparelho({ desktop, alvo, onClose }: { desktop?: boolean; alvo: Aparelho; onClose: () => void }) {
+  const store = useStore();
+  const meuId = store.api.aparelhoId();
+  const { destinatarios, semChave } = planoRemocao(store.state.aparelhos, meuId, alvo.id);
+  const [nome, setNome] = useState('');
+  const [token, setToken] = useState('');
+  const [erro, setErro] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  const confere = nome.trim() === alvo.nome.trim();
+  const remover = async () => {
+    if (!meuId || !confere) return;
+    setOcupado(true); setErro('');
+    try {
+      const f = await persistencia.familiaRemoverAparelho(meuId, alvo.id, destinatarios, token.trim() || undefined);
+      atualizarFamilia(f);
+      store.api.removerAparelho(alvo.id, f.epoca ?? 0);
+      for (const a of semChave) store.api.removerAparelho(a.id, f.epoca ?? 0);
+      store.api.toast({ texto: `${alvo.nome} saiu da família` });
+      onClose();
+      void sincronizar(store);
+    } catch (e) { setErro(e instanceof Error ? e.message : String(e)); } finally { setOcupado(false); }
+  };
+  return (
+    <Folha desktop={desktop} onClose={ocupado ? () => {} : onClose} titulo="Remover aparelho?" alerta>
+      <span style={texto}><b>{alvo.nome}</b> deixa de receber as mudanças da família: a família passa a usar uma chave nova, que vai só para os outros aparelhos. O que já está nele continua nele.</span>
+      {semChave.length > 0 && (
+        <span style={texto}>{semChave.length === 1 ? 'Este aparelho ainda usa uma versão antiga do app e vai sair da família também' : 'Estes aparelhos ainda usam uma versão antiga do app e vão sair da família também'}: <b>{semChave.map((a) => a.nome).join(', ')}</b>. Depois de atualizar o app neles, convide de novo.</span>
+      )}
+      <span style={texto}>O aparelho removido conhece o token do GitHub. Gere um token novo para o mesmo repositório e cole abaixo: ele vai cifrado para os outros aparelhos. Revogue o token antigo no GitHub só depois que todos sincronizarem.</span>
+      <input className={`input${desktop ? ' input--desk' : ''} input--mono`} type="password" placeholder="Novo token (opcional)" value={token} onChange={(e) => setToken(e.target.value)} disabled={ocupado} aria-label="Novo token (opcional)" />
+      <span style={texto}>Para confirmar, digite o nome do aparelho: <b>{alvo.nome}</b></span>
+      <input className={`input${desktop ? ' input--desk' : ''}`} value={nome} onChange={(e) => setNome(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && confere && !ocupado) void remover(); }} disabled={ocupado} autoFocus aria-label="Nome do aparelho, para confirmar" />
+      {erro && <span style={erroTxt} role="alert">{erro}</span>}
+      <button type="button" className={`btn ${desktop ? 'btn--h40d' : 'btn--h50'}`} style={{ background: 'var(--danger)', color: 'var(--surface)' }} disabled={!confere || ocupado} onClick={remover}>{ocupado ? 'Trocando a chave da família…' : erro ? 'Tentar de novo' : 'Remover aparelho'}</button>
     </Folha>
   );
 }

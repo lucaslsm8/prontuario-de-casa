@@ -70,4 +70,32 @@ describe('sincronização', () => {
     await carregarFamilia();
     expect(info().familia).toBeNull();
   });
+
+  it('aparelho removido para de sincronizar e marca o estado, sem erro de rede', async () => {
+    p.syncEnviar.mockRejectedValue(new Error('REMOVIDO: Este aparelho foi removido da família'));
+    p.syncReceber.mockRejectedValue(new Error('REMOVIDO: Este aparelho foi removido da família'));
+    const s = store();
+    expect(await sincronizar(s)).toEqual({ ok: false, erro: 'Este aparelho foi removido da família.' });
+    expect(info()).toMatchObject({ removido: true, estado: 'parado', familia: { familiaId: 'f1', removido: true } });
+    p.syncEnviar.mockClear();
+    expect((await sincronizar(s)).ok).toBe(false);
+    expect(p.syncEnviar).not.toHaveBeenCalled();
+    // Entrar de novo (convite) limpa a marca.
+    definirFamilia(familia);
+    expect(info().removido).toBe(false);
+  });
+
+  it('a família que vem do Rust já removida chega marcada', async () => {
+    p.familiaInfo.mockResolvedValue({ ...familia, epoca: 2, removido: true });
+    await carregarFamilia();
+    expect(info().removido).toBe(true);
+  });
+
+  it('uma rodada que adotou chave nova atualiza a época', async () => {
+    p.syncEnviar.mockResolvedValue(0);
+    p.syncReceber.mockResolvedValue(0);
+    p.familiaInfo.mockResolvedValue({ ...familia, epoca: 3 });
+    expect(await sincronizar(store())).toEqual({ ok: true });
+    expect(info().familia?.epoca).toBe(3);
+  });
 });

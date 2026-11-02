@@ -161,7 +161,7 @@ export interface Plano {
 }
 
 /** Aparelho da família (evento `aparelho`). `visto` é o ISO do último evento dele no log. */
-export interface Aparelho { id: string; nome: string; plataforma: 'pc' | 'cel'; chavePublica?: string; removido?: boolean; visto: string }
+export interface Aparelho { id: string; nome: string; plataforma: 'pc' | 'cel'; chavePublica?: string; removido?: boolean; /** Época da chave em que saiu da família. */ removidoEpoca?: number; visto: string }
 
 export interface Compartilhamento { de: PessoaId; para: PessoaId; categorias: Categoria[] }
 

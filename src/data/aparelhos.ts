@@ -27,6 +27,16 @@ export function vistoPorAparelho(eventos: Evento[]): Map<string, string> {
   return m;
 }
 
+/** Ao remover `removidoId`: quem recebe a chave nova (os outros aparelhos ativos com chave pública; este aparelho
+ *  o Rust inclui sozinho) e quem sai junto por não ter chave pública (versão antiga do app). */
+export function planoRemocao(aparelhos: Aparelho[], meuId: string | null, removidoId: string): { destinatarios: { id: string; chave: string }[]; semChave: Aparelho[] } {
+  const outros = aparelhos.filter((a) => !a.removido && a.id !== removidoId && a.id !== meuId);
+  return {
+    destinatarios: outros.flatMap((a) => (a.chavePublica ? [{ id: a.id, chave: a.chavePublica }] : [])),
+    semChave: outros.filter((a) => !a.chavePublica),
+  };
+}
+
 /** Aparelhos ativos da família, o visto mais recentemente primeiro (desempate pelo id). */
 export const aparelhosDaFamilia = (s: { aparelhos: Aparelho[] }): Aparelho[] =>
   s.aparelhos.filter((a) => !a.removido).sort((a, b) => (a.visto === b.visto ? (a.id < b.id ? -1 : 1) : a.visto < b.visto ? 1 : -1));

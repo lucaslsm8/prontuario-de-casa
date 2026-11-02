@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aparelhosDaFamilia, nomePadraoAparelho, plataformaDoId, vistoPorAparelho } from './aparelhos';
+import { aparelhosDaFamilia, nomePadraoAparelho, planoRemocao, plataformaDoId, vistoPorAparelho } from './aparelhos';
 import type { Evento } from './persistencia';
 import { projetar } from './store';
 
@@ -53,5 +53,35 @@ describe('aparelhos', () => {
     const s = projetar(log);
     expect(s.aparelhos).toHaveLength(2);
     expect(aparelhosDaFamilia(s).map((a) => a.id)).toEqual(['pc-a']);
+  });
+
+  it('removerAparelho tira da lista; "renomear" atrasado na chave velha não traz de volta; voltar com convite traz', () => {
+    const base = [
+      reg('1', 'pc-a', '0000000000001-0000-pc-a', '2026-10-30T10:00:00.000Z', 'PC de Helena', { chavePublica: 'aa' }),
+      reg('2', 'cel-b', '0000000000002-0000-cel-b', '2026-10-30T11:00:00.000Z', 'Celular', { chavePublica: 'bb' }),
+      ev('3', 'pc-a', '0000000000003-0000-pc-a', '2026-10-30T12:00:00.000Z', 'removerAparelho', { aparelhoId: 'cel-b', epoca: 1 }),
+    ];
+    const s = projetar(base);
+    expect(s.aparelhos.find((a) => a.id === 'cel-b')).toMatchObject({ removido: true, removidoEpoca: 1, chavePublica: 'bb' });
+    expect(aparelhosDaFamilia(s).map((a) => a.id)).toEqual(['pc-a']);
+    // O removido ainda não sabe e renomeia, na época 0: continua removido.
+    const atrasado = projetar([...base, reg('4', 'cel-b', '0000000000004-0000-cel-b', '2026-10-30T13:00:00.000Z', 'Celular novo', { epoca: 0 })]);
+    expect(aparelhosDaFamilia(atrasado).map((a) => a.id)).toEqual(['pc-a']);
+    // Entrou de novo com convite (época 1): volta para a lista.
+    const voltou = projetar([...base, reg('4', 'cel-b', '0000000000004-0000-cel-b', '2026-10-30T13:00:00.000Z', 'Celular', { epoca: 1, chavePublica: 'cc' })]);
+    expect(voltou.aparelhos.find((a) => a.id === 'cel-b')).toMatchObject({ removido: undefined, chavePublica: 'cc' });
+  });
+
+  it('plano da remoção: chave nova para quem tem chave pública; sem chave sai junto', () => {
+    const s = projetar([
+      reg('1', 'pc-a', '0000000000001-0000-pc-a', '2026-10-30T10:00:00.000Z', 'PC de Helena', { chavePublica: 'aa' }),
+      reg('2', 'cel-b', '0000000000002-0000-cel-b', '2026-10-30T11:00:00.000Z', 'Celular', { chavePublica: 'bb' }),
+      reg('3', 'pc-c', '0000000000003-0000-pc-c', '2026-10-30T11:00:00.000Z', 'PC velho'),
+      reg('4', 'pc-x', '0000000000004-0000-pc-x', '2026-10-30T11:00:00.000Z', 'Notebook', { chavePublica: 'xx' }),
+      reg('5', 'cel-z', '0000000000005-0000-cel-z', '2026-10-30T11:00:00.000Z', 'Antigo', { chavePublica: 'zz', removido: true }),
+    ]);
+    const p = planoRemocao(s.aparelhos, 'pc-a', 'pc-x');
+    expect(p.destinatarios).toEqual([{ id: 'cel-b', chave: 'bb' }]);
+    expect(p.semChave.map((a) => a.id)).toEqual(['pc-c']);
   });
 });

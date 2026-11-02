@@ -30,6 +30,8 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "std"
 sha2 = "0.10"
 # Chave X25519 deste aparelho (a Task de remoção/rotação da chave da família a usa).
 x25519-dalek = { version = "2", features = ["static_secrets"] }
+# Chave nova da família selada para cada aparelho (X25519 + HKDF-SHA256 + XChaCha20-Poly1305).
+hkdf = "0.12"
 
 # Chave do banco no cofre do sistema (Gerenciador de Credenciais no Windows, Keychain no macOS).
 [target.'cfg(any(windows, target_os = "macos"))'.dependencies]

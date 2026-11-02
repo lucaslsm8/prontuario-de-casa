@@ -15,12 +15,17 @@ export interface InfoSync {
   erro?: string;
   /** O erro é de token (sem acesso ou vencido). */
   token?: boolean;
+  /** Este aparelho foi removido da família: não sincroniza mais (os dados daqui ficam). */
+  removido?: boolean;
 }
 
 let info: InfoSync = { familia: null, estado: 'parado' };
 const ouvintes = new Set<() => void>();
 const mudar = (i: Partial<InfoSync>) => { info = { ...info, ...i }; ouvintes.forEach((f) => f()); };
 export const useInfoSync = () => useSyncExternalStore((f) => { ouvintes.add(f); return () => ouvintes.delete(f); }, () => info);
+
+/** Erro do Rust quando a família trocou a chave sem este aparelho. */
+export const ehRemovido = (e: unknown) => (e instanceof Error ? e.message : String(e)).startsWith('REMOVIDO:');
 
 export function mensagemErro(e: unknown): { texto: string; token: boolean } {
   const t = e instanceof Error ? e.message : String(e);
@@ -30,14 +35,17 @@ export function mensagemErro(e: unknown): { texto: string; token: boolean } {
 export async function carregarFamilia() {
   if (!MODO_REAL) return;
   try {
-    mudar({ familia: await persistencia.familiaInfo() });
+    const familia = await persistencia.familiaInfo();
+    mudar({ familia, removido: !!familia?.removido });
   } catch (e) {
     // Erro ao ler não é "sem família": mantém a que estava e mostra o erro.
     const { texto, token } = mensagemErro(e);
     mudar({ estado: 'erro', erro: texto, token });
   }
 }
-export const definirFamilia = (familia: InfoFamilia | null) => mudar({ familia, estado: 'parado', erro: undefined, token: undefined, ultima: undefined });
+export const definirFamilia = (familia: InfoFamilia | null) => mudar({ familia, estado: 'parado', erro: undefined, token: undefined, ultima: undefined, removido: !!familia?.removido });
+/** A família mudou de época (aparelho removido, chave nova): atualiza sem mexer no resto. */
+export const atualizarFamilia = (familia: InfoFamilia) => mudar({ familia, removido: !!familia.removido });
 /** O estado atual, fora do React (testes). */
 export const infoSync = () => info;
 
@@ -54,6 +62,7 @@ export async function sincronizar(store: { api: Pick<Store['api'], 'aparelhoId' 
   const { api } = store;
   const aparelho = api.aparelhoId();
   if (!info.familia || !aparelho) return { ok: false, erro: 'Este aparelho não está numa família.' };
+  if (info.removido) return { ok: false, erro: 'Este aparelho foi removido da família.' };
   if (emAndamento) {
     pendente ??= { manual: false, avisar: [] };
     pendente.manual ||= manual;
@@ -81,14 +90,25 @@ export async function sincronizar(store: { api: Pick<Store['api'], 'aparelhoId' 
     // Se o recarregamento falhar, a próxima rodada tenta de novo mesmo sem eventos novos.
     if (reprojetarPendente) { await api.recarregar(); reprojetarPendente = false; }
     if (erroEnvio !== null) throw erroEnvio;
+    // A rodada pode ter adotado uma chave nova da família (outro aparelho foi removido): a época vale para os eventos daqui.
+    let f: InfoFamilia | null = null;
+    try { f = await persistencia.familiaInfo(); } catch { /* fica a época de antes */ }
+    if (f && info.familia && f.familiaId === info.familia.familiaId && f.epoca !== info.familia.epoca) mudar({ familia: f });
     mudar({ estado: 'ok', ultima: new Date().toISOString(), via: 'GitHub' });
     if (manual) api.toast({ texto: chegaram ? `${chegaram === 1 ? '1 mudança chegou' : `${chegaram} mudanças chegaram`} da família` : 'Tudo sincronizado' });
     r = { ok: true };
   } catch (e) {
-    const { texto, token } = mensagemErro(e);
-    mudar({ estado: 'erro', erro: texto, token });
-    if (manual) api.toast({ texto: `Não foi possível sincronizar: ${texto}` });
-    r = { ok: false, erro: texto };
+    if (ehRemovido(e)) {
+      // Para de sincronizar; nada daqui é apagado.
+      mudar({ estado: 'parado', removido: true, erro: undefined, token: undefined, ...(info.familia ? { familia: { ...info.familia, removido: true } } : {}) });
+      if (manual) api.toast({ texto: 'Este aparelho foi removido da família' });
+      r = { ok: false, erro: 'Este aparelho foi removido da família.' };
+    } else {
+      const { texto, token } = mensagemErro(e);
+      mudar({ estado: 'erro', erro: texto, token });
+      if (manual) api.toast({ texto: `Não foi possível sincronizar: ${texto}` });
+      r = { ok: false, erro: texto };
+    }
   }
   emAndamento = false;
   const p = pendente;
@@ -112,17 +132,22 @@ export function avisarMudanca() {
 /** Montado uma vez no app: carrega a família e sincroniza ao abrir, a cada 5 min e depois de mudanças. */
 export function useSincronizacao() {
   const store = useStore();
-  const { familia } = useInfoSync();
+  const { familia, removido } = useInfoSync();
   const pronto = store.status === 'pronto' && !store.state.bloqueado;
+  // Os efeitos dependem da família (id), não do objeto: a época nova não reinicia o ciclo.
+  const familiaId = familia?.familiaId;
   useEffect(() => { void carregarFamilia(); }, []);
   // Único ponto que registra este aparelho (evento `aparelho`): com família, log carregado e o "eu" conhecido. Não repete: sai se o log já tem o aparelho.
+  // Também quando o log diz que este aparelho foi removido mas ele voltou com um convite novo: registra de novo.
   const euId = store.state.pessoas.find((p) => p.souEu)?.id;
+  const meuId = store.api.aparelhoId();
+  const listadoComoRemovido = store.state.aparelhos.some((a) => a.id === meuId && a.removido);
   useEffect(() => {
-    if (pronto && familia && euId) void store.api.registrarAparelho();
+    if (pronto && familiaId && !removido && euId) void store.api.registrarAparelho();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pronto, familia, euId]);
+  }, [pronto, familiaId, removido, euId, listadoComoRemovido]);
   useEffect(() => {
-    if (!pronto || !familia) return;
+    if (!pronto || !familiaId || removido) return;
     const rodar = () => void sincronizar(store);
     aposMudanca = rodar;
     rodar();
@@ -130,5 +155,5 @@ export function useSincronizacao() {
     return () => { clearInterval(t); aposMudanca = null; clearTimeout(espera); };
     // `store` muda a cada render; o efeito depende só de abrir/fechar e da família.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pronto, familia]);
+  }, [pronto, familiaId, removido]);
 }

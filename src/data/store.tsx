@@ -3,7 +3,7 @@ import * as seed from './seed';
 import { EM_TAURI, HOJE, MODO_EXEMPLO, MODO_REAL, horaAgora } from './tempo';
 import { useLembretes } from './useLembretes';
 import { useViradaDoDia } from './useViradaDoDia';
-import { avisarMudanca } from './sincronizacao';
+import { avisarMudanca, infoSync } from './sincronizacao';
 import { persistencia, novoId, type Evento, type InfoBackup, type Inicio } from './persistencia';
 import { fmtHlc, proximoHlc, type Hlc } from './hlc';
 import { emCasaAgora } from './redeCasa';
@@ -120,7 +120,8 @@ type Mudanca =
   | { type: 'lembrete'; consultaId: string; lembrete: string }
   | { type: 'config'; patch: Partial<Config> }
   | { type: 'compartilhar'; de: string; para: string; categorias: Categoria[] }
-  | { type: 'aparelho'; aparelhoId: string; nome: string; plataforma: 'pc' | 'cel'; chavePublica?: string; removido?: boolean };
+  | { type: 'aparelho'; aparelhoId: string; nome: string; plataforma: 'pc' | 'cel'; chavePublica?: string; removido?: boolean; epoca?: number }
+  | { type: 'removerAparelho'; aparelhoId: string; epoca?: number };
 
 // Ações locais (não persistidas).
 type Local =
@@ -288,11 +289,18 @@ function reducer(s: State, a: Action): State {
       return { ...s, compartilhamentos: [...outros, { de: a.de, para: a.para, categorias: a.categorias }] };
     }
     // Registro ou renomeação de aparelho: vale o mais recente (o log já vem na ordem do HLC). `visto` é calculado em `projetar`.
+    // Aparelho removido continua removido: só volta se entrou de novo na família (registro numa época igual ou depois
+    // da remoção). Assim um "renomear" atrasado do aparelho removido, ainda na chave velha, não o traz de volta.
     case 'aparelho': {
       const antigo = s.aparelhos.find((x) => x.id === a.aparelhoId);
-      const novo: Aparelho = { id: a.aparelhoId, nome: a.nome, plataforma: a.plataforma, chavePublica: a.chavePublica ?? antigo?.chavePublica, removido: a.removido || undefined, visto: antigo?.visto ?? '' };
+      const segueRemovido = !!antigo?.removido && (a.epoca ?? 0) < (antigo.removidoEpoca ?? 0);
+      const removido = a.removido || segueRemovido || undefined;
+      const novo: Aparelho = { id: a.aparelhoId, nome: a.nome, plataforma: a.plataforma, chavePublica: a.chavePublica ?? antigo?.chavePublica, removido, removidoEpoca: segueRemovido ? antigo?.removidoEpoca : undefined, visto: antigo?.visto ?? '' };
       return { ...s, aparelhos: antigo ? s.aparelhos.map((x) => (x.id === a.aparelhoId ? novo : x)) : [...s.aparelhos, novo] };
     }
+    // "Remover aparelho": a chave da família já foi trocada (época `epoca`) sem ele.
+    case 'removerAparelho':
+      return { ...s, aparelhos: s.aparelhos.map((x) => (x.id === a.aparelhoId ? { ...x, removido: true, removidoEpoca: a.epoca ?? 0 } : x)) };
     // Evento de outra versão (backup mais novo, sincronização): ignora em vez de perder o log.
     default:
       return s;
@@ -566,13 +574,16 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
       async registrarAparelho() {
         const id = sessao.identidade?.aparelhoId;
         const eu = ref.current.pessoas.find((p) => p.souEu);
-        if (!MODO_REAL || !id || !eu || sessao.registrandoAparelho || ref.current.aparelhos.some((x) => x.id === id)) return;
+        // Removido e de volta à família (convite novo): registra de novo, na época atual.
+        const registrado = () => ref.current.aparelhos.some((x) => x.id === id && !x.removido);
+        if (!MODO_REAL || !id || !eu || sessao.registrandoAparelho || registrado()) return;
         sessao.registrandoAparelho = true;
         try {
           const plat = plataformaDoId(id);
           const chavePublica = (await persistencia.chavePublicaAparelho().catch(() => '')) || undefined;
-          if (ref.current.aparelhos.some((x) => x.id === id)) return;
-          emitir({ type: 'aparelho', aparelhoId: id, nome: nomePadraoAparelho(plat, eu.nome), plataforma: plat, chavePublica });
+          if (registrado()) return;
+          const antigo = ref.current.aparelhos.find((x) => x.id === id);
+          emitir({ type: 'aparelho', aparelhoId: id, nome: antigo?.nome ?? nomePadraoAparelho(plat, eu.nome), plataforma: plat, chavePublica, epoca: infoSync().familia?.epoca ?? 0 });
         } finally { sessao.registrandoAparelho = false; }
       },
       /** Renomeia este aparelho (novo evento `aparelho` com o mesmo id; vale o mais recente). */
@@ -581,7 +592,12 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
         const atual = ref.current.aparelhos.find((x) => x.id === id);
         const novo = nome.trim().slice(0, 40);
         if (!id || !atual || !novo || novo === atual.nome) return;
-        emitir({ type: 'aparelho', aparelhoId: id, nome: novo, plataforma: atual.plataforma, chavePublica: atual.chavePublica });
+        emitir({ type: 'aparelho', aparelhoId: id, nome: novo, plataforma: atual.plataforma, chavePublica: atual.chavePublica, epoca: infoSync().familia?.epoca ?? 0 });
+      },
+      /** Depois que `familiaRemoverAparelho` trocou a chave: registra a remoção no log (vai na chave nova). */
+      removerAparelho(aparelhoId: string, epoca: number) {
+        if (aparelhoId === sessao.identidade?.aparelhoId) return;
+        emitir({ type: 'removerAparelho', aparelhoId, epoca });
       },
 
       // Só para o navegador de telas em desenvolvimento.

@@ -61,6 +61,9 @@ export interface Persistencia {
   familiaSair(): Promise<void>;
   /** Código de convite da família atual. */
   familiaConvite(): Promise<string>;
+  /** Remove outro aparelho: troca a chave da família e manda a nova (e o token novo, se veio) cifrada para cada um
+   *  dos `destinatarios` (os que ficam e têm chave pública). Devolve a família na época nova. */
+  familiaRemoverAparelho(aparelho: string, removido: string, destinatarios: { id: string; chave: string }[], token?: string): Promise<InfoFamilia>;
   /** Onde parou o envio (último evento que subiu) e os aparelhos já lidos. */
   syncCursor(): Promise<CursorEnvio>;
   /** Sobe o recorte montado por `eventosParaEnviar`; devolve quantos eventos subiram. */
@@ -77,7 +80,8 @@ export interface Persistencia {
   chavePublicaAparelho(): Promise<string>;
 }
 
-export interface InfoFamilia { familiaId: string; repo: string }
+/** `epoca`: época da chave da família (sobe a cada aparelho removido). `removido`: este aparelho foi removido. */
+export interface InfoFamilia { familiaId: string; repo: string; epoca?: number; removido?: boolean }
 export interface RedeCasa { id: string; nome: string }
 
 // ── App instalado ───────────────────────────────────────────────────────────
@@ -113,6 +117,7 @@ function tauri(): Persistencia {
     familiaEntrar: (convite) => call<InfoFamilia>('familia_entrar', { convite }),
     familiaSair: () => call('familia_sair'),
     familiaConvite: () => call<string>('familia_convite'),
+    familiaRemoverAparelho: (aparelho, removido, destinatarios, token) => call<InfoFamilia>('familia_remover_aparelho', { aparelho, removido, destinatarios, token: token ?? null }),
     syncCursor: () => call<CursorEnvio>('sync_cursor'),
     syncEnviar: (aparelho, eventos) => call<number>('sync_enviar', { aparelho, eventos }),
     syncReceber: (aparelho) => call<number>('sync_receber', { aparelho }),
@@ -173,6 +178,7 @@ function memoria(): Persistencia {
     familiaEntrar: async () => { throw new Error('A família só funciona no app instalado.'); },
     familiaSair: async () => {},
     familiaConvite: async () => { throw new Error('A família só funciona no app instalado.'); },
+    familiaRemoverAparelho: async () => { throw new Error('A família só funciona no app instalado.'); },
     syncCursor: async () => ({ ultimoId: null, recebidos: [] }),
     syncEnviar: async () => 0,
     syncReceber: async () => 0,

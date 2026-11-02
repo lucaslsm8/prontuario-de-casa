@@ -10,14 +10,57 @@ use std::collections::{BTreeMap, BTreeSet};
 
 type R<T> = Result<T, String>;
 
-/// Kv "sync_envio:<familiaId>": o último número de pacote enviado e o id do último evento que subiu.
+/// Kv "sync_envio:<familiaId>": a época e o último número de pacote enviado nela, e o id do último evento que subiu.
 /// O formato antigo `{n, enviados}` é lido com `ultimo_id: None` (o front reenvia tudo; duplicatas são inofensivas).
+/// Sem `epoca` = época 0. Quando a família troca de época, a numeração recomeça em 1 (`proximo_n`).
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Pendencia {
     pub n: u32,
     #[serde(default)]
     pub ultimo_id: Option<String>,
+    #[serde(default, skip_serializing_if = "zero")]
+    pub epoca: u32,
+}
+
+fn zero(e: &u32) -> bool {
+    *e == 0
+}
+
+impl Pendencia {
+    /// O próximo número de pacote na época `epoca` (a atual da família).
+    pub fn proximo_n(&self, epoca: u32) -> u32 {
+        if self.epoca == epoca { self.n + 1 } else { 1 }
+    }
+}
+
+/// Até onde cada pasta já foi lida, por época: kv "sync_lidos:<familiaId>" (época 0, formato de antes)
+/// e "sync_lidos_epocas:<familiaId>" (épocas ≥ 1). Cada (aparelho, época) é uma sequência contínua própria:
+/// quem lê sonda todas as épocas cuja chave conhece, cada uma a partir do próprio cursor, e nunca pula um pacote.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Lidos {
+    pub zero: BTreeMap<String, u32>,
+    pub epocas: BTreeMap<String, BTreeMap<u32, u32>>,
+}
+
+impl Lidos {
+    pub fn ultimo(&self, dono: &str, epoca: u32) -> u32 {
+        if epoca == 0 {
+            self.zero.get(dono).copied().unwrap_or(0)
+        } else {
+            self.epocas.get(dono).and_then(|m| m.get(&epoca)).copied().unwrap_or(0)
+        }
+    }
+    pub fn marcar(&mut self, dono: &str, epoca: u32, n: u32) {
+        if epoca == 0 {
+            self.zero.insert(dono.to_string(), n);
+        } else {
+            self.epocas.entry(dono.to_string()).or_default().insert(epoca, n);
+        }
+    }
+    fn aparelhos(&self) -> impl Iterator<Item = &String> {
+        self.zero.keys().chain(self.epocas.keys())
+    }
 }
 
 fn id_de(ev: &Value) -> Option<&str> {
@@ -31,6 +74,7 @@ fn id_de(ev: &Value) -> Option<&str> {
 /// Pacote `n` que já existe no remoto e abre com a nossa chave (escrita incerta, cursor perdido, recorte que mudou):
 /// se os ids dele são o começo dos pendentes, conta esses como enviados; se não, ele já está publicado e o mesmo
 /// lote vai para `n + 1` (sem consumir nada). Assim o envio nunca trava num número ocupado.
+/// Os pacotes vão na época atual da família (`f.epoca`, com `f.chave`).
 pub fn enviar(remoto: &dyn Remoto, f: &Familia, aparelho: &str, eventos: &[Value], prox_n: u32) -> R<(u32, usize, Option<String>)> {
     let chave = f.chave_bytes()?;
     let (mut ultimo, mut enviados, mut ultimo_id) = (0, 0, None);
@@ -38,8 +82,8 @@ pub fn enviar(remoto: &dyn Remoto, f: &Familia, aparelho: &str, eventos: &[Value
     let mut n = prox_n;
     while !resto.is_empty() {
         let lote = &resto[..pacote::primeira_fatia(resto)];
-        let bytes = pacote::empacotar(&chave, &f.familia_id, aparelho, n, lote)?;
-        let tam = match remoto.gravar(&pacote::nome(aparelho, n), &bytes) {
+        let bytes = pacote::empacotar(&chave, &f.familia_id, f.epoca, aparelho, n, lote)?;
+        let tam = match remoto.gravar(&pacote::nome(aparelho, f.epoca, n), &bytes) {
             Ok(()) => lote.len(),
             Err(e) => match ja_gravado(remoto, f, &chave, aparelho, n, resto) {
                 Some(k) => k,
@@ -62,8 +106,8 @@ pub fn enviar(remoto: &dyn Remoto, f: &Familia, aparelho: &str, eventos: &[Value
 /// o tamanho dele, se os ids são o começo dos pendentes (mesmos ids, mesma ordem); 0, se é outro conteúdo
 /// (o número está ocupado, segue para o próximo). Falha ao checar, ausente ou ilegível = None.
 fn ja_gravado(remoto: &dyn Remoto, f: &Familia, chave: &[u8; 32], aparelho: &str, n: u32, pendentes: &[Value]) -> Option<usize> {
-    let bytes = remoto.baixar(&pacote::nome(aparelho, n)).ok()??;
-    let remotos = pacote::desempacotar(chave, &f.familia_id, aparelho, n, &bytes).ok()?;
+    let bytes = remoto.baixar(&pacote::nome(aparelho, f.epoca, n)).ok()??;
+    let remotos = pacote::desempacotar(chave, &f.familia_id, f.epoca, aparelho, n, &bytes).ok()?;
     let prefixo = !remotos.is_empty() && remotos.len() <= pendentes.len() && remotos.iter().zip(pendentes).all(|(a, b)| id_de(a).is_some() && id_de(a) == id_de(b));
     Some(if prefixo { remotos.len() } else { 0 })
 }
@@ -80,12 +124,12 @@ pub enum Baixado {
     Ilegivel,
 }
 
-/// O pacote `n` de `dono`, se já existe. Ausente = Ok(None): fim da sequência sem buracos por enquanto.
-/// Erro de rede = Err (a rodada para e tenta de novo no próximo ciclo); só falha ao decifrar vira `Ilegivel`.
-pub fn baixar_proximo(remoto: &dyn Remoto, f: &Familia, dono: &str, n: u32) -> R<Option<Baixado>> {
-    let Some(bytes) = remoto.baixar(&pacote::nome(dono, n))? else { return Ok(None) };
-    let chave = f.chave_bytes()?;
-    Ok(Some(match pacote::desempacotar(&chave, &f.familia_id, dono, n, &bytes) {
+/// O pacote `n` da época `epoca` de `dono` (com a chave dessa época), se já existe. Ausente = Ok(None): fim da
+/// sequência sem buracos por enquanto. Erro de rede = Err (a rodada para e tenta de novo no próximo ciclo);
+/// só falha ao decifrar vira `Ilegivel`.
+pub fn baixar_proximo(remoto: &dyn Remoto, familia_id: &str, chave: &[u8; 32], epoca: u32, dono: &str, n: u32) -> R<Option<Baixado>> {
+    let Some(bytes) = remoto.baixar(&pacote::nome(dono, epoca, n))? else { return Ok(None) };
+    Ok(Some(match pacote::desempacotar(chave, familia_id, epoca, dono, n, &bytes) {
         Ok(evs) => Baixado::Eventos(evs),
         Err(_) => Baixado::Ilegivel,
     }))
@@ -99,8 +143,8 @@ pub fn aceitaveis<'a>(evs: &'a [Value], aparelho: &'a str) -> impl Iterator<Item
 }
 
 /// Aparelhos cujos eventos não sobem daqui: os lidos (`sync_lidos`) e os vistos em eventos recebidos (`sync_vistos`).
-pub fn recebidos(lidos: &BTreeMap<String, u32>, vistos: &BTreeSet<String>) -> Vec<String> {
-    lidos.keys().chain(vistos).cloned().collect::<BTreeSet<_>>().into_iter().collect()
+pub fn recebidos(lidos: &Lidos, vistos: &BTreeSet<String>) -> Vec<String> {
+    lidos.aparelhos().chain(vistos).cloned().collect::<BTreeSet<_>>().into_iter().collect()
 }
 
 #[cfg(test)]
@@ -133,22 +177,29 @@ mod testes {
         }
     }
 
-    /// Lê tudo o que é novo de cada dono, sondando n = ja + 1, ja + 2… como o sync_receber.
-    fn ler_tudo(m: &dyn Remoto, f: &Familia, aparelho: &str, lidos: &mut BTreeMap<String, u32>) -> Vec<(String, u32, Vec<Value>)> {
+    /// Lê tudo o que é novo de cada dono, em cada época de `chaves`, sondando n = ja + 1, ja + 2… como o sync_receber.
+    pub fn ler_epocas(m: &dyn Remoto, fid: &str, chaves: &[(u32, [u8; 32])], aparelho: &str, lidos: &mut Lidos) -> Vec<(String, u32, u32, Vec<Value>)> {
         let mut out = Vec::new();
         for dono in donos(m, aparelho).unwrap() {
-            let mut n = lidos.get(&dono).copied().unwrap_or(0) + 1;
-            while let Some(b) = baixar_proximo(m, f, &dono, n).unwrap() {
-                let evs = match b {
-                    Baixado::Eventos(e) => e,
-                    Baixado::Ilegivel => vec![],
-                };
-                out.push((dono.clone(), n, evs));
-                lidos.insert(dono.clone(), n);
-                n += 1;
+            for (epoca, chave) in chaves {
+                let mut n = lidos.ultimo(&dono, *epoca) + 1;
+                while let Some(b) = baixar_proximo(m, fid, chave, *epoca, &dono, n).unwrap() {
+                    let evs = match b {
+                        Baixado::Eventos(e) => e,
+                        Baixado::Ilegivel => vec![],
+                    };
+                    out.push((dono.clone(), *epoca, n, evs));
+                    lidos.marcar(&dono, *epoca, n);
+                    n += 1;
+                }
             }
         }
         out
+    }
+
+    /// Só a época atual de `f`, com a chave dela (os testes de antes das épocas).
+    fn ler_tudo(m: &dyn Remoto, f: &Familia, aparelho: &str, lidos: &mut Lidos) -> Vec<(String, u32, Vec<Value>)> {
+        ler_epocas(m, &f.familia_id, &[(f.epoca, f.chave_bytes().unwrap())], aparelho, lidos).into_iter().map(|(d, _, n, e)| (d, n, e)).collect()
     }
 
     #[test]
@@ -159,12 +210,12 @@ mod testes {
         assert_eq!(enviar(&m, &f, "pc-a", &evs(&["3"]), 2).unwrap(), (2, 1, Some("3".into())));
         assert_eq!(enviar(&m, &f, "pc-a", &[], 3).unwrap(), (0, 0, None));
 
-        let mut lidos = BTreeMap::new();
+        let mut lidos = Lidos::default();
         let lido = ler_tudo(&m, &f, "cel-b", &mut lidos);
         assert_eq!(lido.iter().map(|(d, n, _)| (d.as_str(), *n)).collect::<Vec<_>>(), [("pc-a", 1), ("pc-a", 2)]);
         assert_eq!(lido.into_iter().flat_map(|(_, _, e)| e).collect::<Vec<_>>(), evs(&["1", "2", "3"]));
         assert!(ler_tudo(&m, &f, "cel-b", &mut lidos).is_empty());
-        assert!(ler_tudo(&m, &f, "pc-a", &mut BTreeMap::new()).is_empty(), "não lê a própria pasta");
+        assert!(ler_tudo(&m, &f, "pc-a", &mut Lidos::default()).is_empty(), "não lê a própria pasta");
     }
 
     #[test]
@@ -181,13 +232,17 @@ mod testes {
         let m = Memoria::default();
         let f = Familia::nova("a/b", "t");
         enviar(&m, &f, "pc-a", &evs(&["1"]), 1).unwrap();
-        assert!(matches!(baixar_proximo(&m, &Familia::nova("a/b", "t"), "pc-a", 1), Ok(Some(Baixado::Ilegivel))));
+        let g = Familia::nova("a/b", "t");
+        assert!(matches!(baixar_proximo(&m, &f.familia_id, &g.chave_bytes().unwrap(), 0, "pc-a", 1), Ok(Some(Baixado::Ilegivel))));
+        // Outra época: outro nome de arquivo, nada encontrado.
+        assert!(matches!(baixar_proximo(&m, &f.familia_id, &f.chave_bytes().unwrap(), 1, "pc-a", 1), Ok(None)));
     }
 
     #[test]
     fn pacote_ausente_e_o_fim_da_sequencia() {
         let m = Memoria::default();
-        assert!(matches!(baixar_proximo(&m, &Familia::nova("a/b", "t"), "pc-a", 1), Ok(None)));
+        let f = Familia::nova("a/b", "t");
+        assert!(matches!(baixar_proximo(&m, &f.familia_id, &f.chave_bytes().unwrap(), 0, "pc-a", 1), Ok(None)));
     }
 
     #[test]
@@ -223,7 +278,7 @@ mod testes {
         // Próxima rodada: o mesmo recorte e mais um evento, de novo a partir do pacote 1.
         assert_eq!(enviar(&m, &f, "pc-a", &evs(&["1", "2", "3"]), 1).unwrap(), (2, 3, Some("3".into())));
         assert_eq!(m.listar("eventos/pc-a").unwrap(), ["000001.bin", "000002.bin"]);
-        let mut lidos = BTreeMap::new();
+        let mut lidos = Lidos::default();
         let lido: Vec<Value> = ler_tudo(&m, &f, "cel-b", &mut lidos).into_iter().flat_map(|(_, _, e)| e).collect();
         assert_eq!(lido, evs(&["1", "2", "3"]));
     }
@@ -235,10 +290,10 @@ mod testes {
         enviar(&m, &f, "pc-a", &evs(&["1"]), 1).unwrap();
         enviar(&m, &f, "pc-a", &evs(&["2"]), 2).unwrap();
         enviar(&m, &f, "pc-a", &evs(&["4"]), 4).unwrap();
-        let mut lidos = BTreeMap::new();
+        let mut lidos = Lidos::default();
         let lido = ler_tudo(&m, &f, "cel-b", &mut lidos);
         assert_eq!(lido.iter().map(|(_, n, _)| *n).collect::<Vec<_>>(), [1, 2]);
-        assert_eq!(lidos.get("pc-a"), Some(&2));
+        assert_eq!(lidos.ultimo("pc-a", 0), 2);
     }
 
     #[test]
@@ -260,9 +315,10 @@ mod testes {
 
     #[test]
     fn recebidos_junta_lidos_e_vistos() {
-        let lidos = BTreeMap::from([("cel-b".to_string(), 3), ("tab-c".to_string(), 1)]);
+        let mut lidos = Lidos { zero: BTreeMap::from([("cel-b".to_string(), 3), ("tab-c".to_string(), 1)]), ..Default::default() };
+        lidos.marcar("cel-d", 1, 2);
         let vistos = std::collections::BTreeSet::from(["pc-x".to_string(), "cel-b".to_string()]);
-        assert_eq!(recebidos(&lidos, &vistos), ["cel-b", "pc-x", "tab-c"]);
+        assert_eq!(recebidos(&lidos, &vistos), ["cel-b", "cel-d", "pc-x", "tab-c"]);
     }
 
     #[test]
@@ -282,7 +338,7 @@ mod testes {
         let f = Familia::nova("a/b", "t");
         enviar(&m, &f, "pc-a", &evs(&["x", "y"]), 1).unwrap();
         assert_eq!(enviar(&m, &f, "pc-a", &evs(&["a"]), 1).unwrap(), (2, 1, Some("a".into())));
-        let mut lidos = BTreeMap::new();
+        let mut lidos = Lidos::default();
         let lido: Vec<Value> = ler_tudo(&m, &f, "cel-b", &mut lidos).into_iter().flat_map(|(_, _, e)| e).collect();
         assert_eq!(lido, evs(&["x", "y", "a"]));
     }
@@ -290,8 +346,55 @@ mod testes {
     #[test]
     fn pendencia_antiga_vira_cursor_sem_ultimo_id() {
         let p: Pendencia = serde_json::from_value(json!({"n": 4, "enviados": 37})).unwrap();
-        assert_eq!(p, Pendencia { n: 4, ultimo_id: None });
-        let nova = Pendencia { n: 5, ultimo_id: Some("x".into()) };
+        assert_eq!(p, Pendencia { n: 4, ultimo_id: None, epoca: 0 });
+        let nova = Pendencia { n: 5, ultimo_id: Some("x".into()), epoca: 0 };
         assert_eq!(serde_json::to_value(&nova).unwrap(), json!({"n": 5, "ultimoId": "x"}));
+        let e2 = Pendencia { n: 3, ultimo_id: None, epoca: 2 };
+        assert_eq!(serde_json::from_value::<Pendencia>(serde_json::to_value(&e2).unwrap()).unwrap(), e2);
+    }
+
+    #[test]
+    fn epoca_nova_recomeca_a_numeracao() {
+        let p = Pendencia { n: 7, ultimo_id: Some("x".into()), epoca: 0 };
+        assert_eq!(p.proximo_n(0), 8);
+        assert_eq!(p.proximo_n(1), 1);
+        assert_eq!(Pendencia { n: 2, ultimo_id: None, epoca: 1 }.proximo_n(1), 3);
+    }
+
+    #[test]
+    fn cursor_por_aparelho_e_epoca_nao_pula_pacote() {
+        // pc-a escreve na época 0, troca de chave e escreve na época 1; pc-c, atrasado, ainda escreve na época 0.
+        let m = SemListarPasta(Memoria::default());
+        let f = Familia::nova("a/b", "t");
+        let k0 = f.chave_bytes().unwrap();
+        let k1 = crate::cripto::aleatorio::<32>();
+        let f1 = Familia { epoca: 1, chave: crate::familia::chave_hex(&k1), ..f.clone() };
+        let chaves = [(0, k0), (1, k1)];
+        let ids = |l: Vec<(String, u32, u32, Vec<Value>)>| {
+            let mut v: Vec<_> = l.into_iter().map(|(d, e, n, _)| (d, e, n)).collect();
+            v.sort();
+            v
+        };
+        let t = |d: &str, e: u32, n: u32| (d.to_string(), e, n);
+        enviar(&m, &f, "pc-a", &evs(&["1"]), 1).unwrap();
+        let mut lidos = Lidos::default();
+        assert_eq!(ids(ler_epocas(&m, &f.familia_id, &chaves, "cel-b", &mut lidos)), [t("pc-a", 0, 1)]);
+        // Entre duas leituras: o pacote 2 da época 0 e o 1 da época 1 de pc-a, e o 1 da época 0 de pc-c.
+        enviar(&m, &f, "pc-a", &evs(&["2"]), 2).unwrap();
+        assert_eq!(enviar(&m, &f1, "pc-a", &evs(&["3"]), 1).unwrap(), (1, 1, Some("3".into())));
+        enviar(&m, &f, "pc-c", &evs(&["c1"]), 1).unwrap();
+        assert_eq!(ids(ler_epocas(&m, &f.familia_id, &chaves, "cel-b", &mut lidos)), [t("pc-a", 0, 2), t("pc-a", 1, 1), t("pc-c", 0, 1)]);
+        assert_eq!((lidos.ultimo("pc-a", 0), lidos.ultimo("pc-a", 1), lidos.ultimo("pc-c", 0)), (2, 1, 1));
+        // Lacuna na época 1 (pacote 2 ausente): para só aquela sequência; a época 0 segue.
+        enviar(&m, &f1, "pc-a", &evs(&["5"]), 3).unwrap();
+        enviar(&m, &f, "pc-a", &evs(&["4"]), 3).unwrap();
+        assert_eq!(ids(ler_epocas(&m, &f.familia_id, &chaves, "cel-b", &mut lidos)), [t("pc-a", 0, 3)]);
+        assert_eq!(lidos.ultimo("pc-a", 1), 1);
+        // Quem só tem a chave da época 0 não lê a época 1 (fica para quando tiver a chave).
+        let mut so0 = Lidos::default();
+        assert!(ids(ler_epocas(&m, &f.familia_id, &[(0, k0)], "cel-x", &mut so0)).iter().all(|(_, e, _)| *e == 0));
+        assert_eq!(so0.ultimo("pc-a", 1), 0);
+        // O pacote da época 1 com a chave da época 0 seria ilegível: sem a chave certa, nem se tenta.
+        assert!(matches!(baixar_proximo(&m, &f.familia_id, &k0, 1, "pc-a", 1), Ok(Some(Baixado::Ilegivel))));
     }
 }

@@ -4,6 +4,7 @@ mod banco;
 #[cfg(target_os = "android")]
 mod cofre_android;
 mod cripto;
+mod epoca;
 mod familia;
 mod lembretes;
 mod notificacao;
@@ -74,10 +75,29 @@ fn com_banco<T>(st: &State<Estado>, f: impl FnOnce(&mut Banco) -> R<T>) -> R<T> 
 struct InfoFamilia {
     familia_id: String,
     repo: String,
+    /// Época da chave da família (sobe a cada aparelho removido).
+    epoca: u32,
+    /// Este aparelho foi removido da família: não sincroniza mais (os dados daqui ficam).
+    removido: bool,
 }
 
-fn info_de(f: &familia::Familia) -> InfoFamilia {
-    InfoFamilia { familia_id: f.familia_id.clone(), repo: f.repo.clone() }
+fn info_de(f: &familia::Familia, removido: bool) -> InfoFamilia {
+    InfoFamilia { familia_id: f.familia_id.clone(), repo: f.repo.clone(), epoca: f.epoca, removido }
+}
+
+// Chaves do kv por família: chaves das épocas anteriores, a marca de removido (época em que saiu) e a troca de chave em andamento.
+fn kv_antigas(fid: &str) -> String {
+    format!("chaves_antigas:{fid}")
+}
+fn kv_removido(fid: &str) -> String {
+    format!("removido:{fid}")
+}
+fn kv_rotacao(fid: &str) -> String {
+    format!("rotacao:{fid}")
+}
+
+fn esta_removido(b: &Banco, fid: &str) -> R<bool> {
+    Ok(ler_kv::<Option<u32>>(b, &kv_removido(fid))?.is_some())
 }
 
 fn ler_familia(b: &Banco) -> R<Option<familia::Familia>> {
@@ -101,7 +121,10 @@ fn guardar_familia(st: &State<Estado>, f: &familia::Familia) -> R<()> {
 
 #[tauri::command]
 async fn familia_info(st: State<'_, Estado>) -> R<Option<InfoFamilia>> {
-    Ok(com_banco(&st, |b| ler_familia(b))?.as_ref().map(info_de))
+    com_banco(&st, |b| match ler_familia(b)? {
+        Some(f) => Ok(Some(info_de(&f, esta_removido(b, &f.familia_id)?))),
+        None => Ok(None),
+    })
 }
 
 #[tauri::command]
@@ -122,7 +145,7 @@ async fn familia_criar(st: State<'_, Estado>, repo: String, token: String) -> R<
     })
     .await?;
     guardar_familia(&st, &f)?;
-    Ok(info_de(&f))
+    Ok(info_de(&f, false))
 }
 
 fn agora_ms() -> u64 {
@@ -131,7 +154,7 @@ fn agora_ms() -> u64 {
 
 #[tauri::command]
 async fn familia_entrar(st: State<'_, Estado>, convite: String) -> R<InfoFamilia> {
-    let f = familia::ler_convite(&convite, agora_ms())?;
+    let (f, antigas_convite) = familia::ler_convite(&convite, agora_ms())?;
     if let Some(atual) = com_banco(&st, |b| ler_familia(b))? {
         if atual.familia_id != f.familia_id {
             return Err("este aparelho já está numa família; saia dela antes de entrar em outra".into());
@@ -144,8 +167,26 @@ async fn familia_entrar(st: State<'_, Estado>, convite: String) -> R<InfoFamilia
         familia::conferir_familia_json(&r, &g.familia_id, false)
     })
     .await?;
+    // Mesma família de novo (ex.: depois de ser removido): junta as chaves antigas e fica com a época mais nova.
+    // A marca de removido sai; se o convite for de antes da remoção, a próxima sincronização marca de novo.
+    let f = com_banco(&st, |b| {
+        let mut antigas: familia::Antigas = ler_kv(b, &kv_antigas(&f.familia_id))?;
+        antigas.extend(antigas_convite);
+        let mut fica = f;
+        if let Some(atual) = ler_familia(b)?.filter(|a| a.familia_id == fica.familia_id) {
+            let (velha, nova) = if atual.epoca > fica.epoca { (fica, atual) } else { (atual, fica) };
+            if velha.epoca < nova.epoca {
+                antigas.insert(velha.epoca, velha.chave);
+            }
+            fica = nova;
+        }
+        antigas.retain(|e, _| *e < fica.epoca);
+        b.kv_set(&kv_antigas(&fica.familia_id), &serde_json::to_value(&antigas).map_err(|e| e.to_string())?)?;
+        b.kv_set(&kv_removido(&fica.familia_id), &Value::Null)?;
+        Ok(fica)
+    })?;
     guardar_familia(&st, &f)?;
-    Ok(info_de(&f))
+    Ok(info_de(&f, false))
 }
 
 #[tauri::command]
@@ -156,8 +197,15 @@ async fn familia_sair(st: State<'_, Estado>) -> R<()> {
 
 #[tauri::command]
 async fn familia_convite(st: State<'_, Estado>) -> R<String> {
-    // O convite vale por 10 minutos.
-    Ok(familia::convite(&exigir_familia(&st)?, Some(agora_ms() + 10 * 60 * 1000)))
+    // O convite vale por 10 minutos e leva as chaves das épocas anteriores (quem entra lê o histórico todo).
+    let f = exigir_familia(&st)?;
+    let antigas: familia::Antigas = com_banco(&st, |b| {
+        if esta_removido(b, &f.familia_id)? {
+            return Err(epoca::REMOVIDO.into());
+        }
+        ler_kv(b, &kv_antigas(&f.familia_id))
+    })?;
+    Ok(familia::convite(&f, &antigas, Some(agora_ms() + 10 * 60 * 1000)))
 }
 
 fn ler_kv<T: serde::de::DeserializeOwned + Default>(b: &Banco, chave: &str) -> R<T> {
@@ -178,30 +226,81 @@ async fn sync_cursor(st: State<'_, Estado>) -> R<CursorSync> {
     let f = exigir_familia(&st)?;
     com_banco(&st, |b| {
         let p: sincronia::Pendencia = ler_kv(b, &format!("sync_envio:{}", f.familia_id))?;
-        let lidos: std::collections::BTreeMap<String, u32> = ler_kv(b, &format!("sync_lidos:{}", f.familia_id))?;
+        let lidos = ler_lidos(b, &f.familia_id)?;
         let vistos: std::collections::BTreeSet<String> = ler_kv(b, &format!("sync_vistos:{}", f.familia_id))?;
         Ok(CursorSync { ultimo_id: p.ultimo_id, recebidos: sincronia::recebidos(&lidos, &vistos) })
     })
 }
 
+fn ler_lidos(b: &Banco, fid: &str) -> R<sincronia::Lidos> {
+    Ok(sincronia::Lidos { zero: ler_kv(b, &format!("sync_lidos:{fid}"))?, epocas: ler_kv(b, &format!("sync_lidos_epocas:{fid}"))? })
+}
+
+/// Grava só o cursor da época que mudou (a 0 continua no formato de antes).
+fn gravar_lidos(b: &Banco, fid: &str, l: &sincronia::Lidos, epoca: u32) -> R<()> {
+    let (chave, valor) = if epoca == 0 { (format!("sync_lidos:{fid}"), serde_json::to_value(&l.zero)) } else { (format!("sync_lidos_epocas:{fid}"), serde_json::to_value(&l.epocas)) };
+    b.kv_set(&chave, &valor.map_err(|e| e.to_string())?)
+}
+
+/// Antes de enviar ou receber: segue as trocas de chave da família (`epoca::atualizar`) e grava a época nova.
+/// Removido = erro REMOVIDO, e a marca fica no kv: daí em diante nada sobe nem desce, sem rede.
+async fn atualizar_epoca(st: &State<'_, Estado>, aparelho: &str) -> R<familia::Familia> {
+    let (f, antigas, privada) = com_banco(st, |b| {
+        let f = ler_familia(b)?.ok_or("este aparelho não está numa família")?;
+        if esta_removido(b, &f.familia_id)? {
+            return Err(epoca::REMOVIDO.to_string());
+        }
+        let antigas: familia::Antigas = ler_kv(b, &kv_antigas(&f.familia_id))?;
+        Ok((f, antigas, aparelho::segredo(b)?.to_bytes()))
+    })?;
+    let (antes, ap) = (f.epoca, aparelho.to_string());
+    let (f, antigas, situacao) = rede(move || {
+        let (mut f, mut antigas) = (f, antigas);
+        let s = epoca::atualizar(&remoto::GitHub::new(&f.repo, &f.token), &mut f, &mut antigas, &ap, &privada)?;
+        Ok((f, antigas, s))
+    })
+    .await?;
+    match situacao {
+        epoca::Situacao::Igual => Ok(f),
+        epoca::Situacao::Avancou => {
+            com_banco(st, |b| {
+                // Só grava se a família no kv ainda é a mesma, na época de antes (não saiu nem entrou de novo no meio).
+                if ler_familia(b)?.is_some_and(|a| a.familia_id == f.familia_id && a.epoca == antes) {
+                    // As chaves antigas primeiro: se cair entre as duas gravações, nenhuma chave se perde.
+                    b.kv_set(&kv_antigas(&f.familia_id), &serde_json::to_value(&antigas).map_err(|e| e.to_string())?)?;
+                    b.kv_set("familia", &serde_json::to_value(&f).map_err(|e| e.to_string())?)?;
+                }
+                Ok(())
+            })?;
+            Ok(f)
+        }
+        epoca::Situacao::Removido(t) => {
+            com_banco(st, |b| b.kv_set(&kv_removido(&f.familia_id), &json!(t)))?;
+            Err(epoca::REMOVIDO.into())
+        }
+    }
+}
+
 /// Sobe o recorte que o front montou (os eventos depois de `ultimoId`); devolve quantos eventos subiram.
+/// Antes, adota uma chave nova da família se houver: nada sobe com a chave de uma época que já passou.
 #[tauri::command]
 async fn sync_enviar(st: State<'_, Estado>, aparelho: String, eventos: Vec<Value>) -> R<usize> {
     let Ok(_vez) = st.sync.try_lock() else { return Ok(0) };
     if eventos.is_empty() {
         return Ok(0);
     }
-    let f = exigir_familia(&st)?;
+    let f = atualizar_epoca(&st, &aparelho).await?;
     let chave_envio = format!("sync_envio:{}", f.familia_id);
     let p: sincronia::Pendencia = com_banco(&st, |b| ler_kv(b, &chave_envio))?;
+    let (prox, epoca) = (p.proximo_n(f.epoca), f.epoca);
     let (ultimo, enviados, ultimo_id) = rede(move || {
         let r = remoto::GitHub::new(&f.repo, &f.token);
-        sincronia::enviar(&r, &f, &aparelho, &eventos, p.n + 1)
+        sincronia::enviar(&r, &f, &aparelho, &eventos, prox)
     })
     .await?;
     // Avançou o número (pacote enviado ou número já ocupado no remoto): grava, mantendo o último id se nada subiu.
     if ultimo > 0 {
-        let nova = sincronia::Pendencia { n: ultimo, ultimo_id: ultimo_id.or(p.ultimo_id) };
+        let nova = sincronia::Pendencia { n: ultimo, ultimo_id: ultimo_id.or(p.ultimo_id), epoca };
         com_banco(&st, |b| b.kv_set(&chave_envio, &serde_json::to_value(nova).map_err(|e| e.to_string())?))?;
     }
     Ok(enviados)
@@ -210,23 +309,24 @@ async fn sync_enviar(st: State<'_, Estado>, aparelho: String, eventos: Vec<Value
 #[tauri::command]
 async fn sync_receber(st: State<'_, Estado>, aparelho: String) -> R<usize> {
     let Ok(_vez) = st.sync.try_lock() else { return Ok(0) };
-    let f = exigir_familia(&st)?;
-    let chave_lidos = format!("sync_lidos:{}", f.familia_id);
-    let mut lidos: std::collections::BTreeMap<String, u32> = com_banco(&st, |b| ler_kv(b, &chave_lidos))?;
+    let f = atualizar_epoca(&st, &aparelho).await?;
+    let fid = f.familia_id.clone();
+    let (mut lidos, chaves) = com_banco(&st, |b| Ok((ler_lidos(b, &fid)?, epoca::chaves(&f, &ler_kv(b, &kv_antigas(&fid))?)?)))?;
     // Aparelhos vistos em eventos aceitos (inclusive de fora da família): os eventos deles não sobem daqui de novo.
     let chave_vistos = format!("sync_vistos:{}", f.familia_id);
     let mut vistos: std::collections::BTreeSet<String> = com_banco(&st, |b| ler_kv(b, &chave_vistos))?;
     let (f2, ap) = (f.clone(), aparelho.clone());
     let donos = rede(move || sincronia::donos(&remoto::GitHub::new(&f2.repo, &f2.token), &ap)).await?;
     let mut entraram = 0;
-    for dono in &donos {
-        let dono = dono.clone();
+    // Cada (aparelho, época) é uma sequência própria: lê todas as épocas cuja chave este aparelho tem.
+    let sequencias: Vec<(String, u32, [u8; 32])> = donos.iter().flat_map(|d| chaves.iter().map(|(e, k)| (d.clone(), *e, *k))).collect();
+    for (dono, epoca, chave) in sequencias {
         // Sonda n = lidos + 1, + 2, … até o primeiro ausente (só a sequência sem buracos).
-        let mut n = lidos.get(&dono).copied().unwrap_or(0) + 1;
+        let mut n = lidos.ultimo(&dono, epoca) + 1;
         loop {
             let (g, d) = (f.clone(), dono.clone());
             // Erro de rede: aborta e tenta no próximo ciclo. Só o que não decifra é pulado.
-            let Some(baixado) = rede(move || sincronia::baixar_proximo(&remoto::GitHub::new(&g.repo, &g.token), &g, &d, n)).await? else { break };
+            let Some(baixado) = rede(move || sincronia::baixar_proximo(&remoto::GitHub::new(&g.repo, &g.token), &g.familia_id, &chave, epoca, &d, n)).await? else { break };
             let evs = match baixado {
                 sincronia::Baixado::Eventos(evs) => evs,
                 sincronia::Baixado::Ilegivel => vec![],
@@ -247,12 +347,73 @@ async fn sync_receber(st: State<'_, Estado>, aparelho: String) -> R<usize> {
                 }
                 Ok(c)
             })?;
-            lidos.insert(dono.clone(), n);
-            com_banco(&st, |b| b.kv_set(&chave_lidos, &serde_json::to_value(&lidos).map_err(|e| e.to_string())?))?;
+            lidos.marcar(&dono, epoca, n);
+            com_banco(&st, |b| gravar_lidos(b, &fid, &lidos, epoca))?;
             n += 1;
         }
     }
     Ok(entraram)
+}
+
+#[derive(serde::Deserialize)]
+struct Destinatario {
+    id: String,
+    /// Chave pública X25519 (hex), a do evento `aparelho`.
+    chave: String,
+}
+
+/// "Remover aparelho": troca a chave da família (época nova) sem o `removido`. A chave nova vai selada para cada
+/// um dos `destinatarios` (os aparelhos que ficam e têm chave pública) e para este, com o `token` novo se veio.
+/// Só passa a usar a chave nova depois que todos os arquivos e o marco subiram. Caiu no meio: o pedido fica no kv e
+/// tentar de novo grava os mesmos bytes. O front emite o evento `removerAparelho` quando isto devolve Ok.
+#[tauri::command]
+async fn familia_remover_aparelho(st: State<'_, Estado>, aparelho: String, removido: String, destinatarios: Vec<Destinatario>, token: Option<String>) -> R<InfoFamilia> {
+    if removido == aparelho {
+        return Err("para tirar este aparelho, use \"Sair da família\"".into());
+    }
+    if !epoca::id_valido(&removido) || !epoca::id_valido(&aparelho) {
+        return Err("aparelho inválido".into());
+    }
+    // Espera a sincronização em andamento (não pode trocar a chave no meio de um envio).
+    let _vez = st.sync.lock().await;
+    let token = token.map(|t| t.trim().to_string()).filter(|t| !t.is_empty());
+    let f = atualizar_epoca(&st, &aparelho).await?;
+    let mut dest: std::collections::BTreeMap<String, String> = destinatarios.into_iter().filter(|d| d.id != removido && d.id != aparelho).map(|d| (d.id, d.chave)).collect();
+    dest.insert(aparelho.clone(), com_banco(&st, |b| aparelho::chave_publica(b))?);
+    let chave_rot = kv_rotacao(&f.familia_id);
+    let guardada: Option<epoca::Rotacao> = com_banco(&st, |b| ler_kv(b, &chave_rot))?;
+    let r = match guardada.filter(|r| r.serve_para(f.epoca, &removido, &token, &dest)) {
+        Some(r) => r,
+        None => {
+            let (g, rem, tk) = (f.clone(), removido.clone(), token.clone());
+            let r = rede(move || {
+                if let Some(t) = &tk {
+                    remoto::GitHub::new(&g.repo, t).conferir().map_err(|e| format!("o token novo não funciona: {}", e.trim_start_matches("TOKEN:").trim()))?;
+                }
+                epoca::preparar(&remoto::GitHub::new(&g.repo, &g.token), &g, &rem, dest, tk)
+            })
+            .await?;
+            // Guarda antes de subir qualquer arquivo: tentar de novo usa a mesma chave e os mesmos bytes.
+            com_banco(&st, |b| b.kv_set(&chave_rot, &serde_json::to_value(&r).map_err(|e| e.to_string())?))?;
+            r
+        }
+    };
+    let (g, r2) = (f.clone(), r.clone());
+    if let Err(e) = rede(move || epoca::publicar(&remoto::GitHub::new(&g.repo, &g.token), &r2)).await {
+        if let Some(msg) = e.strip_prefix(epoca::CONFLITO) {
+            // Outra troca ganhou: esta nunca vai valer. A próxima tentativa parte da época nova.
+            com_banco(&st, |b| b.kv_set(&chave_rot, &Value::Null))?;
+            return Err(msg.trim().to_string());
+        }
+        return Err(e);
+    }
+    // O marco é nosso: adota a chave nova pelo próprio arquivo selado, como os outros aparelhos.
+    let f = atualizar_epoca(&st, &aparelho).await?;
+    if f.epoca < r.epoca {
+        return Err("a troca de chave não terminou; tente de novo".into());
+    }
+    com_banco(&st, |b| b.kv_set(&chave_rot, &Value::Null))?;
+    Ok(info_de(&f, false))
 }
 
 // ── Início ──────────────────────────────────────────────────────────────────
@@ -659,6 +820,7 @@ pub fn run() {
             familia_entrar,
             familia_sair,
             familia_convite,
+            familia_remover_aparelho,
             sync_cursor,
             sync_enviar,
             sync_receber,
