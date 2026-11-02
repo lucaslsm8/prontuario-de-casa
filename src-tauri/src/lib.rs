@@ -1,4 +1,5 @@
 mod aparelho;
+mod apk;
 mod backup;
 mod banco;
 #[cfg(target_os = "android")]
@@ -6,6 +7,8 @@ mod cofre_android;
 mod cripto;
 mod epoca;
 mod familia;
+#[cfg(target_os = "android")]
+mod instalador_android;
 mod lembretes;
 mod notificacao;
 mod pacote;
@@ -824,6 +827,39 @@ async fn baixar_agenda(url: String) -> R<String> {
     .map_err(|_| "falha ao baixar".to_string())?
 }
 
+// ── Atualização do APK (Android) ────────────────────────────────────────────
+
+/// Consulta a última release do GitHub; devolve { versao, notas, url, sha256 } se for mais nova que esta versão.
+#[tauri::command]
+async fn apk_verificar() -> R<Option<apk::Nova>> {
+    tauri::async_runtime::spawn_blocking(|| apk::verificar(env!("CARGO_PKG_VERSION"))).await.map_err(|_| "falha ao procurar atualização".to_string())?
+}
+
+/// Baixa o APK para o cache do app, confere o SHA-256 e devolve o caminho.
+#[tauri::command]
+async fn apk_baixar(app: tauri::AppHandle, url: String, sha256: String) -> R<String> {
+    let dir = app.path().app_cache_dir().map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let destino = dir.join("atualizacao.apk");
+    let d2 = destino.clone();
+    tauri::async_runtime::spawn_blocking(move || apk::baixar(&url, &sha256, &d2)).await.map_err(|_| "falha ao baixar".to_string())??;
+    Ok(destino.to_string_lossy().into_owned())
+}
+
+/// Abre o instalador do Android para o APK baixado. "aberto" ou "permissao" (abriu a tela de configurações).
+#[tauri::command]
+async fn apk_instalar(app: tauri::AppHandle, caminho: String) -> R<String> {
+    #[cfg(target_os = "android")]
+    {
+        instalador_android::instalar(&app, &caminho).await
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = (app, caminho);
+        Err("a instalação do APK só existe no Android".into())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default().plugin(tauri_plugin_dialog::init());
@@ -836,6 +872,9 @@ pub fn run() {
     // Android: BSSID do Wi-Fi para a rede de casa (RedePlugin.kt).
     #[cfg(target_os = "android")]
     let builder = builder.plugin(rede_android::init());
+    // Android: abre o instalador de pacotes para atualizar o APK (InstaladorPlugin.kt).
+    #[cfg(target_os = "android")]
+    let builder = builder.plugin(instalador_android::init());
     // Celular: abrir com biometria.
     #[cfg(mobile)]
     let builder = builder.plugin(tauri_plugin_biometric::init());
@@ -879,6 +918,9 @@ pub fn run() {
             agendar_lembretes,
             exportar_arquivo,
             baixar_agenda,
+            apk_verificar,
+            apk_baixar,
+            apk_instalar,
             familia_info,
             familia_criar,
             familia_entrar,

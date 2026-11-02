@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { HOJE, MODO_EXEMPLO } from '../data/tempo';
 import { autenticarBiometria, biometriaDisponivel } from '../data/biometria';
+import { instalarAtualizacao, noCelular, useInfoAtualizacao, verificarAtualizacao } from '../data/atualizacao';
 import { compartilhado, eu, useStore } from '../data/store';
 import { familia } from '../data/pets';
 import { dataLonga, quando, tamanhoArquivo } from '../data/format';
@@ -282,9 +283,12 @@ const HISTORICO = [
 
 /** M22 — Atualizações (Android). */
 export function Atualizacoes() {
-  const { state, api } = useStore();
+  const store = useStore();
+  const { state, api } = store;
   const nav = useNavigate();
   const u = state.config.update;
+  const real = noCelular();
+  const at = useInfoAtualizacao();
   const [historico, setHistorico] = useState(false);
   const set = (patch: Partial<typeof u>) => api.setConfig({ update: { ...u, ...patch } });
 
@@ -295,7 +299,30 @@ export function Atualizacoes() {
         <h1 className="title" style={{ margin: 0 }}>Atualizações</h1>
         <span style={{ fontSize: 14, color: 'var(--text-2)' }}>Versão instalada <span className="mono">{u.instalada}</span></span>
       </div>
-      {u.disponivel ? (
+      {real ? (
+        at.disponivel ? (
+          <div className="card" style={{ border: '1.5px solid var(--teal)', padding: 16, gap: 12 }}>
+            <div className="hstack" style={{ justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 17, fontWeight: 600 }}>Versão {at.disponivel.versao} disponível</span>
+              <Pill>Nova</Pill>
+            </div>
+            <div className="stack" style={{ gap: 6, fontSize: 14, lineHeight: 1.4 }}>
+              {at.disponivel.notas.map((n) => <span key={n}>• {n}</span>)}
+            </div>
+            <button type="button" className="btn btn--ink btn--h48" disabled={at.estado === 'baixando'} onClick={() => void instalarAtualizacao(store)}>
+              {at.estado === 'baixando' ? 'Baixando…' : 'Baixar e instalar'}
+            </button>
+            <span style={{ fontSize: 12, color: 'var(--text-3)' }}>GitHub Releases · SHA-256 conferido antes de instalar</span>
+          </div>
+        ) : (
+          <div className="card card--pad" style={{ gap: 10 }}>
+            <span style={{ fontSize: 15, fontWeight: 600 }}>
+              {at.estado === 'verificando' ? 'Procurando…' : at.estado === 'erro' ? 'Não foi possível procurar atualizações' : at.estado === 'em-dia' ? 'Você está na versão mais recente' : 'Toque para procurar atualizações'}
+            </span>
+            <button type="button" className="btn btn--outline btn--h48" disabled={at.estado === 'verificando'} onClick={() => void verificarAtualizacao(store, { manual: true })}>Procurar atualizações</button>
+          </div>
+        )
+      ) : u.disponivel ? (
         <div className="card" style={{ border: '1.5px solid var(--teal)', padding: 16, gap: 12 }}>
           <div className="hstack" style={{ justifyContent: 'space-between' }}>
             <span style={{ fontSize: 17, fontWeight: 600 }}>Versão {u.disponivel.versao} disponível</span>
@@ -326,7 +353,7 @@ export function Atualizacoes() {
           label={<span className="stack" style={{ gap: 2 }}><span>Backup antes de atualizar</span><span style={{ fontSize: 12, color: 'var(--text-3)' }}>Recomendado</span></span>}
           valor={<Toggle on={u.backupAntes} onChange={(v) => set({ backupAntes: v })} label="Backup antes de atualizar" />}
         />
-        <Row label="Última verificação" valor={u.ultimaVerificacao} valorStyle={{ color: 'var(--ink)' }} />
+        {!real && <Row label="Última verificação" valor={u.ultimaVerificacao} valorStyle={{ color: 'var(--ink)' }} />}
       </div>
 {MODO_EXEMPLO && (
         <button type="button" className="btn btn--link" style={{ fontSize: 14, fontWeight: 500, minHeight: 44 }} onClick={() => setHistorico(true)}>Ver histórico de versões</button>

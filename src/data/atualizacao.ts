@@ -1,10 +1,16 @@
-// Atualizações pelo GitHub Releases (tauri-plugin-updater).
+// Atualizações pelo GitHub Releases. Desktop: tauri-plugin-updater. Android: comandos apk_* (Rust) + instalador do sistema.
 // O app baixa só o latest.json e o instalador; a assinatura é conferida com a chave pública do tauri.conf.json.
 // Nada é enviado. Verifica ao abrir (se "Verificar ao abrir" estiver ligado) e no botão "Procurar atualizações".
 
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { EM_TAURI } from './tempo';
 import { useStore } from './store';
+
+/** App Android (Tauri): atualiza baixando o APK da release, não pelo tauri-plugin-updater. */
+export const noCelular = () => EM_TAURI && /Android/i.test(navigator.userAgent);
+
+interface ApkNovo { versao: string; notas: string; url: string; sha256: string }
+let apkPendente: ApkNovo | null = null;
 
 export interface Disponivel { versao: string; notas: string[]; publicadaData: string }
 export interface InfoAtualizacao {
@@ -53,6 +59,13 @@ export async function verificarAtualizacao({ state, api }: Pick<Store, 'state' |
       // Navegador (dados de exemplo): usa a versão fictícia do seed para mostrar o aviso.
       const d = state.config.update.disponivel;
       mudar(d ? { estado: 'disponivel', disponivel: { versao: d.versao, notas: d.notas, publicadaData: d.publicadaData }, aviso: true } : { estado: 'em-dia' });
+    } else if (noCelular()) {
+      const { invoke } = await import('@tauri-apps/api/core');
+      const nova = await invoke<ApkNovo | null>('apk_verificar');
+      apkPendente = nova;
+      mudar(nova
+        ? { estado: 'disponivel', disponivel: { versao: nova.versao, notas: lerNotas(nova.notas), publicadaData: '' }, aviso: true }
+        : { estado: 'em-dia', disponivel: undefined });
     } else {
       const { check } = await import('@tauri-apps/plugin-updater');
       pendente = await check();
@@ -75,6 +88,7 @@ export async function instalarAtualizacao({ state, api }: Pick<Store, 'state' | 
   if (state.config.update.backupAntes && state.config.backup.temSenha) {
     if (!(await api.backupAgora())) return; // sem backup, não instala (o toast já explica o erro)
   }
+  if (noCelular()) return instalarApk(api, d.versao);
   if (!EM_TAURI || !pendente) {
     api.setConfig({ update: { ...state.config.update, instalada: d.versao, disponivel: undefined } });
     mudar({ estado: 'em-dia', disponivel: undefined, aviso: false });
@@ -93,6 +107,27 @@ export async function instalarAtualizacao({ state, api }: Pick<Store, 'state' | 
     await relaunch();
   } catch (e) {
     mudar({ estado: 'erro', erro: e instanceof Error ? e.message : String(e) });
+    api.toast({ texto: 'A atualização não foi instalada. Seus dados não foram alterados.' });
+  }
+}
+
+/** Android: baixa o APK (SHA-256 conferido no Rust) e abre o instalador do sistema. */
+async function instalarApk(api: Store['api'], versao: string) {
+  if (!apkPendente) return;
+  mudar({ estado: 'baixando', progresso: undefined });
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    const caminho = await invoke<string>('apk_baixar', { url: apkPendente.url, sha256: apkPendente.sha256 });
+    const r = await invoke<string>('apk_instalar', { caminho });
+    if (r === 'permissao') {
+      mudar({ estado: 'disponivel' });
+      api.toast({ texto: 'Permita instalar apps desta fonte e toque de novo' });
+    } else {
+      mudar({ estado: 'disponivel' });
+      api.toast({ texto: `Confirme a instalação da versão ${versao} na tela do Android` });
+    }
+  } catch (e) {
+    mudar({ estado: 'erro', erro: typeof e === 'string' ? e : e instanceof Error ? e.message : String(e) });
     api.toast({ texto: 'A atualização não foi instalada. Seus dados não foram alterados.' });
   }
 }
