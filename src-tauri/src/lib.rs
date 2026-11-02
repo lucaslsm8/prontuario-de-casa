@@ -738,15 +738,34 @@ fn gravar_redes(b: &Banco, lista: &[rede_casa::Rede]) -> R<()> {
 /// pede a permissão de localização, usado no botão "Esta é a rede de casa".
 #[tauri::command]
 async fn rede_atual(app: tauri::AppHandle, pedir: Option<bool>) -> R<Option<rede_casa::Rede>> {
+    ler_rede_atual(&app, pedir.unwrap_or(false)).await
+}
+
+async fn ler_rede_atual(app: &tauri::AppHandle, pedir: bool) -> R<Option<rede_casa::Rede>> {
     #[cfg(target_os = "android")]
     {
-        Ok(rede_android::atual(&app, pedir.unwrap_or(false)).await)
+        Ok(rede_android::atual(app, pedir).await)
     }
     #[cfg(not(target_os = "android"))]
     {
         let _ = (app, pedir);
         tauri::async_runtime::spawn_blocking(rede_casa::rede_atual_desktop).await.map_err(|_| "falha ao ler a rede".to_string())
     }
+}
+
+/// Sincronização pelo Wi-Fi: com rede de casa cadastrada, só liga numa delas (sem nenhuma, em qualquer rede).
+/// Sem conseguir ler a rede (sem permissão de localização no Android, fora do Wi-Fi): conta como fora de casa.
+async fn lan_permitida_agora(app: &tauri::AppHandle) -> bool {
+    let st = app.state::<Estado>();
+    let redes = match com_banco(&st, |b| ler_redes(b)) {
+        Ok(r) => r,
+        Err(_) => return false,
+    };
+    if redes.is_empty() {
+        return true;
+    }
+    let atual = ler_rede_atual(app, false).await.ok().flatten();
+    rede_casa::lan_permitida(&redes, atual.as_ref())
 }
 
 /// Chave pública X25519 (hex) deste aparelho; cria o par na primeira chamada.

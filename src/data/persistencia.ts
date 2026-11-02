@@ -215,7 +215,7 @@ function memoria(): Persistencia {
     lanSincronizarAgora: async () => ({ pares: 0, chegaram: 0 }),
     lanOuvir: async () => () => {},
     // Rede fictícia, para testar a tela e o "em casa" no navegador.
-    redeAtual: async () => ({ id: '0'.repeat(64), nome: 'Rede (gateway a4:2b…)' }),
+    redeAtual: async () => ({ id: '0'.repeat(64), nome: 'Rede deste computador' }),
     redesCasa: async () => d.redes ?? [],
     redeCasaAdicionar: async (r) => { if (!(d.redes ?? []).some((x) => x.id === r.id)) d.redes = [...(d.redes ?? []), r]; salvar(); return d.redes ?? []; },
     redeCasaRemover: async (id) => { d.redes = (d.redes ?? []).filter((x) => x.id !== id); salvar(); return d.redes; },

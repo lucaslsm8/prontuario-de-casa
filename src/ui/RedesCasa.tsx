@@ -8,7 +8,7 @@ import { ConfirmarSheet } from './Confirmar';
 
 type PropsConfirmar = { titulo: string; texto: string; confirmar: string; onConfirm: () => void; onClose: () => void };
 
-export const AVISO_REDE_CASA = 'Quem pegar o aparelho dentro de casa abre o app sem senha. Os dados continuam cifrados.';
+export const AVISO_REDE_CASA = 'Quem pegar o aparelho dentro de casa abre o app sem senha. Os dados continuam cifrados. Quem estiver perto de casa consegue imitar a rede; use só se aceitar esse risco.';
 
 /** Linhas para o cartão "Bloqueio". `Confirmar`: diálogo de confirmação (folha no celular, padrão). */
 export function RedesCasa({ desktop, Confirmar = ConfirmarSheet }: { desktop?: boolean; Confirmar?: ComponentType<PropsConfirmar> }) {

@@ -329,13 +329,15 @@ fn guardar_estado(st: &Estado, ch: &Chave, evs: &[Value]) -> R<usize> {
 }
 
 /// Liga o serviço: servidor TCP numa porta efêmera (todas as interfaces), anúncio e procura por mDNS.
-/// Sem família (ou removido, ou sem identidade): desliga e devolve Ok. Já ligado com o mesmo anúncio: nada muda.
+/// Sem família (ou removido, ou sem identidade), ou fora das redes de casa cadastradas (se houver alguma):
+/// desliga e devolve Ok. A rede é reavaliada a cada chamada (o front chama ao abrir, desbloquear e voltar ao app).
+/// Já ligado com o mesmo anúncio: nada muda.
 pub async fn iniciar(app: &AppHandle) -> R<()> {
     let lan = app.state::<Lan>();
     let _c = lan.controle.lock().await;
     let ch = match chave(&app.state::<Estado>()) {
-        Ok(ch) => ch,
-        Err(_) => {
+        Ok(ch) if crate::lan_permitida_agora(app).await => ch,
+        _ => {
             desligar(app).await;
             return Ok(());
         }
@@ -488,8 +490,13 @@ async fn conectar(enderecos: &[SocketAddr]) -> R<tokio::net::TcpStream> {
             return Ok(s);
         }
     }
-    Err("par fora do alcance".into())
+    Err(FORA_DO_ALCANCE.into())
 }
+
+const FORA_DO_ALCANCE: &str = "par fora do alcance";
+/// Espera antes da segunda tentativa com o mesmo par (aleatória, para os dois lados não baterem de novo).
+const ATRASO_MIN_MS: u64 = 300;
+const ATRASO_MAX_MS: u64 = 1_500;
 
 /// Liga para um par e troca. Quem chama segura `Lan::vez`.
 async fn trocar_com(app: &AppHandle, par: &Par) -> R<usize> {
@@ -506,18 +513,32 @@ async fn trocar_com(app: &AppHandle, par: &Par) -> R<usize> {
     .map_err(|_| "tempo esgotado".to_string())?
 }
 
-/// "Sincronizar agora" (e a rodada de 2 em 2 minutos): troca com cada par conhecido. Outra troca em andamento ou
-/// serviço desligado: devolve zeros. Falha com um par não impede os outros.
+/// Uma tentativa com o par, segurando `Lan::vez` só durante ela.
+async fn tentar_com(app: &AppHandle, par: &Par) -> R<usize> {
+    let lan = app.state::<Lan>();
+    let _vez = lan.vez.try_lock().map_err(|_| "ocupado")?;
+    trocar_com(app, par).await
+}
+
+/// "Sincronizar agora" (e a rodada de 2 em 2 minutos): troca com cada par conhecido. Serviço desligado: devolve
+/// zeros. Falha com um par não impede os outros. Os dois lados podem ligar um para o outro ao mesmo tempo (cada um
+/// segura a própria vez e recusa o outro); por isso a vez é por par, e quem falha (sem ser por falta de alcance)
+/// solta a vez, espera um tempo aleatório e tenta mais uma vez: o primeiro a acordar encontra o outro livre.
 pub async fn sincronizar_agora(app: &AppHandle) -> Resumo {
     let lan = app.state::<Lan>();
     if !lan.ativo.lock().is_ok_and(|a| a.is_some()) {
         return Resumo::default();
     }
-    let Ok(_vez) = lan.vez.try_lock() else { return Resumo::default() };
     let pares: Vec<Par> = lan.pares.lock().map(|p| p.values().cloned().collect()).unwrap_or_default();
     let mut r = Resumo::default();
     for par in pares {
-        if let Ok(n) = trocar_com(app, &par).await {
+        let mut res = tentar_com(app, &par).await;
+        if res.as_ref().is_err_and(|e| e != FORA_DO_ALCANCE) {
+            let ms = rand::Rng::gen_range(&mut rand::thread_rng(), ATRASO_MIN_MS..=ATRASO_MAX_MS);
+            tokio::time::sleep(Duration::from_millis(ms)).await;
+            res = tentar_com(app, &par).await;
+        }
+        if let Ok(n) = res {
             r.pares += 1;
             r.chegaram += n;
         }

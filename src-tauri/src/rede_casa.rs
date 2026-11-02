@@ -73,11 +73,26 @@ pub fn mac_do_arp(saida: &str, ip: &str) -> Option<String> {
     })
 }
 
-/// Rede a partir do MAC do gateway (desktop). Nome: "Rede (gateway a4:2b…)".
+/// Rede a partir do MAC do gateway (desktop). Nome: "Rede deste computador" (sem nenhum pedaço do MAC; a pessoa renomeia).
 #[cfg_attr(target_os = "android", allow(dead_code))]
 pub fn rede_do_gateway(mac: &str) -> Option<Rede> {
     let mac = normalizar_mac(mac)?;
-    Some(Rede { id: id_da_rede(&mac), nome: format!("Rede (gateway {}…)", &mac[..5]) })
+    Some(Rede { id: id_da_rede(&mac), nome: NOME_DESKTOP.to_string() })
+}
+
+#[cfg_attr(target_os = "android", allow(dead_code))]
+const NOME_DESKTOP: &str = "Rede deste computador";
+
+/// Sincronização pelo Wi-Fi: sem rede de casa cadastrada, liga em qualquer rede; com alguma, só numa delas.
+pub fn lan_permitida(redes: &[Rede], atual: Option<&Rede>) -> bool {
+    redes.is_empty() || atual.is_some_and(|a| redes.iter().any(|r| r.id == a.id))
+}
+
+/// `route.exe` / `arp.exe` pelo caminho absoluto em `%SystemRoot%\System32` (sem depender do PATH nem da pasta atual).
+#[cfg_attr(not(windows), allow(dead_code))]
+fn programa_do_sistema(raiz: Option<&str>, nome: &str) -> std::path::PathBuf {
+    let raiz = raiz.map(str::trim).filter(|r| !r.is_empty()).unwrap_or(r"C:\Windows");
+    std::path::Path::new(raiz).join("System32").join(nome)
 }
 
 /// Rede a partir do Wi-Fi (Android). O SSID vem entre aspas, ou "<unknown ssid>" sem permissão.
@@ -105,12 +120,13 @@ pub fn remover(lista: Vec<Rede>, id: &str) -> Vec<Rede> {
 pub fn rede_atual_desktop() -> Option<Rede> {
     use std::os::windows::process::CommandExt;
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    let raiz = std::env::var("SystemRoot").ok();
     let rodar = |prog: &str, args: &[&str]| -> Option<String> {
-        let out = std::process::Command::new(prog).args(args).creation_flags(CREATE_NO_WINDOW).output().ok()?;
+        let out = std::process::Command::new(programa_do_sistema(raiz.as_deref(), prog)).args(args).creation_flags(CREATE_NO_WINDOW).output().ok()?;
         out.status.success().then(|| String::from_utf8_lossy(&out.stdout).into_owned())
     };
-    let ip = gateway_da_rota(&rodar("route", &["print", "-4", "0.0.0.0"])?)?;
-    let mac = mac_do_arp(&rodar("arp", &["-a", &ip])?, &ip)?;
+    let ip = gateway_da_rota(&rodar("route.exe", &["print", "-4", "0.0.0.0"])?)?;
+    let mac = mac_do_arp(&rodar("arp.exe", &["-a", &ip])?, &ip)?;
     rede_do_gateway(&mac)
 }
 
@@ -222,7 +238,7 @@ Interface: 192.168.1.33 --- 0x7
         // SHA-256("a4:2b:b0:12:34:56"), conferido fora do app.
         assert_eq!(a.id, id_da_rede("a4:2b:b0:12:34:56"));
         assert_eq!(id_da_rede("abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
-        assert_eq!(a.nome, "Rede (gateway a4:2b…)");
+        assert_eq!(a.nome, "Rede deste computador");
     }
 
     #[test]
@@ -240,6 +256,26 @@ Interface: 192.168.1.33 --- 0x7
     fn le_a_rede_deste_computador() {
         let r = rede_atual_desktop().expect("sem gateway/MAC");
         assert!(id_valido(&r.id));
+    }
+
+    #[test]
+    fn lan_so_em_casa_quando_ha_rede_cadastrada() {
+        let casa = Rede { id: id_da_rede("a"), nome: "Casa".into() };
+        let cafe = Rede { id: id_da_rede("c"), nome: "Café".into() };
+        assert!(lan_permitida(&[], None));
+        assert!(lan_permitida(&[], Some(&cafe)));
+        assert!(lan_permitida(std::slice::from_ref(&casa), Some(&casa)));
+        assert!(!lan_permitida(std::slice::from_ref(&casa), Some(&cafe)));
+        assert!(!lan_permitida(&[casa], None));
+    }
+
+    #[test]
+    fn route_e_arp_pelo_caminho_absoluto() {
+        let p = programa_do_sistema(Some(r"D:\Win"), "route.exe");
+        assert!(p.is_absolute() || cfg!(not(windows)));
+        assert_eq!(p, std::path::Path::new(r"D:\Win").join("System32").join("route.exe"));
+        assert_eq!(programa_do_sistema(None, "arp.exe"), std::path::Path::new(r"C:\Windows").join("System32").join("arp.exe"));
+        assert_eq!(programa_do_sistema(Some("  "), "arp.exe"), std::path::Path::new(r"C:\Windows").join("System32").join("arp.exe"));
     }
 
     #[test]
