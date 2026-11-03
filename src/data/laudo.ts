@@ -17,6 +17,34 @@ export function limparTexto(t: string): string {
     .trim();
 }
 
+/** Linhas que não são resultado: identificação do paciente, numeração, rodapé, contato e assinatura. */
+const NAO_E_RESULTADO = [
+  /^\d+\s*\/\s*\d+$/, // 1/2
+  /^p[aá]g(ina)?\.?\s*\d+(\s*(de|\/)\s*\d+)?$/i,
+  /(^|\s)(nome|paciente|prontu[aá]rio|data de nascimento|nascimento|solicitante|conv[eê]nio|n[ºo°]? ?do atendimento|atendimento|pedido|idade|sexo|an|os|crm)\s*:/i,
+  /(^|\s)(www\.|https?:\/\/)|\S+@\S+\.\w/i,
+  /(^|\s)(cep|tel|telefone|fone|whatsapp)\.?\s*:?\s*\(?\d/i,
+  /^(av|avenida|rua|r\.|estrada|rodovia|alameda|travessa|pra[cç]a)\.?\s.*\d/i,
+  /exame complementar|correla[cç][aã]o cl[ií]nica|decis[aã]o terap[eê]utica|assinad[oa] (eletronicamente|digitalmente)|documento (assinado|gerado)|respons[aá]vel t[eé]cnic|liberado (por|em)|autenticidade/i,
+  /^(laudo e|revis[aã]o por:?|laudado por:?|m[eé]dic[oa] respons[aá]vel:?|assinatura:?)$/i,
+];
+
+/**
+ * Texto do resultado a partir das páginas do PDF: tira as linhas que se repetem nas páginas
+ * (cabeçalho e rodapé), a identificação do paciente, a numeração, o rodapé e a assinatura.
+ */
+export function textoDoLaudo(paginas: string[]): string {
+  const ps = paginas.map((p) => limparTexto(p).split('\n'));
+  const repetidas = new Set<string>();
+  if (ps.length > 1) {
+    const conta = new Map<string, number>();
+    for (const p of ps) for (const l of new Set(p.filter(Boolean))) conta.set(l, (conta.get(l) ?? 0) + 1);
+    for (const [l, n] of conta) if (n >= Math.max(2, Math.ceil(ps.length * 0.6))) repetidas.add(l);
+  }
+  const fica = (l: string) => !repetidas.has(l) && !NAO_E_RESULTADO.some((re) => re.test(l));
+  return limparTexto(ps.map((p) => p.filter(fica).join('\n')).join('\n\n'));
+}
+
 /** Outros nomes com que os laboratórios escrevem os marcadores conhecidos. */
 const APELIDOS: Record<string, string[]> = {
   Glicose: ['glicose em jejum', 'glicemia de jejum', 'glicemia em jejum', 'glicemia', 'glicose'],
@@ -90,7 +118,9 @@ export function marcadoresDoTexto(texto: string): Resultado[] {
 export function dataDoTexto(texto: string): string | undefined {
   const re = /(\d{2})\/(\d{2})\/(\d{4})/;
   const linhas = limparTexto(texto).split('\n');
-  const linha = linhas.find((l) => /colet|atendimento|realizad/i.test(sem(l)) && re.test(l)) ?? linhas.find((l) => re.test(l));
+  // "realizada em" costuma citar exame anterior ("Última tomografia realizada em…"): não serve.
+  const com = (r: RegExp) => linhas.find((l) => r.test(sem(l)) && re.test(l));
+  const linha = com(/colet/) ?? com(/data do exame|data de atendimento|(^|\s)data\s*:/) ?? linhas.find((l) => re.test(l) && !/nasc|realizad|anterior|previa/.test(sem(l)));
   const x = linha ? re.exec(linha) : null;
   if (!x) return undefined;
   const [, d, m, a] = x;

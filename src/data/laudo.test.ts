@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dataDoTexto, limparTexto, marcadoresDoTexto } from './laudo';
+import { dataDoTexto, limparTexto, marcadoresDoTexto, textoDoLaudo } from './laudo';
 
 const LAUDO = `LABORATÓRIO EXEMPLO
 Paciente: Helena Almeida   Data da coleta: 12/09/2026
@@ -37,5 +37,26 @@ describe('laudo', () => {
   });
   it('limpa espaços e linhas vazias', () => {
     expect(limparTexto('  a   b \n\n\n\n c ')).toBe('a b\n\nc');
+  });
+  it('resultado sem cabeçalho, rodapé, identificação e assinatura (laudo de imagem em 2 páginas)', () => {
+    const rodape = [
+      'Nome: HELENA ALMEIDA Prontuário: 000123',
+      'Data de Nascimento: 12/03/1965 AN: 000999',
+      'Solicitante: DRA. MARTA LINS Data: 27/10/2026 09:10:00',
+      'ULTRASSONOGRAFIA DE ABDOME TOTAL',
+      'Este é um exame complementar e, como tal, deverá ser analisado pelo médico assistente para correlação clínica e decisão terapêutica.',
+      'Av. Paulista, 1000 - Bela Vista - São Paulo - SP - CEP: 01310-100 - Tel.: 3000-0000',
+      'www.imagemexemplo.com.br',
+    ];
+    const p1 = ['Técnica:', 'Exame realizado com transdutor convexo.', 'Análise:', 'Exame anterior realizado em 01/02/2026.', 'Fígado com dimensões normais.', 'Impressão:', 'Exame dentro da normalidade.', ...rodape.slice(0, 4), '1/2', ...rodape.slice(4)].join('\n');
+    const p2 = ['Laudo e', 'Revisão por:', ...rodape.slice(0, 4), '2/2', ...rodape.slice(4)].join('\n');
+    expect(textoDoLaudo([p1, p2])).toBe(
+      'Técnica:\nExame realizado com transdutor convexo.\nAnálise:\nExame anterior realizado em 01/02/2026.\nFígado com dimensões normais.\nImpressão:\nExame dentro da normalidade.',
+    );
+    expect(dataDoTexto([p1, p2].join('\n'))).toBe('2026-10-27');
+  });
+  it('página única: tira identificação e rodapé, mantém os valores', () => {
+    const t = textoDoLaudo(['Paciente: Helena Almeida', 'Glicose 92 mg/dL', 'Página 1 de 1', 'Assinado eletronicamente por Dr. X'].map((l) => l).join('\n').split('\n\n'));
+    expect(t).toBe('Glicose 92 mg/dL');
   });
 });

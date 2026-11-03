@@ -3,7 +3,7 @@
 
 import type { PDFDocumentProxy, PDFWorker } from 'pdfjs-dist';
 import type { Anexo, Resultado } from './types';
-import { dataDoTexto, limparTexto, marcadoresDoTexto } from './laudo';
+import { dataDoTexto, limparTexto, marcadoresDoTexto, textoDoLaudo } from './laudo';
 import { ehPdf } from './anexos';
 
 let trabalhador: PDFWorker | undefined;
@@ -47,8 +47,8 @@ export async function desenharPagina(doc: PDFDocumentProxy, n: number, canvas: H
   await pagina.render({ canvasContext: ctx, viewport: vp }).promise;
 }
 
-/** Texto de todas as páginas, uma linha por linha do PDF. Vazio = PDF escaneado (só imagem). */
-export async function textoDoPdf(a: Pick<Anexo, 'dados'>): Promise<string> {
+/** Texto de cada página, uma linha por linha do PDF. Páginas vazias = PDF escaneado (só imagem). */
+export async function paginasDoPdf(a: Pick<Anexo, 'dados'>): Promise<string[]> {
   const doc = await abrirPdf(a);
   try {
     const paginas: string[] = [];
@@ -59,9 +59,9 @@ export async function textoDoPdf(a: Pick<Anexo, 'dados'>): Promise<string> {
         if (!('str' in it)) continue;
         t += it.str + (it.hasEOL ? '\n' : '');
       }
-      paginas.push(t);
+      paginas.push(limparTexto(t));
     }
-    return limparTexto(paginas.join('\n\n'));
+    return paginas;
   } finally {
     void doc.destroy();
   }
@@ -93,12 +93,10 @@ export interface LidoDoPdf { laudo: string; resultados: Resultado[]; dataColeta?
 
 /** Lê o texto dos PDFs anexados. null = nenhum PDF tem texto (escaneado). */
 export async function lerDosPdfs(anexos: Anexo[]): Promise<LidoDoPdf | null> {
-  const textos: string[] = [];
-  for (const a of anexos.filter(ehPdf)) {
-    const t = await textoDoPdf(a);
-    if (t) textos.push(t);
-  }
-  const laudo = textos.join('\n\n');
-  if (!laudo) return null;
-  return { laudo, resultados: marcadoresDoTexto(laudo), dataColeta: dataDoTexto(laudo) };
+  const paginas: string[] = [];
+  for (const a of anexos.filter(ehPdf)) paginas.push(...(await paginasDoPdf(a)).filter(Boolean));
+  if (!paginas.length) return null;
+  // Valores e data saem do texto inteiro; o resultado guardado fica sem cabeçalho, rodapé e identificação.
+  const tudo = paginas.join('\n\n');
+  return { laudo: textoDoLaudo(paginas) || tudo, resultados: marcadoresDoTexto(tudo), dataColeta: dataDoTexto(tudo) };
 }

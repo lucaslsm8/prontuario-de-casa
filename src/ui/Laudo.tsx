@@ -45,7 +45,12 @@ export function ResultadoLaudo({ exame, podeEditar, desktop }: { exame: Exame; p
     <div className="card" style={{ padding: '12px 14px', gap: 8, borderRadius: 8, alignItems: 'flex-start' }}>
       <span style={{ fontSize: 12, color: 'var(--text-2)' }}>Resultado</span>
       <span className="laudo laudo--previa">{exame.laudo}</span>
-      <button type="button" className="btn btn--link" style={{ minHeight: 44, fontSize: 14 }} onClick={() => setAberto(true)}>Ver resultado</button>
+      <div className="hstack" style={{ gap: 18, flexWrap: 'wrap' }}>
+        <button type="button" className="btn btn--link" style={{ minHeight: 44, fontSize: 14 }} onClick={() => setAberto(true)}>Ver resultado</button>
+        {podeEditar && pdfs.length > 0 && (
+          <button type="button" className="btn btn--link" style={{ minHeight: 44, fontSize: 14, color: 'var(--text-2)', fontWeight: 500 }} disabled={lendo} onClick={ler}>{lendo ? 'Lendo…' : 'Ler de novo do PDF'}</button>
+        )}
+      </div>
       {aberto && (
         <Folha desktop={desktop} titulo={`Resultado · ${exame.nome}`} onClose={() => setAberto(false)}>
           <div className="laudo laudo--inteiro">{exame.laudo}</div>
