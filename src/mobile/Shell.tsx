@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useStore } from '../data/store';
 import { cx } from '../ui';
+import { FaixaPerfil, PerfilProvider } from './Perfil';
 
 const TABS = [
   { to: '/', nome: 'Início', end: true },
@@ -37,9 +38,9 @@ function StatusBar({ style, semHora }: { style?: CSSProperties; semHora?: boolea
  * `pad` segue o mockup: telas com tab bar usam "14px 20px 0", formulários "14px 20px 34px".
  */
 export function MScreen({
-  children, gap = 16, tabs, pad, bg, statusStyle, semHora, style, scrollRef,
+  children, gap = 16, tabs, pad, bg, statusStyle, semHora, style, scrollRef, semFaixa,
 }: {
-  children: ReactNode; gap?: number; tabs?: boolean; pad?: string; bg?: string; statusStyle?: CSSProperties; semHora?: boolean;
+  children: ReactNode; gap?: number; tabs?: boolean; pad?: string; bg?: string; statusStyle?: CSSProperties; semHora?: boolean; semFaixa?: boolean;
   style?: CSSProperties; scrollRef?: React.Ref<HTMLDivElement>;
 }) {
   const padding = pad ?? (tabs ? '14px 20px 120px' : '14px 20px 34px');
@@ -48,6 +49,7 @@ export function MScreen({
       <StatusBar style={statusStyle} semHora={semHora} />
       <div className="screen__scroll" ref={scrollRef}>
         <div className="screen__body" style={{ padding, gap, ...style }}>
+          {tabs && !semFaixa && <FaixaPerfil />}
           {children}
         </div>
       </div>
@@ -60,7 +62,7 @@ export function MobileShell({ frame }: { frame: boolean }) {
   const { toast, fecharToast } = useStore();
   const phone = (
     <div className={cx('phone', frame && 'is-frame')}>
-      <Outlet />
+      <PerfilProvider><Outlet /></PerfilProvider>
       {toast && (
         <div className="toast" role="status" key={toast.id}>
           <span>{toast.texto}</span>

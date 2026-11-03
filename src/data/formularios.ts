@@ -22,9 +22,9 @@ export * from './formularios-puro';
 
 /** Novo remédio, ou edição de `inicial` (salva só o que mudou). */
 export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
-  const { state, api } = useStore();
+  const { state, api, perfil } = useStore();
   const [nome, setNome] = useState(inicial?.nome ?? ex('Amoxicilina 500 mg', ''));
-  const [para, setPara] = useState(inicial?.pessoaId ?? eu(state).id);
+  const [para, setPara] = useState(inicial?.pessoaId ?? perfil ?? eu(state).id);
   const [dose, setDose] = useState(inicial ? inicial.doseLonga ?? inicial.dose : ex('1 cápsula', '1 comprimido'));
   const [freq, setFreqBruta] = useState<Frequencia>(inicial ? freqDoRemedio(inicial) : ex(FREQUENCIAS[2], FREQUENCIAS[0]));
   const [horariosTexto, setHorariosTexto] = useState((inicial?.horarios ?? freq.horarios).join(', '));
@@ -87,10 +87,10 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
 
 /** `desktop`: data/hora com máscara, salvar só com data e hora lidas, e erro com o formato dos campos separados. */
 export function useFormConsulta(onSalvo: () => void, { desktop = false, inicial }: { desktop?: boolean; inicial?: Consulta } = {}) {
-  const { state, api } = useStore();
+  const { state, api, perfil } = useStore();
   const i = inicial;
   const [titulo, setTitulo] = useState(i?.titulo ?? ex('Dentista', ''));
-  const [para, setPara] = useState(i?.pessoaId ?? eu(state).id);
+  const [para, setPara] = useState(i?.pessoaId ?? perfil ?? eu(state).id);
   const [quando, setQuando] = useState(i ? `${dataBR(i.data).slice(0, 5)} · ${i.hora}` : ex('18/11 · 14:00', ''));
   const [prof, setProf] = useState(i?.profissional ?? ex('Dr. Renato Souza', ''));
   const [local, setLocal] = useState(i?.local ?? ex('Odonto Vila Mariana', ''));
@@ -150,12 +150,12 @@ export function useFormConsulta(onSalvo: () => void, { desktop = false, inicial 
 // ── Exame ───────────────────────────────────────────────────────────────────
 
 export function useFormExame(onSalvo: () => void, inicial?: Exame) {
-  const { state, api } = useStore();
+  const { state, api, perfil } = useStore();
   const i = inicial;
   const [id] = useState(() => i?.id ?? `ex-${novoId()}`);
   const [arquivos, setArquivos] = useState<Anexo[]>([]);
   const [nome, setNome] = useState(i?.nome ?? ex('Hemograma completo', ''));
-  const [de, setDeBruto] = useState(i?.pessoaId ?? eu(state).id);
+  const [de, setDeBruto] = useState(i?.pessoaId ?? perfil ?? eu(state).id);
   const [cat, setCat] = useState<CategoriaExame>(i?.categoria ?? 'Sangue');
   const [data, setDataBruta] = useState(i ? dataBR(i.dataColeta) : ex('27/10/2026', dataBR(HOJE)));
   const setData = (v: string) => setDataBruta(mascaraData(v));
@@ -239,7 +239,7 @@ ${r.laudo}` : r.laudo));
 // ── Plano de saúde ──────────────────────────────────────────────────────────
 
 export function useFormPlano(pessoaInicial: string | undefined, onSalvo: (id: string) => void, inicial?: Plano) {
-  const { state, api } = useStore();
+  const { state, api, perfil } = useStore();
   const [f, setF] = useState<FormPlano>(() => {
     if (inicial) {
       const t = (v?: string) => (v && v !== '—' ? v : '');
@@ -250,7 +250,7 @@ export function useFormPlano(pessoaInicial: string | undefined, onSalvo: (id: st
         central: inicial.central ?? '', cns: inicial.cns ?? '', carencias: t(inicial.carencias), mensalidade: inicial.mensalidade ?? '', anotacao: inicial.anotacao ?? '',
       };
     }
-    const pessoaId = pessoaInicial ?? eu(state).id;
+    const pessoaId = pessoaInicial ?? perfil ?? eu(state).id;
     // Mesma operadora de alguém da família: já sugere (plano familiar).
     const outro = state.planos[0];
     return {

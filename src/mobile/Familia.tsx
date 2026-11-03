@@ -271,9 +271,23 @@ function resumoMedicoes(ms: Medicao[], pessoaId: string) {
 
 /** Aba Plano: as carteirinhas da família (você primeiro). Toque abre a carteirinha (M09). */
 export function Planos() {
-  const { state } = useStore();
+  const { state, perfil } = useStore();
   const nav = useNavigate();
-  const pessoas = familia(state)
+  const doPerfil = perfil ? pessoa(state, perfil) : undefined;
+  // No perfil de alguém: só a carteirinha dele. Pet não tem plano de saúde.
+  if (doPerfil && ehPet(doPerfil)) {
+    return (
+      <MScreen tabs>
+        <TabHeader titulo="Plano de saúde" />
+        <div className="card card--dashed" style={{ padding: 18, gap: 6, alignItems: 'flex-start' }}>
+          <span style={{ fontSize: 15, fontWeight: 600 }}>{doPerfil.curto} não tem plano de saúde</span>
+          <span style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.45 }}>Veterinário e clínica 24 h ficam no perfil do pet.</span>
+          <button type="button" className="btn btn--soft btn--h40" style={{ marginTop: 6 }} onClick={() => nav(`/pessoa/${doPerfil.id}`)}>Abrir perfil do pet</button>
+        </div>
+      </MScreen>
+    );
+  }
+  const pessoas = (doPerfil ? [doPerfil] : familia(state))
     .filter((p) => p.souEu || podeVer(state, p.id, 'plano'))
     .sort((a, b) => Number(!!b.souEu) - Number(!!a.souEu));
   const comPlano = pessoas.flatMap((p) => state.planos.filter((x) => x.pessoaId === p.id).map((pl) => ({ p, pl })));

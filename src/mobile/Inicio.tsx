@@ -3,11 +3,12 @@ import { HOJE } from '../data/tempo';
 import { eu, proximos, useStore } from '../data/store';
 import { dataLonga, mesSigla, quem } from '../data/format';
 import { saudacao } from '../data/inicio';
-import { Avatar, Bar, Check, Circle, Label, SecaoLista } from '../ui';
+import { Bar, Check, Circle, Label, SecaoLista } from '../ui';
 import { CartaoDose, LinhaDia, ListaDoses, RemedioAcabando, useDoseDaVez, useRemedioAcabando } from '../ui/Inicio';
-import { agruparFamiliaPets, familia } from '../data/pets';
+import { agruparFamiliaPets } from '../data/pets';
 import type { Consulta } from '../data/types';
 import { MScreen } from './Shell';
+import { BotaoPerfil } from './Perfil';
 
 /** M03 Início · M20 quando ainda não há nada cadastrado. */
 export function Inicio() {
@@ -57,9 +58,7 @@ function InicioCheio() {
       <div className="hstack" style={{ justifyContent: 'space-between' }}>
         <Saudacao agora={agora} />
         <button type="button" className="btn btn--outline btn--h40" style={{ marginLeft: 'auto', marginRight: 8, minWidth: 44, flexShrink: 0 }} onClick={() => nav('/busca')} aria-label="Buscar">Buscar</button>
-        <button type="button" className="avatar-stack" style={{ flexShrink: 0, minHeight: 44, alignItems: 'center' }} onClick={() => nav('/familia')} aria-label="Família">
-          {familia(state).slice(0, 3).map((p) => <Avatar key={p.id} pessoa={p} size={36} font={13} />)}
-        </button>
+        <BotaoPerfil />
       </div>
 
       <CartaoDose dv={dv} compacto onCadastrar={() => nav('/remedios/novo')} />

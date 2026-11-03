@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { eu, useStore } from '../data/store';
 import { Avatar, SecaoLista, cx } from '../ui';
-import { IcAgenda, IcCadeado, IcEmergencia, IcExame, IcInicio, IcMarcaCheia, IcPlano, IcRemedio } from '../ui/Icones';
+import { IcAgenda, IcConsulta, IcCadeado, IcEmergencia, IcExame, IcInicio, IcMarcaCheia, IcPlano, IcRemedio } from '../ui/Icones';
 import { quando } from '../data/format';
 import { useVoltar } from './useVoltar';
 import { DEditarPerfil, DFichaEmergencia, DNovaConsulta, DNovaPessoa, DNovoExame, DNovaMedicao, DNovoPet, DNovoPlano, DNovoRemedio, DRegistroPet, REGISTROS_PET, type RegistroPet } from './Formularios';
@@ -17,6 +17,7 @@ import { dispensarAviso, instalarAtualizacao, useInfoAtualizacao, verificarAtual
 const NAV = [
   { to: '/', nome: 'Início', end: true, Icone: IcInicio },
   { to: '/agenda', nome: 'Agenda', Icone: IcAgenda },
+  { to: '/consultas', nome: 'Consultas', Icone: IcConsulta },
   { to: '/remedios', nome: 'Remédios', Icone: IcRemedio },
   { to: '/exames', nome: 'Exames', Icone: IcExame },
   { to: '/planos', nome: 'Planos de saúde', Icone: IcPlano },

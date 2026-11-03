@@ -1,3 +1,4 @@
+import { DConsultas } from './desktop/Consultas';
 import { useEffect, useState } from 'react';
 import { HashRouter, Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { temEu, useStore } from './data/store';
@@ -180,6 +181,7 @@ function RotasDesktop() {
       <Route element={<DesktopShell />}>
         <Route index element={<DInicio />} />
         <Route path="agenda" element={<DAgenda />} />
+        <Route path="consultas" element={<DConsultas />} />
         <Route path="consulta/:id/resumo" element={<DResumo />} />
         <Route path="remedios" element={<DRemedios />} />
         <Route path="remedios/:id" element={<DRemedio />} />

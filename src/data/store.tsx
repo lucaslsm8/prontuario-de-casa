@@ -616,7 +616,9 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
 }
 
 type Api = ReturnType<typeof useApi>;
-const Ctx = createContext<{ state: State; api: Api; toast: Toast | null; fecharToast: () => void; status: Status; erro: string | null } | null>(null);
+/** `perfil`: no celular, a pessoa cujo recorte do estado as telas mostram (ver `EscopoPerfil`). */
+type ValorStore = { state: State; api: Api; toast: Toast | null; fecharToast: () => void; status: Status; erro: string | null; perfil?: string };
+const Ctx = createContext<ValorStore | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, () => (MODO_REAL ? estadoBase() : estadoExemplo()));
@@ -677,6 +679,38 @@ export function useStore() {
   const c = useContext(Ctx);
   if (!c) throw new Error('useStore fora do StoreProvider');
   return c;
+}
+
+/** Só os registros de uma pessoa (remédios e doses, consultas, exames, planos, registros do pet e medições). Pessoas, anexos e configuração ficam inteiros. */
+export function recortarPerfil(s: State, pessoaId: string): State {
+  const dela = <T extends { pessoaId: string }>(xs: T[]) => xs.filter((x) => x.pessoaId === pessoaId);
+  const remedios = dela(s.remedios);
+  const ids = new Set(remedios.map((r) => r.id));
+  return {
+    ...s,
+    remedios,
+    doses: s.doses.filter((d) => ids.has(d.remedioId)),
+    consultas: dela(s.consultas),
+    exames: dela(s.exames),
+    planos: dela(s.planos),
+    vacinas: dela(s.vacinas),
+    prevencoes: dela(s.prevencoes),
+    sintomas: dela(s.sintomas),
+    procedimentos: dela(s.procedimentos),
+    pesagens: dela(s.pesagens),
+    medicoes: dela(s.medicoes),
+  };
+}
+
+/**
+ * Celular: as telas dentro deste escopo veem só o recorte do perfil (`useStore().state`) e os
+ * formulários começam com ele em "De quem". As ações (`api`) continuam valendo para o arquivo inteiro.
+ */
+export function EscopoPerfil({ pessoaId, children }: { pessoaId?: string; children: ReactNode }) {
+  const c = useStore();
+  const state = useMemo(() => (pessoaId ? recortarPerfil(c.state, pessoaId) : c.state), [c.state, pessoaId]);
+  const valor = useMemo(() => ({ ...c, state, perfil: pessoaId }), [c, state, pessoaId]);
+  return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
 }
 
 // ── Seletores ───────────────────────────────────────────────────────────────

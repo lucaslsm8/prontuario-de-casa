@@ -61,14 +61,16 @@ export function Remedios() {
         valor={aba}
         onChange={setAba}
       />
-      <ChipGroup
-        gap6
-        tamanho="sm"
-        opcoes={[{ id: 'todos', nome: 'Todos' }, ...pessoasComRemedio.opcoes]}
-        separarAntes={pessoasComRemedio.separarAntes && pessoasComRemedio.separarAntes + 1}
-        valor={filtro}
-        onChange={setFiltro}
-      />
+      {pessoasComRemedio.opcoes.length > 1 && (
+        <ChipGroup
+          gap6
+          tamanho="sm"
+          opcoes={[{ id: 'todos', nome: 'Todos' }, ...pessoasComRemedio.opcoes]}
+          separarAntes={pessoasComRemedio.separarAntes && pessoasComRemedio.separarAntes + 1}
+          valor={filtro}
+          onChange={setFiltro}
+        />
+      )}
       <div className="stack" style={{ gap: 10 }}>
         {grupos.familia.map(cartao)}
         {grupos.pets.length > 0 && <><SecaoLista rotulo="Pets" style={{ paddingTop: 6 }} />{grupos.pets.map(cartao)}</>}
