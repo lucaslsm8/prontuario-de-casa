@@ -4,5 +4,5 @@
   "description": "Biometria para abrir o app, leitor de QR do convite e lembretes de remédio (só no celular)",
   "platforms": ["android", "iOS"],
   "windows": ["main"],
-  "permissions": ["biometric:default", "barcode-scanner:default", "notification:default"]
+  "permissions": ["biometric:default", "notification:default"]
 }

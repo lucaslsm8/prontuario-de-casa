@@ -16,6 +16,8 @@ mod lembretes;
 mod notificacao;
 mod pacote;
 #[cfg(target_os = "android")]
+mod qr_android;
+#[cfg(target_os = "android")]
 mod rede_android;
 mod rede_casa;
 mod remoto;
@@ -916,6 +918,20 @@ async fn lembrete_acao_pendente(app: tauri::AppHandle) -> R<Value> {
     }
 }
 
+/// Android: abre a câmera e devolve o texto do QR lido (null = voltou sem ler).
+#[tauri::command]
+async fn qr_ler(app: tauri::AppHandle) -> R<Option<String>> {
+    #[cfg(target_os = "android")]
+    {
+        qr_android::ler(&app).await
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = app;
+        Err("o leitor de QR só existe no Android".into())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default().plugin(tauri_plugin_dialog::init());
@@ -937,9 +953,9 @@ pub fn run() {
     // Celular: abrir com biometria.
     #[cfg(mobile)]
     let builder = builder.plugin(tauri_plugin_biometric::init());
-    // Celular: ler o QR do convite da família.
-    #[cfg(mobile)]
-    let builder = builder.plugin(tauri_plugin_barcode_scanner::init());
+    // Android: ler o QR do convite da família (QrPlugin.kt).
+    #[cfg(target_os = "android")]
+    let builder = builder.plugin(qr_android::init());
 
     // Lembretes de remédio no celular (no desktop quem avisa é o agendador em lembretes.rs).
     #[cfg(mobile)]
@@ -982,6 +998,7 @@ pub fn run() {
             apk_baixar,
             apk_instalar,
             lembrete_acao_pendente,
+            qr_ler,
             familia_info,
             familia_criar,
             familia_entrar,

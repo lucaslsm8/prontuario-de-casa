@@ -1,6 +1,8 @@
-- Rede de casa: em casa, o app abre sem pedir senha (desktop e Android)
-- Convite por QR: o aparelho novo entra na família lendo o código
-- Aparelhos da família: veja quem está na família e remova um aparelho trocando a chave (só fica completo trocando também o token)
-- Lembretes de remédio no Android, com Tomei e Pular na notificação
-- Atualização do APK pelo próprio app no Android
-- Sincronização pelo Wi-Fi: aparelhos na mesma rede trocam os dados direto, cifrados com a chave da família
+- Android: ícone novo, menor e no formato do sistema
+- Android: o QR do convite abre a câmera numa tela própria (antes o app fechava ao ler)
+- Família: quem não tem aparelho (cadastrado por você) aparece com tudo para a família
+- Celular: aba "Plano" com as carteirinhas no lugar de "Família" (a família abre pelas fotos no topo)
+- Início: botão Buscar com o texto centralizado
+- Exames: o PDF abre dentro do app (também no Android) e a lista mostra a primeira página
+- Exames: campo "Resultado" com o texto do laudo e o botão "Ver resultado"
+- Exames: ao anexar o PDF, o app lê o texto e preenche o resultado, os valores (glicose, colesterol, TSH…) e a data da coleta. Para exames já salvos, use "Ler resultado do PDF"

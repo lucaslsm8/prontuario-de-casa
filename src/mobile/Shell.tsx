@@ -8,7 +8,7 @@ const TABS = [
   { to: '/agenda', nome: 'Agenda' },
   { to: '/remedios', nome: 'Remédios' },
   { to: '/exames', nome: 'Exames' },
-  { to: '/familia', nome: 'Família' },
+  { to: '/planos', nome: 'Plano' },
 ];
 
 export function TabBar() {

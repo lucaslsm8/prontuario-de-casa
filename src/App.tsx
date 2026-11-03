@@ -11,7 +11,7 @@ import { BoasVindas, CadastroMembro } from './mobile/Onboarding';
 import { DetalheRemedio, EditarRemedio, NovoRemedio, Remedios } from './mobile/Remedios';
 import { Agenda, EditarConsulta, NovaConsulta, ResumoConsulta } from './mobile/Agenda';
 import { AdicionarExame, DetalheExame, EditarExame, Exames } from './mobile/Exames';
-import { Compartilhar, Familia, FichaEmergencia, PerfilMembro, PlanoSaude } from './mobile/Familia';
+import { Compartilhar, Familia, FichaEmergencia, PerfilMembro, PlanoSaude, Planos } from './mobile/Familia';
 import { EditarPerfilMobile } from './mobile/EditarPerfil';
 import { NovoPet } from './mobile/NovoPet';
 import { NovaPesagem, RegistrarPrevencao, RegistrarProcedimento, RegistrarSintoma, RegistrarVacina } from './mobile/RegistrosPet';
@@ -66,6 +66,7 @@ function RotasMobile({ frame }: { frame: boolean }) {
         <Route path="exames/:id/editar" element={<EditarExame />} />
         <Route path="consulta/:id/editar" element={<EditarConsulta />} />
         <Route path="familia" element={<Familia />} />
+        <Route path="planos" element={<Planos />} />
         <Route path="pet/novo" element={<NovoPet />} />
         <Route path="pet/:id/vacina" element={<RegistrarVacina />} />
         <Route path="pet/:id/prevencao" element={<RegistrarPrevencao />} />

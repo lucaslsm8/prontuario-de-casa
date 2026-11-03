@@ -136,6 +136,8 @@ export interface Exame {
   arquivo: 'PDF' | 'FOTO';
   paginas: number;
   anotacao?: string;
+  /** Texto do resultado (laudo), digitado ou lido do PDF. */
+  laudo?: string;
   resultados?: Resultado[];
 }
 

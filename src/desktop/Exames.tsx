@@ -12,6 +12,7 @@ import { anexosDe, ehPdf, exportarAnexo } from '../data/anexos';
 import { GaleriaAnexos, Miniatura, Visualizador } from '../ui/Anexos';
 import { AcoesRegistro } from './Acoes';
 import { ResultadosExame } from '../ui/Resultados';
+import { ResultadoLaudo } from '../ui/Laudo';
 
 /** D03 — Exames (lista + visualização). */
 export function DExames() {
@@ -127,6 +128,7 @@ export function DExames() {
               </div>
             </div>
           </div>
+          <div style={{ flex: 'none' }}><ResultadoLaudo key={sel.id} exame={sel} podeEditar={podeEditar} desktop /></div>
           <div className="card" style={{ borderRadius: 8, flex: 'none' }}>
             <div className="card-head"><span style={{ fontSize: 13, fontWeight: 600 }}>Valores do exame</span><span className="muted" style={{ fontSize: 12 }}>viram gráfico na aba Medições da pessoa</span></div>
             <div style={{ padding: '4px 18px 8px' }}><ResultadosExame key={sel.id} exame={sel} podeEditar={podeEditar} /></div>

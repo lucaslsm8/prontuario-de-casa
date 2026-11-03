@@ -269,6 +269,58 @@ function resumoMedicoes(ms: Medicao[], pessoaId: string) {
   return ult ? `${infoMedicao(ult.tipo).nome.toLowerCase()} ${fmtMedicao(ult)}` : 'registrar';
 }
 
+/** Aba Plano: as carteirinhas da família (você primeiro). Toque abre a carteirinha (M09). */
+export function Planos() {
+  const { state } = useStore();
+  const nav = useNavigate();
+  const pessoas = familia(state)
+    .filter((p) => p.souEu || podeVer(state, p.id, 'plano'))
+    .sort((a, b) => Number(!!b.souEu) - Number(!!a.souEu));
+  const comPlano = pessoas.flatMap((p) => state.planos.filter((x) => x.pessoaId === p.id).map((pl) => ({ p, pl })));
+  const semPlano = pessoas.filter((p) => !state.planos.some((x) => x.pessoaId === p.id) && editaveis(state).some((x) => x.id === p.id));
+
+  return (
+    <MScreen tabs>
+      <TabHeader titulo="Plano de saúde" />
+      {comPlano.length === 0 && (
+        <div className="card card--dashed" style={{ padding: 18, gap: 6, alignItems: 'flex-start' }}>
+          <span style={{ fontSize: 15, fontWeight: 600 }}>Nenhuma carteirinha guardada</span>
+          <span style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.45 }}>Guarde os dados da carteirinha para ter o número à mão no balcão.</span>
+        </div>
+      )}
+      {comPlano.length > 0 && (
+        <div className="card">
+          {comPlano.map(({ p, pl }) => (
+            <button type="button" key={pl.id} className="row" style={{ padding: '14px 16px', gap: 14, justifyContent: 'flex-start', textAlign: 'left' }} onClick={() => nav(`/pessoa/${p.id}/plano`)}>
+              <Avatar pessoa={p} size={44} font={16} />
+              <div className="stack" style={{ flex: 1, gap: 3, minWidth: 0 }}>
+                <span style={{ fontSize: 16, fontWeight: 600 }}>{p.souEu ? 'Você' : p.curto}</span>
+                <span style={{ fontSize: 13, color: 'var(--text-2)' }}>{[pl.operadora, pl.produto].filter(Boolean).join(' · ')}</span>
+                <span className="mono" style={{ fontSize: 13 }}>{pl.numero}</span>
+              </div>
+              <span className="chev">›</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {semPlano.length > 0 && (
+        <>
+          <Label>Sem carteirinha</Label>
+          <div className="card">
+            {semPlano.map((p) => (
+              <button type="button" key={p.id} className="row" style={{ padding: '12px 16px', gap: 14, justifyContent: 'flex-start', textAlign: 'left', minHeight: 44 }} onClick={() => nav(`/pessoa/${p.id}/plano/novo`)}>
+                <Avatar pessoa={p} size={36} font={13} />
+                <span style={{ flex: 1, fontSize: 15 }}>{p.souEu ? 'Você' : p.curto}</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--teal)' }}>Adicionar</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </MScreen>
+  );
+}
+
 /** M09 — Plano de saúde / carteirinha. */
 export function PlanoSaude() {
   const { id } = useParams();

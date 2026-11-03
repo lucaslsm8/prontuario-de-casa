@@ -9,17 +9,9 @@ export function conviteDoQr(conteudo: string): string | null {
   return t.startsWith('PCASA1:') && t.length > 'PCASA1:'.length ? t : null;
 }
 
-/** Abre a câmera e devolve o convite lido. null = cancelou ou não era um convite; lança erro se a câmera foi negada. */
-export async function lerConviteQr(): Promise<string | null> {
-  const { scan, cancel, checkPermissions, requestPermissions, Format } = await import('@tauri-apps/plugin-barcode-scanner');
-  let permissao = await checkPermissions();
-  if (permissao !== 'granted') permissao = await requestPermissions();
-  if (permissao !== 'granted') throw new Error('Sem acesso à câmera. Libere a câmera para o app nas configurações do celular ou cole o convite.');
-  try {
-    const r = await scan({ formats: [Format.QRCode], cameraDirection: 'back' });
-    return conviteDoQr(r.content);
-  } catch {
-    await cancel().catch(() => undefined);
-    return null;
-  }
+/** Abre a câmera (tela do ZXing, que pede a permissão) e devolve o convite lido. undefined = voltou sem ler; null = não era um convite. */
+export async function lerConviteQr(): Promise<string | null | undefined> {
+  const { invoke } = await import('@tauri-apps/api/core');
+  const lido = await invoke<string | null>('qr_ler');
+  return lido ? conviteDoQr(lido) : undefined;
 }

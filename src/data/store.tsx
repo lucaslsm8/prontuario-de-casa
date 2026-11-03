@@ -736,7 +736,11 @@ export function adesao(s: State, remedioId: string, dias = 30): number | undefin
 /** O que `de` compartilha com `para`. Para si mesmo, tudo. */
 export function compartilhado(s: State, de: string, para: string): Categoria[] {
   // Pets são da casa: todo mundo vê e edita tudo.
-  if (de === para || s.pessoas.find((p) => p.id === de)?.tipo === 'pet') return ['perfil', 'remedios', 'consultas', 'exames', 'plano'];
+  const tudo: Categoria[] = ['perfil', 'remedios', 'consultas', 'exames', 'plano'];
+  const dono = s.pessoas.find((p) => p.id === de);
+  if (de === para || dono?.tipo === 'pet') return tudo;
+  // Dependente (cadastrado por alguém, sem aparelho próprio): nunca definiu compartilhamento, então a família vê tudo.
+  if (dono && !dono.souEu && !s.compartilhamentos.some((c) => c.de === de)) return tudo;
   return s.compartilhamentos.find((c) => c.de === de && c.para === para)?.categorias ?? [];
 }
 export function podeVer(s: State, pessoaId: string, cat: Categoria) {

@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { HOJE, ex } from './tempo';
 import { eu, useStore } from './store';
 import { addDias, dataBR, diasEntre } from './format';
 import { novoId } from './persistencia';
-import type { Anexo, CategoriaExame, Consulta, Exame, Pessoa, Plano, Prevencao, Remedio, TipoMedicao, TipoProcedimento } from './types';
+import { ehPdf } from './anexos';
+import { lerDosPdfs } from './pdf';
+import type { Anexo, CategoriaExame, Resultado, Consulta, Exame, Pessoa, Plano, Prevencao, Remedio, TipoMedicao, TipoProcedimento } from './types';
 import { SINAIS, ehPet, familia, pets } from './pets';
 import { diffPessoa, formDePessoa, lerNumeroBR, normalizarTexto, novaChave, pessoaDoForm, type ErrosPerfil, type FormPerfil, type FormPet, type LinhaAlergia, type LinhaCondicao } from './perfil';
 import {
@@ -160,6 +162,35 @@ export function useFormExame(onSalvo: () => void, inicial?: Exame) {
   const [lab, setLab] = useState(i?.laboratorio ?? ex('Lab. Central', ''));
   const [solicitante, setSolicitante] = useState(i?.solicitante ?? '');
   const [anotacao, setAnotacao] = useState(i?.anotacao ?? '');
+  const [laudo, setLaudo] = useState(i?.laudo ?? '');
+  const [resultados, setResultados] = useState<Resultado[] | undefined>(undefined);
+  const [lendoPdf, setLendoPdf] = useState(false);
+  const lidos = useRef(new Set<string>());
+  // Exame novo com PDF: lê o texto e preenche o resultado, os valores e a data da coleta (a pessoa confere antes de salvar).
+  useEffect(() => {
+    if (i) return;
+    const novos = arquivos.filter((a) => ehPdf(a) && !lidos.current.has(a.id));
+    if (!novos.length) return;
+    novos.forEach((a) => lidos.current.add(a.id));
+    let vivo = true;
+    setLendoPdf(true);
+    lerDosPdfs(novos)
+      .then((r) => {
+        if (!vivo) return;
+        if (!r) { api.toast({ texto: 'O PDF é uma imagem escaneada, sem texto para ler.' }); return; }
+        setLaudo((atual) => (atual.trim() ? `${atual.trim()}
+
+${r.laudo}` : r.laudo));
+        if (r.resultados.length) setResultados((atual) => [...(atual ?? []), ...r.resultados.filter((x) => !atual?.some((y) => y.marcador === x.marcador))]);
+        if (r.dataColeta) setDataBruta(dataBR(r.dataColeta));
+        const n = r.resultados.length;
+        api.toast({ texto: n ? `Resultado lido do PDF · ${n} ${n === 1 ? 'valor' : 'valores'}` : 'Resultado lido do PDF' });
+      })
+      .catch(() => { if (vivo) api.toast({ texto: 'Não foi possível ler o texto do PDF.' }); })
+      .finally(() => { if (vivo) setLendoPdf(false); });
+    return () => { vivo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `api` não precisa reiniciar a leitura.
+  }, [arquivos, i]);
   const [consulta, setConsulta] = useState<string | undefined>(i?.consultaId);
   // Na edição, a consulta já vinculada continua na lista mesmo que tenha passado.
   const consultasDaPessoa = state.consultas.filter((c) => c.pessoaId === de && (c.data >= HOJE || c.id === i?.consultaId));
@@ -184,6 +215,8 @@ export function useFormExame(onSalvo: () => void, inicial?: Exame) {
       laboratorio: lab.trim(),
       solicitante: solicitante.trim() || undefined,
       anotacao: anotacao.trim() || undefined,
+      laudo: laudo.trim() || undefined,
+      ...(resultados?.length && !i?.resultados?.length ? { resultados } : {}),
       consultaId: consulta,
       arquivo: i?.arquivo ?? (arquivos.some((a) => a.mime === 'application/pdf') ? 'PDF' : 'FOTO'),
       paginas: i?.paginas ?? arquivos.length,
@@ -198,7 +231,7 @@ export function useFormExame(onSalvo: () => void, inicial?: Exame) {
   };
 
   return {
-    id, arquivos, setArquivos, solicitante, setSolicitante, anotacao, setAnotacao, editando: !!i, nome, setNome, de, setDe, cat, setCat, data, setData, lab, setLab,
+    id, arquivos, setArquivos, solicitante, setSolicitante, anotacao, setAnotacao, laudo, setLaudo, resultados, lendoPdf, editando: !!i, nome, setNome, de, setDe, cat, setCat, data, setData, lab, setLab,
     consulta, setConsulta, consultasDaPessoa, proxConsulta, valido: !!nome.trim(), salvar,
   };
 }

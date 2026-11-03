@@ -1,8 +1,9 @@
 // Anexos: escolher arquivos, miniaturas e visualizador em tela cheia (foto ou PDF).
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useStore } from '../data/store';
-import { ACEITOS, ErroAnexo, anexosDe, blobDe, ehPdf, exportarAnexo, lerArquivo } from '../data/anexos';
+import { ACEITOS, ErroAnexo, anexosDe, ehPdf, exportarAnexo, lerArquivo } from '../data/anexos';
+import { abrirPdf, capaDoPdf, desenharPagina } from '../data/pdf';
 import { tamanhoArquivo } from '../data/format';
 import type { Anexo, TipoAnexo } from '../data/types';
 import { cx } from './index';
@@ -38,13 +39,26 @@ export function useEscolherArquivos(donoId: string, tipo: TipoAnexo, onAnexos: (
   return { abrir: () => input.current?.click(), elemento, lendo };
 }
 
-/** Miniatura de um anexo (foto recortada ou cartão "PDF"). */
+/** Primeira página do PDF como imagem (undefined enquanto desenha ou se o PDF não abrir). */
+function useCapa(anexo: Anexo, largura: number) {
+  const [capa, setCapa] = useState<string>();
+  useEffect(() => {
+    if (!ehPdf(anexo)) return;
+    let vivo = true;
+    capaDoPdf(anexo, largura).then((c) => { if (vivo) setCapa(c); }, () => undefined);
+    return () => { vivo = false; };
+  }, [anexo, largura]);
+  return capa;
+}
+
+/** Miniatura de um anexo (foto recortada ou a primeira página do PDF). */
 export function Miniatura({ anexo, onClick, onRemover, grande }: { anexo: Anexo; onClick?: () => void; onRemover?: () => void; grande?: boolean }) {
+  const capa = useCapa(anexo, grande ? 720 : 180);
   return (
     <span className={cx('anexo', grande && 'anexo--grande')}>
       <button type="button" className="anexo__abrir" onClick={onClick} aria-label={`Abrir ${anexo.nome}`}>
         {ehPdf(anexo) ? (
-          <span className="anexo__pdf"><b>PDF</b><span>{anexo.nome}</span></span>
+          capa ? <img src={capa} alt="" className="anexo__capa" /> : <span className="anexo__pdf"><b>PDF</b><span>{anexo.nome}</span></span>
         ) : (
           <img src={anexo.dados} alt="" />
         )}
@@ -54,13 +68,44 @@ export function Miniatura({ anexo, onClick, onRemover, grande }: { anexo: Anexo;
   );
 }
 
+/** Todas as páginas do PDF, uma embaixo da outra, na largura do espaço disponível (pdf.js, sem iframe). */
+function PaginasPdf({ anexo }: { anexo: Anexo }) {
+  const caixa = useRef<HTMLDivElement>(null);
+  const [erro, setErro] = useState(false);
+  useEffect(() => {
+    const el = caixa.current;
+    if (!el) return;
+    let vivo = true;
+    el.replaceChildren();
+    setErro(false);
+    const largura = Math.min(el.clientWidth - 16, 1000);
+    abrirPdf(anexo).then(async (doc) => {
+      try {
+        for (let n = 1; n <= doc.numPages && vivo; n++) {
+          const c = document.createElement('canvas');
+          c.className = 'visor__pagina';
+          el.appendChild(c);
+          await desenharPagina(doc, n, c, largura);
+        }
+      } finally {
+        void doc.destroy();
+      }
+    }).catch(() => { if (vivo) setErro(true); });
+    return () => { vivo = false; };
+  }, [anexo]);
+  return (
+    <div className="visor__pdf">
+      {erro && <span className="visor__erro">Não foi possível abrir este PDF aqui. Use Exportar para abrir em outro programa.</span>}
+      <div ref={caixa} className="visor__paginas" />
+    </div>
+  );
+}
+
 /** Tela cheia: foto ou PDF, setas entre os anexos, Exportar e Esc para fechar. */
 export function Visualizador({ anexos, inicio = 0, onClose }: { anexos: Anexo[]; inicio?: number; onClose: () => void }) {
   const { api } = useStore();
   const [i, setI] = useState(Math.min(inicio, anexos.length - 1));
   const a = anexos[i];
-  const url = useMemo(() => (a && ehPdf(a) ? URL.createObjectURL(blobDe(a)) : undefined), [a]);
-  useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -85,7 +130,7 @@ export function Visualizador({ anexos, inicio = 0, onClose }: { anexos: Anexo[];
       </div>
       <div className="visor__corpo">
         {anexos.length > 1 && <button type="button" className="visor__seta" disabled={i === 0} onClick={() => setI(i - 1)} aria-label="Anterior">‹</button>}
-        {ehPdf(a) ? <iframe className="visor__pdf" src={url} title={a.nome} /> : <img className="visor__img" src={a.dados} alt={a.nome} />}
+        {ehPdf(a) ? <PaginasPdf key={a.id} anexo={a} /> : <img className="visor__img" src={a.dados} alt={a.nome} />}
         {anexos.length > 1 && <button type="button" className="visor__seta" disabled={i === anexos.length - 1} onClick={() => setI(i + 1)} aria-label="Próximo">›</button>}
       </div>
     </div>,

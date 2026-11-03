@@ -248,6 +248,7 @@ export function EntrarNaFamilia({ desktop, onClose }: { desktop?: boolean; onClo
     setErro('');
     try {
       const lido = await lerConviteQr();
+      if (lido === undefined) return;
       if (!lido) return setErro('Esse QR não é um convite da família. Tente de novo ou cole o convite.');
       setConvite(lido);
       await entrar(lido);

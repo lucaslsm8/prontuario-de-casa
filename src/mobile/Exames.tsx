@@ -11,6 +11,7 @@ import { AnexosPendentes, GaleriaAnexos } from '../ui/Anexos';
 import { anexosDe, ehPdf } from '../data/anexos';
 import { ConfirmarSheet } from '../ui/Confirmar';
 import { ResultadosExame } from '../ui/Resultados';
+import { ResultadoLaudo } from '../ui/Laudo';
 
 /** Agrupa por mês ("SETEMBRO 2026"), mais recentes primeiro. */
 export function porMes(exames: Exame[]) {
@@ -110,6 +111,7 @@ export function DetalheExame() {
         {e.solicitante && <Row label="Pedido por" valor={e.solicitante} />}
         <Row label="Consulta" valor={c ? `${c.titulo} · ${diaMes(c.data)}` : 'Nenhuma'} />
       </div>
+      <ResultadoLaudo exame={e} podeEditar={pode} />
       <FieldGroup label="Valores do exame">
         <div className="card" style={{ padding: '2px 14px' }}><ResultadosExame exame={e} podeEditar={pode} /></div>
       </FieldGroup>
@@ -173,7 +175,7 @@ export function AdicionarExame({ onDone, exame }: { onDone?: () => void; exame?:
   const nav = useNavigate();
   const fechar = onDone ?? (() => nav('/exames'));
   const pessoas = editaveis(state);
-  const { id, arquivos, setArquivos, editando, anotacao, setAnotacao, nome, setNome, de, setDe, cat, setCat, data, setData, lab, setLab, consulta, proxConsulta, valido, salvar } = useFormExame(fechar, exame);
+  const { id, arquivos, setArquivos, editando, anotacao, setAnotacao, laudo, setLaudo, resultados, lendoPdf, nome, setNome, de, setDe, cat, setCat, data, setData, lab, setLab, consulta, proxConsulta, valido, salvar } = useFormExame(fechar, exame);
   const c = state.consultas.find((x) => x.id === consulta);
 
   return (
@@ -204,6 +206,10 @@ export function AdicionarExame({ onDone, exame }: { onDone?: () => void; exame?:
           valor={<span style={{ color: c ? 'var(--teal)' : 'var(--text-3)' }}>{c ? `${c.titulo} · ${diaMes(c.data)}` : 'Nenhuma ›'}</span>}
         />
       </div>
+      <Field label={lendoPdf ? 'Resultado · lendo o PDF…' : 'Resultado (texto do laudo)'}>
+        <textarea className="input input--area" style={{ minHeight: 140 }} value={laudo} onChange={(e) => setLaudo(e.target.value)} placeholder="Cole o texto do laudo, ou anexe o PDF para o app ler." />
+        {!!resultados?.length && <span style={{ fontSize: 12, color: 'var(--text-2)' }}>Valores lidos: {resultados.map((r) => r.marcador).join(', ')}</span>}
+      </Field>
       <Field label="Anotação">
         <textarea className="input input--area" value={anotacao} onChange={(e) => setAnotacao(e.target.value)} placeholder="Ex.: mostrar ao cardiologista" />
       </Field>

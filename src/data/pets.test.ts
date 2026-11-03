@@ -141,6 +141,14 @@ describe('permissões de pets', () => {
     expect(editaveis(s).map((p) => p.id)).toContain('rex');
     expect(podeVer(s, 'rex', 'remedios')).toBe(true);
   });
+  it('dependente sem compartilhamento próprio (sem aparelho) fica visível para a família', () => {
+    const s = estadoExemplo();
+    const vo = { ...s.pessoas.find((p) => p.id === 'roberto')!, id: 'vo', souEu: undefined };
+    const comVo = { ...s, pessoas: [...s.pessoas, vo] };
+    expect(podeVer(comVo, 'vo', 'exames')).toBe(true);
+    // Quem já definiu o que compartilha segue a própria escolha.
+    expect(podeVer(comVo, 'pedro', 'exames')).toBe(false);
+  });
   it('exemplo traz Mel e Thor', () => {
     const s = estadoExemplo();
     expect(pets(s).map((p) => p.id)).toEqual(['mel', 'thor']);

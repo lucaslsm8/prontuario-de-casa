@@ -19,7 +19,7 @@ export function Inicio() {
 function Saudacao({ agora }: { agora?: number }) {
   const { state } = useStore();
   return (
-    <div className="stack" style={{ gap: 2 }}>
+    <div className="stack" style={{ gap: 2, minWidth: 0 }}>
       <span style={{ fontSize: 13, color: 'var(--text-2)' }}>{dataLonga(HOJE)}</span>
       <h1 className="title title--26" style={{ margin: 0 }}>{agora == null ? 'Olá' : saudacao(agora)}, {eu(state).curto}</h1>
     </div>
@@ -56,9 +56,9 @@ function InicioCheio() {
     <MScreen tabs gap={14}>
       <div className="hstack" style={{ justifyContent: 'space-between' }}>
         <Saudacao agora={agora} />
-        <button type="button" className="btn btn--outline btn--h40" style={{ marginLeft: 'auto', marginRight: 8, minWidth: 44 }} onClick={() => nav('/busca')} aria-label="Buscar">Buscar</button>
-        <button type="button" className="avatar-stack" onClick={() => nav('/familia')} aria-label="Família">
-          {familia(state).map((p) => <Avatar key={p.id} pessoa={p} size={36} font={13} />)}
+        <button type="button" className="btn btn--outline btn--h40" style={{ marginLeft: 'auto', marginRight: 8, minWidth: 44, flexShrink: 0 }} onClick={() => nav('/busca')} aria-label="Buscar">Buscar</button>
+        <button type="button" className="avatar-stack" style={{ flexShrink: 0, minHeight: 44, alignItems: 'center' }} onClick={() => nav('/familia')} aria-label="Família">
+          {familia(state).slice(0, 3).map((p) => <Avatar key={p.id} pessoa={p} size={36} font={13} />)}
         </button>
       </div>
 
