@@ -1,10 +1,3 @@
-- Consultas: qualquer pessoa da família marca, edita e apaga consulta de qualquer outra (e dos pets), pela aba Agenda
-- Android: "Minhas consultas na agenda do celular" (Configurações). As consultas marcadas para você entram sozinhas na agenda do celular (Google Agenda) e saem de lá quando são apagadas
-- Exames: o PDF abre dentro do app (também no Android) e a lista mostra a primeira página
-- Exames: campo "Resultado" com o texto do laudo e o botão "Ver resultado"
-- Exames: ao anexar o PDF, o app lê o texto e preenche o resultado, os valores (glicose, colesterol, TSH…) e a data da coleta. Para exames já salvos, use "Ler resultado do PDF"
-- Android: ícone novo, menor e no formato do sistema
-- Android: o QR do convite abre a câmera numa tela própria (antes o app fechava ao ler)
-- Família: quem não tem aparelho (cadastrado por você) aparece com tudo para a família
-- Celular: aba "Plano" com as carteirinhas no lugar de "Família" (a família abre pelas fotos no topo)
-- Início: botão Buscar com o texto centralizado
+- Exames: o resultado lido do PDF fica só com o laudo (sem cabeçalho, rodapé, dados do paciente, numeração das páginas e assinatura)
+- Exames: a data da coleta não confunde mais com a data de um exame anterior citado no laudo
+- Exames: botão "Ler de novo do PDF" para refazer o resultado de um exame já salvo
