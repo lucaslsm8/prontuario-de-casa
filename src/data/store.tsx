@@ -1,3 +1,4 @@
+import { useAgendaCelular } from './agendaCelular';
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
 import * as seed from './seed';
 import { EM_TAURI, HOJE, MODO_EXEMPLO, MODO_REAL, horaAgora } from './tempo';
@@ -631,6 +632,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const fecharToast = useCallback(() => setToast(null), []);
   const api = useApi(state, dispatch, mostrarToast);
   useLembretes(state, status === 'pronto', api.marcarDose);
+  useAgendaCelular(state, status === 'pronto', HOJE);
   useViradaDoDia();
 
   useEffect(() => {
@@ -746,6 +748,10 @@ export function compartilhado(s: State, de: string, para: string): Categoria[] {
 export function podeVer(s: State, pessoaId: string, cat: Categoria) {
   return compartilhado(s, pessoaId, eu(s).id).includes(cat);
 }
+
+/** Consultas: qualquer pessoa da família marca, edita e apaga consulta de qualquer outra (e dos pets). */
+export const paraConsultas = (s: State) => s.pessoas;
+export const editaConsulta = (s: State, pessoaId: string) => s.pessoas.some((p) => p.id === pessoaId);
 
 /** Pessoas para quem você pode cadastrar coisas: você, quem compartilha o perfil
  *  completo com você e dependentes que você cadastrou (sem aparelho próprio). */

@@ -1,3 +1,4 @@
+import { AgendaCelular } from '../ui/AgendaCelular';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { HOJE, MODO_EXEMPLO } from '../data/tempo';
@@ -80,6 +81,7 @@ export function Privacidade() {
           valor={<span className="muted">{c.bloqueioMobile} ›</span>}
         />
         <RedesCasa />
+        <AgendaCelular />
         <Row
           mutedLabel={false}
           label={

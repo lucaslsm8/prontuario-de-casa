@@ -1,3 +1,5 @@
+#[cfg(target_os = "android")]
+mod agenda_android;
 mod aparelho;
 mod apk;
 mod backup;
@@ -918,6 +920,34 @@ async fn lembrete_acao_pendente(app: tauri::AppHandle) -> R<Value> {
     }
 }
 
+/// Android: agendas do celular em que dá para escrever (pede a permissão de agenda).
+#[tauri::command]
+async fn agenda_calendarios(app: tauri::AppHandle) -> R<Value> {
+    #[cfg(target_os = "android")]
+    {
+        agenda_android::chamar(&app, "calendarios", serde_json::json!({})).await
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = app;
+        Err("a agenda do celular só existe no Android".into())
+    }
+}
+
+/// Android: deixa a agenda `calendarioid` com exatamente estes eventos (0 = tira tudo o que o app pôs).
+#[tauri::command]
+async fn agenda_sincronizar(app: tauri::AppHandle, calendarioid: i64, eventos: Value) -> R<Value> {
+    #[cfg(target_os = "android")]
+    {
+        agenda_android::chamar(&app, "sincronizar", serde_json::json!({ "calendarioId": calendarioid, "eventos": eventos })).await
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = (app, calendarioid, eventos);
+        Err("a agenda do celular só existe no Android".into())
+    }
+}
+
 /// Android: abre a câmera e devolve o texto do QR lido (null = voltou sem ler).
 #[tauri::command]
 async fn qr_ler(app: tauri::AppHandle) -> R<Option<String>> {
@@ -953,6 +983,9 @@ pub fn run() {
     // Celular: abrir com biometria.
     #[cfg(mobile)]
     let builder = builder.plugin(tauri_plugin_biometric::init());
+    // Android: consultas na agenda do celular (AgendaPlugin.kt).
+    #[cfg(target_os = "android")]
+    let builder = builder.plugin(agenda_android::init());
     // Android: ler o QR do convite da família (QrPlugin.kt).
     #[cfg(target_os = "android")]
     let builder = builder.plugin(qr_android::init());
@@ -999,6 +1032,8 @@ pub fn run() {
             apk_instalar,
             lembrete_acao_pendente,
             qr_ler,
+            agenda_calendarios,
+            agenda_sincronizar,
             familia_info,
             familia_criar,
             familia_entrar,

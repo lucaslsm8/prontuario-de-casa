@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useVoltar } from './useVoltar';
-import { editaveis, pessoa, useStore } from '../data/store';
+import { editaConsulta, pessoa, useStore } from '../data/store';
 import { diaMes } from '../data/format';
 import { DocumentoResumo, TODAS_SECOES, secoesDoResumo, type SecaoResumo } from '../mobile/Agenda';
 import { AcoesRegistro } from './Acoes';
@@ -60,7 +60,7 @@ export function DResumo() {
         <Voltar />
         <div className="hstack" style={{ gap: 8 }}>
           <AcoesRegistro
-            podeEditar={editaveis(state).some((x) => x.id === c.pessoaId)}
+            podeEditar={editaConsulta(state, c.pessoaId)}
             editar={`editar-consulta:${c.id}`}
             apagar={{
               titulo: `Apagar ${c.titulo} de ${diaMes(c.data)}?`,
@@ -82,7 +82,7 @@ export function DResumo() {
       </div>
 
       <div className="stack" style={{ width: '100%', maxWidth: 760, margin: '0 auto', gap: 16 }}>
-        <PosConsulta key={c.id} consulta={c} podeEditar={editaveis(state).some((x) => x.id === c.pessoaId)} />
+        <PosConsulta key={c.id} consulta={c} podeEditar={editaConsulta(state, c.pessoaId)} />
         <DocumentoResumo
           consulta={c}
           incluir={incluir}

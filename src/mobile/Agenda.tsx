@@ -2,7 +2,7 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
 import { LEMBRAR, useFormConsulta } from '../data/formularios';
-import { adesao, editaveis, pessoa, useStore } from '../data/store';
+import { adesao, editaConsulta, paraConsultas, pessoa, useStore } from '../data/store';
 import { addDias, dataBR, dataGrupo, diaMes, diaSemanaSigla, idade, nomeMes, numBR, numCurto, parseISO, quem } from '../data/format';
 import type { Consulta, Pessoa } from '../data/types';
 import { ChipGroup, Field, FieldGroup, Label, Row, SecaoLista, Toggle, TopNav, cx, InlineInput } from '../ui';
@@ -170,7 +170,7 @@ export function NovaConsulta({ onDone, consulta }: { onDone?: () => void; consul
   const { state } = useStore();
   const nav = useNavigate();
   const fechar = onDone ?? (() => nav('/agenda'));
-  const pessoas = editaveis(state);
+  const pessoas = paraConsultas(state);
   const { titulo, setTitulo, para, setPara, quando, setQuando, prof, setProf, local, setLocal, plano, setPlano, levar, setLevar, novoItem, setNovoItem, lembrar, setLembrar, paraPet, editando, valido, salvar } = useFormConsulta(fechar, { inicial: consulta });
 
   return (
@@ -337,13 +337,13 @@ export function ResumoConsulta() {
         <h1 className="title title--26" style={{ margin: 0 }}>Resumo para o {especialista}</h1>
         <span style={{ fontSize: 14, color: 'var(--text-2)' }}>{p.curto} · consulta de {diaMes(c.data)}</span>
       </div>
-      <PosConsulta key={c.id} consulta={c} podeEditar={editaveis(state).some((x) => x.id === c.pessoaId)} />
+      <PosConsulta key={c.id} consulta={c} podeEditar={editaConsulta(state, c.pessoaId)} />
       {documento}
       <div className="hstack" style={{ gap: 8 }}>
         <button type="button" className="btn btn--ink btn--h52 btn--grow" onClick={() => window.print()}>Exportar PDF</button>
         <button type="button" className="btn btn--outline btn--h52 btn--grow" onClick={() => setTela(true)}>Mostrar na tela</button>
       </div>
-      {editaveis(state).some((x) => x.id === c.pessoaId) && (
+      {editaConsulta(state, c.pessoaId) && (
         <div className="hstack" style={{ justifyContent: 'center', gap: 8 }}>
           <button type="button" className="btn btn--link" style={{ minHeight: 44, fontSize: 15 }} onClick={() => nav(`/consulta/${c.id}/editar`)}>Editar consulta</button>
           <button type="button" className="btn btn--danger-link" style={{ minHeight: 44, fontSize: 15 }} onClick={() => setApagar(true)}>Apagar</button>

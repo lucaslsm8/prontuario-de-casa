@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { editaveis, eu, pessoa, useStore } from '../data/store';
+import { editaveis, eu, paraConsultas, pessoa, useStore } from '../data/store';
 import { HOJE } from '../data/tempo';
 import { addDias, dataBR, diaMes, idade, mascararTelefone, quem } from '../data/format';
 import {
@@ -98,7 +98,8 @@ export function DNovoRemedio({ onClose, remedio }: Props & { remedio?: Remedio }
 // ── Nova consulta (M18) ─────────────────────────────────────────────────────
 
 export function DNovaConsulta({ onClose, consulta }: Props & { consulta?: Consulta }) {
-  const pessoas = usePessoasEditaveis();
+  const { state } = useStore();
+  const pessoas = opcoesPessoas(paraConsultas(state), quem);
   const f = useFormConsulta(onClose, { desktop: true, inicial: consulta });
   const addItem = () => {
     if (f.novoItem?.trim()) f.setLevar([...f.levar, { item: f.novoItem.trim(), ok: true }]);

@@ -1,7 +1,7 @@
 // Importar convites (.ics do Google Agenda, Outlook, e-mail de confirmação) e exportar a agenda.
 import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { editaveis, eu, podeVer, useStore } from '../data/store';
+import { eu, paraConsultas, podeVer, useStore } from '../data/store';
 import { gerarIcs, lerIcs, type EventoIcs } from '../data/ics';
 import { exportarTexto } from '../data/anexos';
 import { dataBR, quem } from '../data/format';
@@ -15,7 +15,7 @@ export function AgendaIcs({ compacto }: { compacto?: boolean }) {
   const input = useRef<HTMLInputElement>(null);
   const [lidos, setLidos] = useState<(EventoIcs & { ok: boolean })[] | null>(null);
   const [para, setPara] = useState(eu(state).id);
-  const pessoas = editaveis(state);
+  const pessoas = paraConsultas(state);
   const me = eu(state).id;
 
   const exportar = async () => {
@@ -125,7 +125,7 @@ export function AgendaConectada({ compacto }: { compacto?: boolean }) {
               </ol>
               <input className="input input--desk input--mono" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics" value={url} onChange={(e) => setUrl(e.target.value)} aria-label="Endereço iCal" />
               <span className="field__label">As consultas são de</span>
-              <div className="chips">{editaveis(state).map((p) => <Chip key={p.id} ativo={para === p.id} onClick={() => setPara(p.id)}>{quem(p)}</Chip>)}</div>
+              <div className="chips">{paraConsultas(state).map((p) => <Chip key={p.id} ativo={para === p.id} onClick={() => setPara(p.id)}>{quem(p)}</Chip>)}</div>
               <span className="muted" style={{ fontSize: 12 }}>O endereço fica guardado cifrado neste aparelho. Quem tiver esse endereço consegue ver sua agenda; não compartilhe.</span>
               {info.erro && <span style={{ color: 'var(--danger)', fontSize: 13 }}>Último erro: {info.erro}</span>}
             </div>
