@@ -1,3 +1,3 @@
-- Exames: o resultado lido do PDF fica só com o laudo (sem cabeçalho, rodapé, dados do paciente, numeração das páginas e assinatura)
-- Exames: a data da coleta não confunde mais com a data de um exame anterior citado no laudo
-- Exames: botão "Ler de novo do PDF" para refazer o resultado de um exame já salvo
+- Desktop: aba "Consultas" com todas as consultas e exames marcados da família, próximas e passadas, com filtro por pessoa, tipo e busca
+- Celular: o app funciona por perfil. Toque na sua foto no topo do Início para ver o perfil de outra pessoa ou pet; Início, Agenda, Remédios, Exames e Plano mostram só as coisas dela, e o que você cadastrar já vai para ela
+- Celular: o app sempre abre no seu perfil
