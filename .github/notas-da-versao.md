@@ -1,3 +1,9 @@
-- Desktop: aba "Consultas" com todas as consultas e exames marcados da família, próximas e passadas, com filtro por pessoa, tipo e busca
-- Celular: o app funciona por perfil. Toque na sua foto no topo do Início para ver o perfil de outra pessoa ou pet; Início, Agenda, Remédios, Exames e Plano mostram só as coisas dela, e o que você cadastrar já vai para ela
-- Celular: o app sempre abre no seu perfil
+- Foto de perfil: ao escolher uma foto, ajuste a parte que aparece, com zoom e arrastando
+- Celular: no perfil de um pet, o Início mostra o perfil dele e a aba Plano vira Fotos
+- Celular: Configurações na engrenagem do Início e no seletor de perfil; a faixa do topo agora tem "Trocar perfil"
+- Celular: a Agenda ganhou a visualização "Consultas", com próximas e passadas, filtro e busca
+- Celular: menu inferior com texto ou ícones (em Configurações)
+- Exportar o perfil de uma pessoa ou pet em PDF, para levar a um profissional (celular em Configurações, desktop em Privacidade)
+- Vacinas agora podem ser editadas e apagadas, no celular e no desktop
+- Celular: do perfil de alguém, Consultas, Exames e Remédios abrem já no perfil dessa pessoa
+- Correção: um registro feito durante a sincronização podia sumir da tela até reabrir o app
