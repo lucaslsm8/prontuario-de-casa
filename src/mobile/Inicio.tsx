@@ -5,7 +5,6 @@ import { dataLonga, mesSigla, quem } from '../data/format';
 import { Bar, Check, Circle, Label, SecaoLista } from '../ui';
 import { CartaoDose, LinhaDia, ListaDoses, RemedioAcabando, useDoseDaVez, useRemedioAcabando } from '../ui/Inicio';
 import { agruparFamiliaPets, ehPet } from '../data/pets';
-import { saudacao } from '../data/inicio';
 import type { Consulta } from '../data/types';
 import { MScreen } from './Shell';
 import { BotaoConfig, BotaoPerfil } from './Perfil';
@@ -20,16 +19,12 @@ export function Inicio() {
   return vazio ? <InicioVazio /> : <InicioCheio />;
 }
 
-/** Topo do Início: numa linha, "Bom dia, Fulano" à esquerda e a data à direita; embaixo Buscar, Configurações e a foto que troca o perfil. */
-function Topo({ agora }: { agora?: number }) {
-  const { state } = useStore();
+/** Topo do Início: a data numa linha, à direita; embaixo Buscar, Configurações e a foto que troca o perfil. */
+function Topo() {
   const nav = useNavigate();
   return (
     <div className="stack" style={{ gap: 6 }}>
-      <div className="hstack" style={{ justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-        <span style={{ fontSize: 17, fontWeight: 600, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{agora == null ? 'Olá' : saudacao(agora)}, {eu(state).curto}</span>
-        <span style={{ fontSize: 13, color: 'var(--text-2)', whiteSpace: 'nowrap', flexShrink: 0 }}>{dataLonga(HOJE)}</span>
-      </div>
+      <span style={{ fontSize: 13, color: 'var(--text-2)', textAlign: 'right', whiteSpace: 'nowrap' }}>{dataLonga(HOJE)}</span>
       <div className="hstack" style={{ justifyContent: 'flex-end' }}>
         <button type="button" className="btn btn--outline btn--h40" style={{ marginRight: 8, minWidth: 44, flexShrink: 0 }} onClick={() => nav('/busca')} aria-label="Buscar">Buscar</button>
         <BotaoConfig />
@@ -67,7 +62,7 @@ function InicioCheio() {
 
   return (
     <MScreen tabs gap={14}>
-      <Topo agora={agora} />
+      <Topo />
 
       <CartaoDose dv={dv} compacto onCadastrar={() => nav('/remedios/novo')} />
 
