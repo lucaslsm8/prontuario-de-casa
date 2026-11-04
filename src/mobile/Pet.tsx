@@ -1,18 +1,19 @@
 import type { ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
 import { useStore } from '../data/store';
 import { novoId } from '../data/persistencia';
 import {
-  NOMES_PREVENCAO, historicoPeso, linhaPet, novaAplicacao, pesoAtual, proximaPrevencao, proximosCuidados, reforcoVencido,
-  rotuloCastrado, sintomasRecentes, telHref, ultimasPrevencoes, ultimasVacinas, vencidaHa,
+  NOMES_PREVENCAO, ehPet, historicoPeso, linhaPet, novaAplicacao, pesoAtual, proximaPrevencao, proximosCuidados, reforcoVencido,
+  rotuloCastrado, sintomasRecentes, telHref, ultimasPrevencoes, vacinasDoPet, vencidaHa,
 } from '../data/pets';
 import { dataBR, diaMes, diasDeEstoque, numCurto } from '../data/format';
 import type { Pessoa } from '../data/types';
 import { Label, Pill, Row, TopNav, reticencias } from '../ui';
 import { FotoDoPerfil } from '../ui/Foto';
 import { AdicionarItem } from './EditarPerfil';
-import { MScreen } from './Shell';
+import { MScreen, TabHeader } from './Shell';
+import { BotaoConfig, BotaoPerfil, useAbrirNoPerfil } from './Perfil';
 import { Grafico } from '../ui/Grafico';
 import { pontosPesagem } from '../data/medicoes';
 import { RemoverPessoaMobile } from '../ui/Confirmar';
@@ -21,13 +22,24 @@ import { fotosDoPet } from '../data/anexos';
 
 const sub = { fontSize: 13, color: 'var(--text-2)' } as const;
 
-/** Perfil do pet no celular (linguagem do M10). Pets não têm compartilhamento: todo mundo vê e edita. */
-export function PetPerfil({ pet: p }: { pet: Pessoa }) {
+/**
+ * Perfil do pet no celular (linguagem do M10). Pets não têm compartilhamento: todo mundo vê e edita.
+ * `inicio`: é o Início do perfil do pet (com a tab bar; o álbum fica na aba Fotos).
+ */
+export function PetPerfil({ pet: p, inicio }: { pet: Pessoa; inicio?: boolean }) {
   const nav = useNavigate();
   const alergia = p.alergias[0];
   return (
-    <MScreen gap={18}>
-      <TopNav voltar="Família" voltarPara="/familia" acao="Editar" onAcao={() => nav(`/pessoa/${p.id}/editar`)} />
+    <MScreen gap={18} tabs={inicio}>
+      {inicio ? (
+        <div className="hstack" style={{ justifyContent: 'flex-end' }}>
+          <button type="button" className="btn btn--outline btn--h40" style={{ marginRight: 'auto', padding: '0 14px' }} onClick={() => nav(`/pessoa/${p.id}/editar`)}>Editar</button>
+          <BotaoConfig />
+          <BotaoPerfil />
+        </div>
+      ) : (
+        <TopNav voltar="Família" voltarPara="/familia" acao="Editar" onAcao={() => nav(`/pessoa/${p.id}/editar`)} />
+      )}
       <div className="hstack" style={{ gap: 14 }}>
         <FotoDoPerfil pessoa={p} tamanho={72} podeEditar />
         <div className="stack" style={{ gap: 4, minWidth: 0 }}>
@@ -45,7 +57,7 @@ export function PetPerfil({ pet: p }: { pet: Pessoa }) {
         </div>
       )}
       <Contatos p={p} />
-      <Fotos pet={p} />
+      {!inicio && <Fotos pet={p} />}
 
       <ProximosCuidados id={p.id} />
       <Vacinas id={p.id} />
@@ -56,9 +68,29 @@ export function PetPerfil({ pet: p }: { pet: Pessoa }) {
       <RemediosEmUso id={p.id} />
       <ConsultasExames id={p.id} />
       <button type="button" className="btn btn--outline-ink btn--h50" onClick={() => nav(`/pessoa/${p.id}/emergencia`)}>Ficha de emergência</button>
-      <RemoverPessoaMobile p={p} />
+      {!inicio && <RemoverPessoaMobile p={p} />}
     </MScreen>
   );
+}
+
+/** Aba Fotos (no lugar de Plano, no perfil de um pet): o álbum dele. */
+export function FotosDoPerfil() {
+  const { state, perfil } = useStore();
+  const pet = perfil ? state.pessoas.find((x) => x.id === perfil) : undefined;
+  if (!pet || !ehPet(pet)) return <Navigate to="/" replace />;
+  const n = fotosDoPet(state.anexos, pet.id).length;
+  return (
+    <MScreen tabs>
+      <TabHeader titulo="Fotos" />
+      <span style={sub}>{n ? `${n} ${n === 1 ? 'foto' : 'fotos'} de ${pet.curto}` : `Guarde aqui as fotos de ${pet.curto}.`}</span>
+      <AlbumPet pet={pet} />
+    </MScreen>
+  );
+}
+
+function AlbumPet({ pet }: { pet: Pessoa }) {
+  const seletor = useAdicionarFotos(pet);
+  return <FotosDoPet pet={pet} seletor={seletor} />;
 }
 
 /** Álbum do pet: grade de 3 colunas, "+ Adicionar fotos" no fim. */
@@ -190,13 +222,14 @@ function ProximosCuidados({ id }: { id: string }) {
 function Vacinas({ id }: { id: string }) {
   const { state } = useStore();
   const nav = useNavigate();
-  const lista = ultimasVacinas(state, id);
+  // Todas as doses (a mais nova primeiro); tocar abre a edição.
+  const lista = vacinasDoPet(state, id);
   return (
     <Secao titulo="Vacinas">
       {lista.map((v) => {
         const vencido = reforcoVencido(state, v);
         return (
-          <div key={v.id} className="row" style={linhaVencida(vencido)}>
+          <button type="button" key={v.id} className="row" style={{ textAlign: 'left', ...linhaVencida(vencido) }} onClick={() => nav(`/pet/${id}/vacina/${v.id}`)}>
             <Texto
               titulo={v.nome}
               detalhe={<>
@@ -204,8 +237,8 @@ function Vacinas({ id }: { id: string }) {
                 {v.proxima && !vencido && <> · reforço <span className="mono">{dataBR(v.proxima)}</span></>}
               </>}
             />
-            {v.proxima && vencido && <Prazo data={v.proxima} vencido />}
-          </div>
+            {v.proxima && vencido ? <Prazo data={v.proxima} vencido /> : <span className="chev">›</span>}
+          </button>
         );
       })}
       {lista.length === 0 && <Vazio>Nenhuma vacina registrada.</Vazio>}
@@ -340,13 +373,13 @@ function RemediosEmUso({ id }: { id: string }) {
 /** Consultas e exames como no M10: uma linha cada, levando às abas. */
 function ConsultasExames({ id }: { id: string }) {
   const { state } = useStore();
-  const nav = useNavigate();
+  const abrirNoPerfil = useAbrirNoPerfil();
   const prox = state.consultas.filter((c) => c.pessoaId === id && c.data >= HOJE).sort((a, b) => (a.data + a.hora).localeCompare(b.data + b.hora))[0];
   const exames = state.exames.filter((e) => e.pessoaId === id).length;
   return (
     <div className="card" style={{ fontSize: 15 }}>
-      <Row mutedLabel={false} label="Consultas" valor={<span className="muted">{prox ? `próxima ${diaMes(prox.data)}` : 'nenhuma marcada'} ›</span>} onClick={() => nav('/agenda')} />
-      <Row mutedLabel={false} label="Exames" valor={<span className="muted">{exames} {exames === 1 ? 'arquivado' : 'arquivados'} ›</span>} onClick={() => nav('/exames')} />
+      <Row mutedLabel={false} label="Consultas" valor={<span className="muted">{prox ? `próxima ${diaMes(prox.data)}` : 'nenhuma marcada'} ›</span>} onClick={() => abrirNoPerfil(id, '/agenda')} />
+      <Row mutedLabel={false} label="Exames" valor={<span className="muted">{exames} {exames === 1 ? 'arquivado' : 'arquivados'} ›</span>} onClick={() => abrirNoPerfil(id, '/exames')} />
     </div>
   );
 }

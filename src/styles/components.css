@@ -204,3 +204,12 @@ button.row:hover { background: #F8FAFA; }
 /* Seletor de data nativo (src/ui/CampoData.tsx). */
 .input[type="date"] { font-family: var(--font-mono); color-scheme: light; }
 .input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .6; }
+
+/* ── Ajustar foto (recorte com zoom e arraste) ────────────────────────────── */
+.recorte { position: fixed; inset: 0; z-index: 90; background: rgba(20, 32, 42, .55); display: grid; place-items: center; padding: 16px; animation: fade 180ms var(--ease); }
+.recorte__painel { width: min(380px, 100%); background: #fff; border-radius: 12px; box-shadow: var(--shadow-modal); padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.recorte__area { position: relative; width: 100%; aspect-ratio: 1; overflow: hidden; border-radius: var(--r-card); background: var(--ink); touch-action: none; cursor: grab; user-select: none; }
+.recorte__area:active { cursor: grabbing; }
+.recorte__area img { position: absolute; left: 0; top: 0; max-width: none; pointer-events: none; }
+.recorte__circulo { position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 999px rgba(20, 32, 42, .5); border: 2px solid rgba(255, 255, 255, .85); pointer-events: none; }
+.recorte__zoom { width: 44px; height: 44px; padding: 0; border-radius: var(--r-btn); font-size: 20px; flex: none; }

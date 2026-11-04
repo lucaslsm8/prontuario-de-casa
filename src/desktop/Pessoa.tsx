@@ -204,7 +204,9 @@ function AbaVacinasPessoa({ id, podeEditar }: { id: string; podeEditar: boolean 
         const vencido = !!v.proxima && v.proxima < HOJE;
         return (
           <div key={v.id} className="row" style={{ padding: '14px 20px', gap: 16, justifyContent: 'flex-start' }}>
-            <span style={{ flex: 1, fontWeight: 600 }}>{v.nome}</span>
+            {podeEditar
+              ? <button type="button" className="btn--link" style={{ flex: 1, fontWeight: 600, textAlign: 'left', color: 'inherit' }} onClick={() => abrir(`editar-vacina:${v.id}`)}>{v.nome}</button>
+              : <span style={{ flex: 1, fontWeight: 600 }}>{v.nome}</span>}
             <span className="mono muted" style={{ width: 96 }}>{dataBR(v.data)}</span>
             <span className={vencido ? undefined : 'muted'} style={{ width: 170, color: vencido ? 'var(--warn-text)' : undefined }}>{v.proxima ? `${vencido ? 'reforço vencido' : 'reforço'} ${dataBR(v.proxima)}` : 'sem reforço'}</span>
             {podeEditar && <button type="button" className="dlista__x" aria-label={`Apagar ${v.nome}`} onClick={() => api.remover('vacinas', v, `${v.nome} apagada`)}>×</button>}

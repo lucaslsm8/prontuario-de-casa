@@ -13,12 +13,12 @@ import { TIPOS_CONDICAO, type TipoCondicao } from '../data/perfil';
 import { LISTA_POR_TIPO } from '../data/sugestoes';
 import { Sugestoes, SugestoesConsulta } from '../ui/Sugestoes';
 import { AnexosPendentes } from '../ui/Anexos';
-import type { Consulta, Exame, Pessoa, Plano, Remedio, TipoMedicao, TipoProcedimento } from '../data/types';
+import type { Consulta, Exame, Pessoa, Plano, Remedio, TipoMedicao, TipoProcedimento, Vacina } from '../data/types';
 import { CONTEXTOS_GLICEMIA, MEDICOES, infoMedicao } from '../data/medicoes';
 import { Chip } from '../ui';
 import { TrocarFoto, useEscolherFoto } from '../ui/Foto';
 import { enterNaLinha } from '../ui/linhas';
-import { DCampo, DChips, DDialogo, DFechar, DGrade, DRodape, DSangue, DSelect, DToggle } from './Formulario';
+import { DCampo, DChips, DConfirmar, DDialogo, DFechar, DGrade, DRodape, DSangue, DSelect, DToggle } from './Formulario';
 import { SUGESTOES_VACINA as SUGESTOES_VACINA_PESSOA } from '../data/sugestoes';
 import { CampoData } from '../ui/CampoData';
 
@@ -427,12 +427,29 @@ const inputData = (valor: string, onChange: (v: string) => void, rotulo?: string
   <CampoData className="input input--desk input--mono" rotulo={rotulo} valor={valor} onChange={onChange} />
 );
 
-function DVacina({ pet, onClose }: PropsPet) {
-  const f = useFormVacina(pet, onClose);
+/** ?abrir=editar-vacina:<id> — a vacina já registrada, de pessoa ou pet. */
+export function DEditarVacina({ id, onClose }: Props & { id?: string }) {
+  const { state } = useStore();
+  const v = state.vacinas.find((x) => x.id === id);
+  const dono = v && state.pessoas.find((p) => p.id === v.pessoaId);
+  if (!v || !dono) return null;
+  return <DVacina pet={dono} vacina={v} onClose={onClose} />;
+}
+
+function DVacina({ pet, onClose, vacina }: PropsPet & { vacina?: Vacina }) {
+  const f = useFormVacina(pet, onClose, vacina);
+  const [apagar, setApagar] = useState(false);
   const animal = ehPet(pet);
   const sugestoes = animal ? SUGESTOES_VACINA : SUGESTOES_VACINA_PESSOA.slice(0, 8);
+  const rodape = (
+    <>
+      {f.apagar && <button type="button" className="btn btn--h40d btn--danger-link" style={{ marginRight: 'auto' }} onClick={() => setApagar(true)}>Apagar vacina</button>}
+      <DRodape salvar={f.editando ? 'Salvar alterações' : 'Salvar vacina'} onSalvar={f.salvar} valido={f.valido} onCancelar={onClose} />
+    </>
+  );
   return (
-    <DDialogo titulo="Registrar vacina" onClose={onClose} rodape={<DRodape salvar="Salvar vacina" onSalvar={f.salvar} valido={f.valido} onCancelar={onClose} />}>
+    <>
+    <DDialogo titulo={f.editando ? 'Editar vacina' : 'Registrar vacina'} onClose={onClose} rodape={rodape}>
       <DGrade>
         <DCampo label="Vacina" span2>
           <input className="input input--desk" value={f.nome} onChange={(e) => f.setNome(e.target.value)} placeholder={animal ? 'Ex.: V10' : 'Ex.: Gripe (influenza)'} autoComplete="off" />
@@ -455,6 +472,10 @@ function DVacina({ pet, onClose }: PropsPet) {
         </DCampo>
       </DGrade>
     </DDialogo>
+    {apagar && f.apagar && (
+        <DConfirmar perigo titulo={`Apagar ${vacina?.nome}?`} texto="A vacina sai do histórico e o lembrete do reforço some." confirmar="Apagar vacina" onConfirm={f.apagar} onClose={() => setApagar(false)} />
+    )}
+    </>
   );
 }
 

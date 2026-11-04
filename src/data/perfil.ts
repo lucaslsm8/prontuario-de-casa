@@ -40,8 +40,18 @@ const LADO_FOTO = 384;
 /** Acima disso nem tentamos decodificar (30 MB). */
 const MAX_BYTES_FOTO = 30 * 1024 * 1024;
 
-/** Corta o centro em quadrado e reduz para 384×384 JPEG (qualidade 0,82), devolvendo um data URL. */
-export async function reduzirFoto(file: File): Promise<string> {
+/** Recorte quadrado escolhido no ajuste da foto: `zoom` 1 = o maior quadrado que cabe; `cx`/`cy` = centro, em px da imagem. Nunca sai da imagem. */
+export function recorteDaVista(w: number, h: number, zoom: number, cx: number, cy: number): { sx: number; sy: number; lado: number } {
+  const lado = Math.min(w, h) / Math.max(1, zoom);
+  const preso = (v: number, max: number) => Math.min(Math.max(v, 0), Math.max(0, max));
+  return { sx: preso(cx - lado / 2, w - lado), sy: preso(cy - lado / 2, h - lado), lado };
+}
+
+/** Prévia da imagem escolhida: já na orientação certa e reduzida (lado maior até 1600 px), para o ajuste e o recorte. */
+export interface ImagemCarregada { canvas: HTMLCanvasElement; w: number; h: number }
+const LADO_PREVIA = 1600;
+
+export async function carregarImagem(file: File): Promise<ImagemCarregada> {
   if (!file.type.startsWith('image/')) throw new Error('Não é uma imagem');
   if (file.size > MAX_BYTES_FOTO) throw new Error('Imagem grande demais');
   let fonte: CanvasImageSource;
@@ -68,19 +78,36 @@ export async function reduzirFoto(file: File): Promise<string> {
   }
   try {
     if (!w || !h) throw new Error('Imagem vazia');
-    const { sx, sy, lado } = recorteQuadrado(w, h);
+    const f = Math.min(1, LADO_PREVIA / Math.max(w, h));
     const canvas = document.createElement('canvas');
-    canvas.width = LADO_FOTO; canvas.height = LADO_FOTO;
+    canvas.width = Math.round(w * f); canvas.height = Math.round(h * f);
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Sem canvas');
-    // Fundo branco: o JPEG não tem transparência (PNG transparente ficaria preto).
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, LADO_FOTO, LADO_FOTO);
-    ctx.drawImage(fonte, sx, sy, lado, lado, 0, 0, LADO_FOTO, LADO_FOTO);
-    return canvas.toDataURL('image/jpeg', 0.82);
+    ctx.drawImage(fonte, 0, 0, canvas.width, canvas.height);
+    return { canvas, w: canvas.width, h: canvas.height };
   } finally {
     liberar();
   }
+}
+
+/** Desenha o recorte em 384×384 JPEG (qualidade 0,82) e devolve o data URL. */
+export function fotoDoRecorte(img: ImagemCarregada, r: { sx: number; sy: number; lado: number }): string {
+  const canvas = document.createElement('canvas');
+  canvas.width = LADO_FOTO; canvas.height = LADO_FOTO;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Sem canvas');
+  // Fundo branco: o JPEG não tem transparência (PNG transparente ficaria preto).
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, LADO_FOTO, LADO_FOTO);
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img.canvas, r.sx, r.sy, r.lado, r.lado, 0, 0, LADO_FOTO, LADO_FOTO);
+  return canvas.toDataURL('image/jpeg', 0.82);
+}
+
+/** Corta o centro em quadrado e reduz para 384×384 JPEG, devolvendo um data URL. */
+export async function reduzirFoto(file: File): Promise<string> {
+  const img = await carregarImagem(file);
+  return fotoDoRecorte(img, recorteQuadrado(img.w, img.h));
 }
 
 // ── Formulário "Editar perfil" (estado em texto ↔ Pessoa) ──────────────────

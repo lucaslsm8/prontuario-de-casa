@@ -15,6 +15,7 @@ import { AdicionarExame, DetalheExame, EditarExame, Exames } from './mobile/Exam
 import { Compartilhar, Familia, FichaEmergencia, PerfilMembro, PlanoSaude, Planos } from './mobile/Familia';
 import { EditarPerfilMobile } from './mobile/EditarPerfil';
 import { NovoPet } from './mobile/NovoPet';
+import { FotosDoPerfil } from './mobile/Pet';
 import { NovaPesagem, RegistrarPrevencao, RegistrarProcedimento, RegistrarSintoma, RegistrarVacina } from './mobile/RegistrosPet';
 import { Atualizacoes, Configuracoes, Desbloqueio, Instalando, LembreteDose, Privacidade } from './mobile/Config';
 import { BloqueioDesktop, DesktopShell } from './desktop/Shell';
@@ -68,8 +69,10 @@ function RotasMobile({ frame }: { frame: boolean }) {
         <Route path="consulta/:id/editar" element={<EditarConsulta />} />
         <Route path="familia" element={<Familia />} />
         <Route path="planos" element={<Planos />} />
+        <Route path="fotos" element={<FotosDoPerfil />} />
         <Route path="pet/novo" element={<NovoPet />} />
         <Route path="pet/:id/vacina" element={<RegistrarVacina />} />
+        <Route path="pet/:id/vacina/:vid" element={<RegistrarVacina />} />
         <Route path="pet/:id/prevencao" element={<RegistrarPrevencao />} />
         <Route path="pet/:id/sintoma" element={<RegistrarSintoma />} />
         <Route path="pet/:id/procedimento" element={<RegistrarProcedimento />} />
@@ -172,6 +175,12 @@ function RegistroNoDesktop() {
   return <Navigate to={`/pessoa/${id}?abrir=${registro as RegistroPet}:${id}`} replace />;
 }
 
+/** Editar vacina no desktop: o perfil com o diálogo de edição. */
+function VacinaNoDesktop() {
+  const { id = '', vid = '' } = useParams();
+  return <Navigate to={`/pessoa/${id}?abrir=editar-vacina:${vid}`} replace />;
+}
+
 function RotasDesktop() {
   return (
     <Routes>
@@ -199,6 +208,7 @@ function RotasDesktop() {
         <Route path="busca" element={<Navigate to="/" replace />} />
         <Route path="pet/novo" element={<Navigate to="/?abrir=pet" replace />} />
         <Route path="pet/:id/:registro" element={<RegistroNoDesktop />} />
+        <Route path="pet/:id/vacina/:vid" element={<VacinaNoDesktop />} />
         <Route path="privacidade" element={<DPrivacidade />} />
         <Route path="*" element={<NaoDesenhadaNoDesktop />} />
       </Route>

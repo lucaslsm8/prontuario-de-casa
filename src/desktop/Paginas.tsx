@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useState } from 'react';
+import { ExportarPdf } from '../mobile/Config';
 import { HOJE, MODO_REAL } from '../data/tempo';
 import { RestaurarBackup, SenhaApp, SenhaBackup } from '../ui/Backup';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -361,6 +362,7 @@ function ConfirmarPerigo(p: { titulo: string; texto: string; confirmar: string; 
 }
 
 export function DPrivacidade() {
+  const [pdf, setPdf] = useState(false);
   const { state, api } = useStore();
   const nav = useNavigate();
   const c = state.config;
@@ -447,6 +449,17 @@ export function DPrivacidade() {
       <CardFamilia desktop />
 
       <CardAtualizacoes />
+
+      <div className="card" style={{ fontSize: 14 }}>
+        <div className="row" style={{ padding: '16px 20px', gap: 16 }}>
+          <span className="stack" style={{ gap: 2 }}>
+            <span style={{ fontWeight: 600 }}>Exportar perfil em PDF</span>
+            <span className="muted" style={{ fontSize: 13 }}>Tudo de uma pessoa ou pet num arquivo, para levar a um profissional.</span>
+          </span>
+          <button type="button" className="btn btn--outline btn--h38" onClick={() => setPdf(true)}>Exportar PDF</button>
+        </div>
+      </div>
+      {pdf && <ExportarPdf desktop onClose={() => setPdf(false)} />}
 
       <div className="card" style={{ fontSize: 14 }}>
         <div className="card-head card-head--20"><Label>Compartilhamento</Label></div>

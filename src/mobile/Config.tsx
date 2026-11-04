@@ -4,10 +4,13 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { HOJE, MODO_EXEMPLO } from '../data/tempo';
 import { autenticarBiometria, biometriaDisponivel } from '../data/biometria';
 import { instalarAtualizacao, noCelular, useInfoAtualizacao, verificarAtualizacao } from '../data/atualizacao';
-import { compartilhado, eu, useStore } from '../data/store';
-import { familia } from '../data/pets';
+import { compartilhado, eu, podeVer, useStore } from '../data/store';
+import { familia, pets } from '../data/pets';
+import { exportarAnexo } from '../data/anexos';
+import { nomeDoPdf, pdfDoPerfil } from '../data/relatorio';
+import { CATEGORIAS, type Pessoa } from '../data/types';
 import { dataLonga, quando, tamanhoArquivo } from '../data/format';
-import { RestaurarBackup, SenhaApp, SenhaBackup } from '../ui/Backup';
+import { Folha, RestaurarBackup, SenhaApp, SenhaBackup } from '../ui/Backup';
 import { CardFamilia } from '../ui/Familia';
 import { RedesCasa } from '../ui/RedesCasa';
 import { Avatar, Check, Label, Lock, Pill, Row, Segmented, Toggle, TopNav } from '../ui';
@@ -18,19 +21,78 @@ const BLOQUEIO = ['30 segundos', '1 minuto', '5 minutos', '15 minutos'];
 
 /** Hub de configurações (não desenhado; segue o padrão de lista das outras telas). */
 export function Configuracoes() {
-  const { state } = useStore();
+  const { state, api } = useStore();
   const nav = useNavigate();
+  const [exportar, setExportar] = useState(false);
+  // Aberta direto (sem histórico no app), "Voltar" leva ao Início.
+  const voltar = () => ((window.history.state?.idx ?? 0) > 0 ? nav(-1) : nav('/', { replace: true }));
   return (
     <MScreen gap={16}>
-      <TopNav voltar="Família" voltarPara="/familia" />
+      <TopNav voltar="Voltar" onVoltar={voltar} />
       <h1 className="title" style={{ margin: 0 }}>Configurações</h1>
       <div className="card" style={{ fontSize: 15 }}>
+        <Row mutedLabel={false} label="Família e compartilhamento" valor={<span className="faint">›</span>} onClick={() => nav('/familia')} />
         <Row mutedLabel={false} label="Privacidade e backup" valor={<span className="faint">›</span>} onClick={() => nav('/privacidade')} />
         <Row mutedLabel={false} label="Atualizações" valor={<span className="muted">{state.config.update.disponivel ? 'nova versão ›' : `${state.config.update.instalada} ›`}</span>} onClick={() => nav('/atualizacoes')} />
         <Row mutedLabel={false} label="Ficha de emergência" valor={<span className="faint">›</span>} onClick={() => nav(`/pessoa/${eu(state).id}/emergencia`)} />
+        <Row
+          mutedLabel={false}
+          label={
+            <span className="stack" style={{ gap: 2 }}>
+              <span>Exportar perfil em PDF</span>
+              <span style={{ fontSize: 12, color: 'var(--text-3)' }}>Tudo de uma pessoa, para levar a um profissional</span>
+            </span>
+          }
+          valor={<span className="faint">›</span>}
+          onClick={() => setExportar(true)}
+        />
       </div>
+      <Label>Menu inferior</Label>
+      <Segmented opcoes={[{ id: 'texto', nome: 'Texto' }, { id: 'icones', nome: 'Ícones' }]} valor={state.config.menuIcones ? 'icones' : 'texto'} onChange={(v) => api.setConfig({ menuIcones: v === 'icones' })} />
+      {exportar && <ExportarPdf onClose={() => setExportar(false)} />}
       <span style={{ fontSize: 12, color: 'var(--text-3)', textAlign: 'center' }}>Prontuário de Casa · versão {state.config.update.instalada}</span>
     </MScreen>
+  );
+}
+
+/** Escolhe de quem é o PDF e salva. O arquivo sai do cofre sem criptografia (ação explícita da pessoa). */
+export function ExportarPdf({ onClose, desktop }: { onClose: () => void; desktop?: boolean }) {
+  const { state, api } = useStore();
+  const [salvando, setSalvando] = useState(false);
+  const me = eu(state);
+  const lista = [...familia(state), ...pets(state)]
+    .filter((p) => CATEGORIAS.some((c) => podeVer(state, p.id, c.id)))
+    .sort((a, b) => Number(!!b.souEu) - Number(!!a.souEu));
+  const salvar = async (p: Pessoa) => {
+    setSalvando(true);
+    try {
+      const bytes = pdfDoPerfil(state, p, (c) => podeVer(state, p.id, c), HOJE);
+      let bin = '';
+      for (const b of bytes) bin += String.fromCharCode(b);
+      const nome = nomeDoPdf(p, HOJE);
+      const ok = await exportarAnexo({ id: 'pdf-perfil', donoId: p.id, tipo: 'exame', nome, mime: 'application/pdf', dados: `data:application/pdf;base64,${btoa(bin)}`, tamanho: bytes.length, em: '' });
+      if (ok) { api.toast({ texto: `PDF de ${p.id === me.id ? 'você' : p.curto} salvo` }); onClose(); }
+    } catch {
+      api.toast({ texto: 'Não foi possível salvar o PDF.' });
+    }
+    setSalvando(false);
+  };
+  return (
+    <Folha titulo="Exportar perfil em PDF" onClose={onClose} desktop={desktop}>
+      <span style={{ fontSize: 14, lineHeight: 1.45, color: 'var(--text-2)' }}>
+        Dados pessoais, alergias, vacinas, remédios, consultas, exames e plano, no que a pessoa compartilha com você. O arquivo sai do aparelho sem senha: guarde com cuidado.
+      </span>
+      <div className="stack" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
+        {lista.map((p) => (
+          <button key={p.id} type="button" className="row" disabled={salvando} style={{ gap: 12, padding: '10px 4px', justifyContent: 'flex-start', minHeight: 56, textAlign: 'left' }} onClick={() => void salvar(p)}>
+            <Avatar pessoa={p} size={40} font={15} />
+            <span style={{ flex: 1, fontSize: 16, fontWeight: 600 }}>{p.souEu ? `${p.curto} (você)` : p.curto}</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--teal)' }}>{salvando ? '…' : 'Salvar PDF'}</span>
+          </button>
+        ))}
+      </div>
+      <button type="button" className="btn btn--outline btn--h50" onClick={onClose}>Cancelar</button>
+    </Folha>
   );
 }
 

@@ -7,13 +7,24 @@ import { ehPet, familia, pets } from '../data/pets';
 import { quem } from '../data/format';
 import { Avatar, Label } from '../ui';
 import { Folha } from '../ui/Backup';
+import { IcConfig } from '../ui/Icones';
 
 interface ValorPerfil { id?: string; trocar: (id: string) => void; abrirSeletor: () => void }
 const PerfilCtx = createContext<ValorPerfil>({ trocar: () => undefined, abrirSeletor: () => undefined });
 export const usePerfil = () => useContext(PerfilCtx);
 
-/** Telas da família inteira (perfil de cada um, configurações, busca): sem recorte. */
-const SEM_RECORTE = /^\/(pessoa|pet|familia|configuracoes|compartilhar|privacidade|atualizacoes|busca|emergencia|boas-vindas|cadastro|desbloqueio)(\/|$)/;
+/**
+ * Telas da família inteira (perfil de cada um, configurações, busca) e o detalhe de um registro pelo id
+ * (remédio, exame, consulta de qualquer um, aberto do perfil dele ou da busca): sem recorte.
+ */
+const SEM_RECORTE = /^\/(pessoa|pet|familia|configuracoes|compartilhar|privacidade|atualizacoes|busca|emergencia|boas-vindas|cadastro|desbloqueio)(\/|$)|^\/(remedios|exames)\/(?!novo(\/|$))[^/]|^\/consulta\//;
+
+/** Abre uma aba (Agenda, Remédios, Exames) já no perfil de `id`: do perfil de alguém, a aba mostra o que é dele. */
+export function useAbrirNoPerfil() {
+  const { trocar } = usePerfil();
+  const nav = useNavigate();
+  return (id: string, aba: string) => { trocar(id); nav(aba); };
+}
 
 export function PerfilProvider({ children }: { children: ReactNode }) {
   const { state } = useStore();
@@ -61,8 +72,21 @@ function SeletorPerfil({ atual, onEscolher, onClose }: { atual?: string; onEscol
         {pets(state).length > 0 && <Label>Pets</Label>}
         {pets(state).map(linha)}
       </div>
-      <button type="button" className="btn btn--outline btn--h50" onClick={() => { onClose(); nav('/familia'); }}>Família e compartilhamento</button>
+      <div className="hstack" style={{ gap: 8 }}>
+        <button type="button" className="btn btn--outline btn--h50 btn--grow" onClick={() => { onClose(); nav('/familia'); }}>Família</button>
+        <button type="button" className="btn btn--outline btn--h50 btn--grow" onClick={() => { onClose(); nav('/configuracoes'); }}>Configurações</button>
+      </div>
     </Folha>
+  );
+}
+
+/** Engrenagem das configurações, ao lado do perfil no topo do Início. */
+export function BotaoConfig() {
+  const nav = useNavigate();
+  return (
+    <button type="button" className="btn btn--outline btn--h40" style={{ width: 44, minWidth: 44, padding: 0, marginRight: 8, flexShrink: 0 }} onClick={() => nav('/configuracoes')} aria-label="Configurações" title="Configurações">
+      <IcConfig size={20} />
+    </button>
   );
 }
 
@@ -81,10 +105,10 @@ export function BotaoPerfil({ compacto }: { compacto?: boolean }) {
   );
 }
 
-/** Faixa no topo das abas quando o perfil não é o seu: de quem é o que está na tela. */
+/** Faixa no topo das abas quando o perfil não é o seu: de quem é o que está na tela e o botão de trocar. */
 export function FaixaPerfil() {
   const { state } = useStore();
-  const { id, abrirSeletor, trocar } = usePerfil();
+  const { id, abrirSeletor } = usePerfil();
   const p = id ? pessoa(state, id) : undefined;
   const meu = state.pessoas.find((x) => x.souEu);
   if (!p || !meu || p.id === meu.id) return null;
@@ -94,7 +118,7 @@ export function FaixaPerfil() {
         <Avatar pessoa={p} size={28} font={11} />
         <span>Perfil de <b>{p.curto}</b></span>
       </button>
-      <button type="button" className="faixa-perfil__voltar" onClick={() => trocar(meu.id)}>Voltar ao meu</button>
+      <button type="button" className="faixa-perfil__voltar" onClick={abrirSeletor}>Trocar perfil</button>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { Avatar, FieldGroup, Label, Pill, Row, SecaoLista, Toggle, TopNav } from
 import { descricaoPet, ehPet, familia, pesoAtual, pets, telHref } from '../data/pets';
 import { FotoDoPerfil } from '../ui/Foto';
 import { PetPerfil } from './Pet';
+import { useAbrirNoPerfil } from './Perfil';
 import { MScreen, TabHeader } from './Shell';
 import { GaleriaAnexos } from '../ui/Anexos';
 import { ConfirmarSheet, RemoverPessoaMobile } from '../ui/Confirmar';
@@ -131,6 +132,7 @@ export function PerfilMembro() {
   const { id } = useParams();
   const { state } = useStore();
   const nav = useNavigate();
+  const abrirNoPerfil = useAbrirNoPerfil();
   const p = pessoa(state, id ?? '');
   if (!p) return <MScreen><TopNav voltar="Família" voltarPara="/familia" /><span className="muted">Pessoa não encontrada.</span></MScreen>;
   if (ehPet(p)) return <PetPerfil key={p.id} pet={p} />;
@@ -192,9 +194,9 @@ export function PerfilMembro() {
       <div className="card" style={{ fontSize: 15 }}>
         {ver('perfil') && <Row mutedLabel={false} label="Histórico" valor={<span className="muted">linha do tempo ›</span>} onClick={() => nav(`/pessoa/${p.id}/historico`)} />}
         {ver('perfil') && <Row mutedLabel={false} label="Medições" valor={<span className="muted">{resumoMedicoes(state.medicoes, p.id)} ›</span>} onClick={() => nav(`/pessoa/${p.id}/medicoes`)} />}
-        {ver('remedios') && <Row mutedLabel={false} label="Remédios" valor={<span className="muted">{remedios.length} em uso ›</span>} onClick={() => nav('/remedios')} />}
-        {ver('consultas') && <Row mutedLabel={false} label="Consultas" valor={<span className="muted">{prox ? `próxima ${diaMes(prox.data)}` : 'nenhuma marcada'} ›</span>} onClick={() => nav('/agenda')} />}
-        {ver('exames') && <Row mutedLabel={false} label="Exames" valor={<span className="muted">{exames.length} arquivados ›</span>} onClick={() => nav('/exames')} />}
+        {ver('remedios') && <Row mutedLabel={false} label="Remédios" valor={<span className="muted">{remedios.length} em uso ›</span>} onClick={() => abrirNoPerfil(p.id, '/remedios')} />}
+        {ver('consultas') && <Row mutedLabel={false} label="Consultas" valor={<span className="muted">{prox ? `próxima ${diaMes(prox.data)}` : 'nenhuma marcada'} ›</span>} onClick={() => abrirNoPerfil(p.id, '/agenda')} />}
+        {ver('exames') && <Row mutedLabel={false} label="Exames" valor={<span className="muted">{exames.length} arquivados ›</span>} onClick={() => abrirNoPerfil(p.id, '/exames')} />}
         {ver('plano') && <Row mutedLabel={false} label="Plano de saúde" valor={<span className="muted">{plano ? plano.operadora.split(' ')[0] : 'adicionar'} ›</span>} onClick={() => nav(`/pessoa/${p.id}/plano`)} />}
       </div>
 
@@ -202,7 +204,7 @@ export function PerfilMembro() {
         <div className="card" style={{ fontSize: 15 }}>
           <span className="label" style={{ padding: '12px 16px 4px' }}>Vacinas</span>
           {state.vacinas.filter((v) => v.pessoaId === p.id).sort((a, b) => b.data.localeCompare(a.data)).map((v) => (
-            <Row key={v.id} mutedLabel={false} label={v.nome} valor={<span className="faint mono" style={{ fontSize: 13 }}>{dataBR(v.data)}{v.proxima ? ` · reforço ${dataBR(v.proxima)}` : ''}</span>} style={{ padding: '10px 16px' }} />
+            <Row key={v.id} mutedLabel={false} label={v.nome} valor={<span className="faint mono" style={{ fontSize: 13 }}>{dataBR(v.data)}{v.proxima ? ` · reforço ${dataBR(v.proxima)}` : ''}{podeEditar ? ' ›' : ''}</span>} onClick={podeEditar ? () => nav(`/pet/${p.id}/vacina/${v.id}`) : undefined} style={{ padding: '10px 16px' }} />
           ))}
           {podeEditar && <Row mutedLabel={false} label={<span style={{ color: 'var(--teal)', fontWeight: 600 }}>+ Registrar vacina</span>} onClick={() => nav(`/pet/${p.id}/vacina`)} style={{ padding: '10px 16px' }} />}
         </div>

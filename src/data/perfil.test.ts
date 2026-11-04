@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { numCurto } from './format';
-import { diffPessoa, formDePessoa, lerNumeroBR, pessoaDoForm, recorteQuadrado, type FormPerfil } from './perfil';
+import { diffPessoa, formDePessoa, lerNumeroBR, pessoaDoForm, recorteDaVista, recorteQuadrado, type FormPerfil } from './perfil';
 import { projetar } from './store';
 import type { Evento } from './persistencia';
 import type { Pessoa } from './types';
@@ -63,6 +63,14 @@ describe('recorteQuadrado', () => {
   it('centraliza em paisagem', () => expect(recorteQuadrado(400, 200)).toEqual({ sx: 100, sy: 0, lado: 200 }));
   it('centraliza em retrato', () => expect(recorteQuadrado(200, 400)).toEqual({ sx: 0, sy: 100, lado: 200 }));
   it('quadrada', () => expect(recorteQuadrado(300, 300)).toEqual({ sx: 0, sy: 0, lado: 300 }));
+});
+
+describe('recorteDaVista', () => {
+  it('zoom 1 no centro = recorte quadrado', () => expect(recorteDaVista(400, 200, 1, 200, 100)).toEqual({ sx: 100, sy: 0, lado: 200 }));
+  it('zoom 2 diminui o lado pela metade', () => expect(recorteDaVista(400, 200, 2, 200, 100)).toEqual({ sx: 150, sy: 50, lado: 100 }));
+  it('não sai da imagem pela esquerda nem por cima', () => expect(recorteDaVista(400, 200, 2, 0, 0)).toEqual({ sx: 0, sy: 0, lado: 100 }));
+  it('não sai da imagem pela direita nem por baixo', () => expect(recorteDaVista(400, 200, 2, 999, 999)).toEqual({ sx: 300, sy: 100, lado: 100 }));
+  it('zoom abaixo de 1 vale como 1', () => expect(recorteDaVista(300, 300, 0.5, 150, 150)).toEqual({ sx: 0, sy: 0, lado: 300 }));
 });
 
 describe('diffPessoa', () => {

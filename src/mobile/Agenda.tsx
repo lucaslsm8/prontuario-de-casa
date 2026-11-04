@@ -5,7 +5,8 @@ import { LEMBRAR, useFormConsulta } from '../data/formularios';
 import { adesao, editaConsulta, paraConsultas, pessoa, useStore } from '../data/store';
 import { addDias, dataBR, dataGrupo, diaMes, diaSemanaSigla, idade, nomeMes, numBR, numCurto, parseISO, quem } from '../data/format';
 import type { Consulta, Pessoa } from '../data/types';
-import { ChipGroup, Field, FieldGroup, Label, Row, SecaoLista, Toggle, TopNav, cx, InlineInput } from '../ui';
+import { ChipGroup, Field, FieldGroup, Label, Row, SecaoLista, Segmented, Toggle, TopNav, cx, InlineInput } from '../ui';
+import { distancia, filtrarConsultas, porMesConsultas, type Quando, type TipoFiltro } from '../data/consultas';
 import { SECOES_PET, agruparFamiliaPets, ehPet, linhaAlergia, opcoesPessoas, resumoPet, type SecaoPet } from '../data/pets';
 import { MScreen, TabHeader } from './Shell';
 import { ConfirmarSheet } from '../ui/Confirmar';
@@ -19,8 +20,82 @@ const segunda = (iso: string) => {
   return addDias(iso, -dow);
 };
 
-/** M07 — Agenda. */
+type Vista = 'agenda' | 'consultas';
+const CHAVE_VISTA = 'agenda:vista';
+const lerVista = (): Vista => { try { return localStorage.getItem(CHAVE_VISTA) === 'consultas' ? 'consultas' : 'agenda'; } catch { return 'agenda'; } };
+
+/** M07 — Agenda, com a troca para a lista de consultas (como a aba Consultas do desktop). */
 export function Agenda() {
+  const nav = useNavigate();
+  const [vista, setVistaBruta] = useState<Vista>(lerVista);
+  const setVista = (v: Vista) => { setVistaBruta(v); try { localStorage.setItem(CHAVE_VISTA, v); } catch { /* só a preferência */ } };
+  return (
+    <MScreen tabs>
+      <TabHeader titulo="Agenda" onAdd={() => nav('/agenda/nova')} />
+      <Segmented opcoes={[{ id: 'agenda', nome: 'Agenda' }, { id: 'consultas', nome: 'Consultas' }]} valor={vista} onChange={setVista} />
+      {vista === 'agenda' ? <Calendario /> : <ListaConsultas />}
+    </MScreen>
+  );
+}
+
+/** Lista de consultas e exames marcados: próximas ou passadas, filtro por tipo e busca. */
+function ListaConsultas() {
+  const { state } = useStore();
+  const nav = useNavigate();
+  const [quando, setQuando] = useState<Quando>('proximas');
+  const [tipo, setTipo] = useState<TipoFiltro>('todos');
+  const [busca, setBusca] = useState('');
+  const lista = useMemo(
+    () => filtrarConsultas(state.consultas, { quando, pessoa: 'todos', tipo, busca }, HOJE, (id) => pessoa(state, id)?.nome ?? ''),
+    [state, quando, tipo, busca],
+  );
+  const abrir = (c: Consulta) => nav(c.tipo === 'consulta' ? `/consulta/${c.id}/resumo` : `/consulta/${c.id}/editar`);
+  return (
+    <>
+      <Segmented variante="sm" opcoes={[{ id: 'proximas', nome: 'Próximas' }, { id: 'passadas', nome: 'Passadas' }, { id: 'todas', nome: 'Todas' }]} valor={quando} onChange={setQuando} />
+      <ChipGroup tamanho="sm" opcoes={[{ id: 'todos', nome: 'Tudo' }, { id: 'consulta', nome: 'Consultas' }, { id: 'exame', nome: 'Exames' }]} valor={tipo} onChange={setTipo} />
+      <input className="input input--50" placeholder="Buscar especialidade, médico, local…" value={busca} onChange={(e) => setBusca(e.target.value)} aria-label="Buscar consultas" />
+      {porMesConsultas(lista).map(([mes, itens]) => (
+        <div key={mes} className="stack" style={{ gap: 8 }}>
+          <Label>{mes}</Label>
+          <div className="card">
+            {itens.map((c) => {
+              const p = pessoa(state, c.pessoaId);
+              const passada = c.data < HOJE;
+              const situacao = !passada
+                ? distancia(c.data, HOJE)
+                : c.tipo === 'consulta' ? (c.anotacaoPos ? 'anotada' : 'sem anotação') : distancia(c.data, HOJE);
+              return (
+                <button type="button" key={c.id} className="row" style={{ gap: 14, padding: '12px 14px', justifyContent: 'flex-start', textAlign: 'left' }} onClick={() => abrir(c)}>
+                  <div className="stack" style={{ width: 44, alignItems: 'center', flex: 'none' }}>
+                    <span className="mono" style={{ fontSize: 10, color: 'var(--text-2)' }}>{diaSemanaSigla(parseISO(c.data))}</span>
+                    <span style={{ fontSize: 20, fontWeight: 600 }}>{c.data.slice(8, 10)}</span>
+                  </div>
+                  <div className="stack" style={{ flex: 1, gap: 2, minWidth: 0 }}>
+                    <span style={{ fontSize: 15, fontWeight: 600 }}>{c.tipo === 'exame' && !/^exame/i.test(c.titulo) ? `Exame · ${c.titulo}` : c.titulo}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{[quem(p), c.hora, c.profissional, c.local].filter(Boolean).join(' · ')}</span>
+                  </div>
+                  <span style={{ fontSize: 12, flex: 'none', fontWeight: c.data === HOJE || situacao === 'anotada' ? 600 : 400, color: c.data === HOJE || situacao === 'anotada' ? 'var(--teal)' : 'var(--text-3)' }}>{situacao}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+      {lista.length === 0 && (
+        <div className="card card--dashed" style={{ padding: 18, gap: 6, alignItems: 'flex-start' }}>
+          <span style={{ fontSize: 15, fontWeight: 600 }}>
+            {busca ? `Nada encontrado para “${busca}”` : quando === 'passadas' ? 'Nenhuma consulta passada' : 'Nenhuma consulta marcada'}
+          </span>
+          <span style={{ fontSize: 14, color: 'var(--text-2)' }}>Mude o filtro ou registre uma consulta no +.</span>
+        </div>
+      )}
+    </>
+  );
+}
+
+/** Calendário da semana e os dias daqui pra frente. */
+function Calendario() {
   const { state } = useStore();
   const nav = useNavigate();
   const primeiro = state.consultas.find((c) => c.data >= HOJE)?.data ?? HOJE;
@@ -46,8 +121,7 @@ export function Agenda() {
   );
 
   return (
-    <MScreen tabs>
-      <TabHeader titulo="Agenda" onAdd={() => nav('/agenda/nova')} />
+    <>
       <div className="hstack" style={{ gap: 8, flexWrap: 'wrap' }}><AgendaIcs compacto /></div>
       <div className="hstack" style={{ justifyContent: 'space-between', fontSize: 15, fontWeight: 600 }}>
         <span>{nomeMes(mes.getMonth()).replace(/^./, (c) => c.toUpperCase())} {mes.getFullYear()}</span>
@@ -87,7 +161,7 @@ export function Agenda() {
           <button type="button" className="btn btn--soft btn--h40" style={{ marginTop: 6 }} onClick={() => nav('/agenda/nova')}>Nova consulta</button>
         </div>
       )}
-    </MScreen>
+    </>
   );
 }
 

@@ -222,13 +222,13 @@ function AbaVacinas({ id }: { id: string }) {
         </div>
       )}
       {lista.map((v) => (
-        <div key={v.id} className="row" style={{ ...linhaTabela, gridTemplateColumns: COLS_VACINA }}>
+        <button type="button" key={v.id} className="row" style={{ ...linhaTabela, gridTemplateColumns: COLS_VACINA, textAlign: 'left' }} onClick={() => abrir(`editar-vacina:${v.id}`)} aria-label={`Editar ${v.nome} de ${dataBR(v.data)}`}>
           <span style={{ fontSize: 15, fontWeight: 600 }}>{v.nome}</span>
           <span className="mono">{dataBR(v.data)}</span>
           <span className={v.lote ? 'mono' : 'faint'}>{v.lote ?? '—'}</span>
           <span className={v.veterinario ? undefined : 'faint'}>{v.veterinario ?? '—'}</span>
           {v.proxima ? <DataPrazo data={v.proxima} vencido={reforcoVencido(state, v)} /> : <span className="faint">—</span>}
-        </div>
+        </button>
       ))}
       {lista.length === 0 && <Vazio>Nenhuma vacina registrada.</Vazio>}
     </CardAba>

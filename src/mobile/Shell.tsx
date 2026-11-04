@@ -1,23 +1,31 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { useStore } from '../data/store';
+import { pessoa, useStore } from '../data/store';
+import { ehPet } from '../data/pets';
 import { cx } from '../ui';
-import { FaixaPerfil, PerfilProvider } from './Perfil';
+import { IcAgenda, IcExame, IcFotos, IcInicio, IcPlano, IcRemedio } from '../ui/Icones';
+import { FaixaPerfil, PerfilProvider, usePerfil } from './Perfil';
 
 const TABS = [
-  { to: '/', nome: 'Início', end: true },
-  { to: '/agenda', nome: 'Agenda' },
-  { to: '/remedios', nome: 'Remédios' },
-  { to: '/exames', nome: 'Exames' },
-  { to: '/planos', nome: 'Plano' },
+  { to: '/', nome: 'Início', end: true, Icone: IcInicio },
+  { to: '/agenda', nome: 'Agenda', Icone: IcAgenda },
+  { to: '/remedios', nome: 'Remédios', Icone: IcRemedio },
+  { to: '/exames', nome: 'Exames', Icone: IcExame },
+  { to: '/planos', nome: 'Plano', Icone: IcPlano },
 ];
+/** Pet não tem plano de saúde: no lugar, o álbum de fotos. */
+const TABS_PET = [...TABS.slice(0, 4), { to: '/fotos', nome: 'Fotos', Icone: IcFotos }];
 
 export function TabBar() {
+  const { state } = useStore();
+  const { id } = usePerfil();
+  const p = id ? pessoa(state, id) : undefined;
+  const icones = !!state.config.menuIcones;
   return (
-    <nav className="tabbar" aria-label="Navegação principal">
-      {TABS.map((t) => (
-        <NavLink key={t.to} to={t.to} end={t.end} className={({ isActive }) => cx(isActive && 'active')}>
-          {t.nome}
+    <nav className={cx('tabbar', icones && 'tabbar--icones')} aria-label="Navegação principal">
+      {(p && ehPet(p) ? TABS_PET : TABS).map(({ to, nome, end, Icone }) => (
+        <NavLink key={to} to={to} end={end} className={({ isActive }) => cx(isActive && 'active')} aria-label={icones ? nome : undefined} title={icones ? nome : undefined}>
+          {icones ? <Icone size={22} /> : nome}
         </NavLink>
       ))}
     </nav>

@@ -6,7 +6,9 @@ import {
   type AtalhoReforco, type TipoPrevencao,
 } from '../data/formularios';
 import { SINAIS, SUGESTOES_VACINA, TIPOS_PROCEDIMENTO, ehPet } from '../data/pets';
-import type { Pessoa, TipoProcedimento } from '../data/types';
+import type { Pessoa, TipoProcedimento, Vacina as VacinaT } from '../data/types';
+import { ConfirmarSheet } from '../ui/Confirmar';
+import { useState } from 'react';
 import { Chip, ChipGroup, Field, FieldGroup, Row, TopNav } from '../ui';
 import { LinhaCampo, erroTexto } from './EditarPerfil';
 import { MScreen } from './Shell';
@@ -42,16 +44,26 @@ function Salvar({ texto, valido, onClick }: { texto: string; valido: boolean; on
 
 // ── Vacina ──────────────────────────────────────────────────────────────────
 
-export const RegistrarVacina = comPet(function Vacina({ pet, voltar }) {
-  const f = useFormVacina(pet, voltar);
+/** /pet/:id/vacina registra; /pet/:id/vacina/:vid edita (e apaga) a vacina já registrada. */
+export const RegistrarVacina = comPet(function TelaVacina({ pet, voltar }) {
+  const { vid } = useParams();
+  const { state } = useStore();
+  const vacina = vid ? state.vacinas.find((v) => v.id === vid && v.pessoaId === pet.id) : undefined;
+  if (vid && !vacina) return <Navigate to={`/pessoa/${pet.id}`} replace />;
+  return <Vacina key={vid ?? 'nova'} pet={pet} voltar={voltar} vacina={vacina} />;
+}, { pessoas: true });
+
+function Vacina({ pet, voltar, vacina }: PropsPet & { vacina?: VacinaT }) {
+  const f = useFormVacina(pet, voltar, vacina);
+  const [apagar, setApagar] = useState(false);
   const animal = ehPet(pet);
   const sugestoes = animal ? SUGESTOES_VACINA : SUGESTOES_VACINA_PESSOA.slice(0, 8);
   return (
     <MScreen gap={14}>
-      <TopNav voltar="Cancelar" onVoltar={voltar} titulo="Registrar vacina" acao="Salvar" onAcao={f.salvar} acaoDesativada={!f.valido} />
+      <TopNav voltar="Cancelar" onVoltar={voltar} titulo={f.editando ? 'Editar vacina' : 'Registrar vacina'} acao="Salvar" onAcao={f.salvar} acaoDesativada={!f.valido} />
       <div className="stack" style={{ gap: 10 }}>
         <Field label="Vacina">
-          <input className="input input--50" value={f.nome} onChange={(e) => f.setNome(e.target.value)} placeholder={animal ? 'Ex.: V10' : 'Ex.: Gripe (influenza)'} autoComplete="off" autoFocus />
+          <input className="input input--50" value={f.nome} onChange={(e) => f.setNome(e.target.value)} placeholder={animal ? 'Ex.: V10' : 'Ex.: Gripe (influenza)'} autoComplete="off" autoFocus={!f.editando} />
         </Field>
         <div role="group" aria-label="Sugestões de vacina">
           <ChipGroup tamanho="sm" opcoes={sugestoes.map((x) => ({ id: x, nome: x }))} valor={f.nome.trim()} onChange={f.setNome} />
@@ -72,10 +84,22 @@ export const RegistrarVacina = comPet(function Vacina({ pet, voltar }) {
         </div>
         {erroTexto(f.erros.proxima)}
       </FieldGroup>
-      <Salvar texto="Salvar vacina" valido={f.valido} onClick={f.salvar} />
+      <Salvar texto={f.editando ? 'Salvar alterações' : 'Salvar vacina'} valido={f.valido} onClick={f.salvar} />
+      {f.apagar && (
+        <button type="button" className="btn btn--danger-link" style={{ fontSize: 15, minHeight: 44, alignSelf: 'center' }} onClick={() => setApagar(true)}>Apagar vacina</button>
+      )}
+      {apagar && f.apagar && (
+        <ConfirmarSheet
+          titulo={`Apagar ${vacina?.nome}?`}
+          texto="A vacina sai do histórico e o lembrete do reforço some."
+          confirmar="Apagar vacina"
+          onConfirm={f.apagar}
+          onClose={() => setApagar(false)}
+        />
+      )}
     </MScreen>
   );
-}, { pessoas: true });
+}
 
 // ── Prevenção ───────────────────────────────────────────────────────────────
 

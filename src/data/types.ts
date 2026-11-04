@@ -176,6 +176,8 @@ export interface Config {
   bloqueioDesktop: string;
   esconderNomeNotif: boolean;
   fichaSemDesbloqueio: boolean;
+  /** Celular: menu inferior só com ícones (padrão: texto). Vale para este aparelho. */
+  menuIcones?: boolean;
   /** Vem do armazenamento (Rust), não do log de eventos. */
   backup: { ultimo?: string | null; tamanho?: number | null; freq: 'semanal' | 'manual'; arquivo?: string | null; pasta: string; temSenha: boolean };
   update: {

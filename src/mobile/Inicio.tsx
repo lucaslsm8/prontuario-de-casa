@@ -1,18 +1,21 @@
 import { useNavigate } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
-import { eu, proximos, useStore } from '../data/store';
+import { eu, pessoa, proximos, useStore } from '../data/store';
 import { dataLonga, mesSigla, quem } from '../data/format';
 import { saudacao } from '../data/inicio';
 import { Bar, Check, Circle, Label, SecaoLista } from '../ui';
 import { CartaoDose, LinhaDia, ListaDoses, RemedioAcabando, useDoseDaVez, useRemedioAcabando } from '../ui/Inicio';
-import { agruparFamiliaPets } from '../data/pets';
+import { agruparFamiliaPets, ehPet } from '../data/pets';
 import type { Consulta } from '../data/types';
 import { MScreen } from './Shell';
-import { BotaoPerfil } from './Perfil';
+import { BotaoConfig, BotaoPerfil } from './Perfil';
+import { PetPerfil } from './Pet';
 
-/** M03 Início · M20 quando ainda não há nada cadastrado. */
+/** M03 Início · M20 quando ainda não há nada cadastrado. No perfil de um pet, o perfil dele. */
 export function Inicio() {
-  const { state } = useStore();
+  const { state, perfil } = useStore();
+  const doPerfil = perfil ? pessoa(state, perfil) : undefined;
+  if (doPerfil && ehPet(doPerfil)) return <PetPerfil key={doPerfil.id} pet={doPerfil} inicio />;
   const vazio = state.remedios.length === 0 && state.consultas.length === 0 && state.exames.length === 0;
   return vazio ? <InicioVazio /> : <InicioCheio />;
 }
@@ -58,6 +61,7 @@ function InicioCheio() {
       <div className="hstack" style={{ justifyContent: 'space-between' }}>
         <Saudacao agora={agora} />
         <button type="button" className="btn btn--outline btn--h40" style={{ marginLeft: 'auto', marginRight: 8, minWidth: 44, flexShrink: 0 }} onClick={() => nav('/busca')} aria-label="Buscar">Buscar</button>
+        <BotaoConfig />
         <BotaoPerfil />
       </div>
 
@@ -102,7 +106,10 @@ function InicioVazio() {
   const feitos = passos.filter((p) => p.feito).length;
   return (
     <MScreen tabs gap={20}>
-      <Saudacao />
+      <div className="hstack" style={{ justifyContent: 'space-between' }}>
+        <Saudacao />
+        <span className="hstack" style={{ marginLeft: 'auto' }}><BotaoConfig /><BotaoPerfil /></span>
+      </div>
       <div className="card" style={{ padding: 18, gap: 14 }}>
         <div className="hstack" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
           <span style={{ fontSize: 17, fontWeight: 600 }}>Vamos começar</span>

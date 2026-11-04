@@ -344,7 +344,13 @@ export function marcarEu(s: State, euId: string | null): State {
 }
 
 /** Identidade e último carimbo deste aparelho na sessão (só no modo real). */
-const sessao: { identidade: Identidade | null; ultimo: Hlc | null; registrandoAparelho?: boolean } = { identidade: null, ultimo: null };
+const sessao: {
+  identidade: Identidade | null; ultimo: Hlc | null; registrandoAparelho?: boolean;
+  /** Eventos emitidos cuja gravação ainda não terminou. */
+  emVoo: Map<string, Evento>;
+  /** Durante um `recarregar`: os eventos emitidos enquanto o log era lido (entram por cima da leitura). */
+  durante: Evento[] | null;
+} = { identidade: null, ultimo: null, emVoo: new Map(), durante: null };
 
 const plataforma = (): 'pc' | 'cel' | 'web' => (!EM_TAURI ? 'web' : /Android/i.test(navigator.userAgent) ? 'cel' : 'pc');
 
@@ -398,7 +404,11 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
       const h = proximoHlc(sessao.ultimo, Date.now(), sessao.identidade?.aparelhoId ?? 'web-000000');
       sessao.ultimo = h;
       const ev: Evento = { id: novoId(), em: new Date().toISOString(), autor: autor(), aparelho: h.aparelho, hlc: fmtHlc(h), tipo: type, dados };
-      persistencia.gravar(ev).catch((e) => mostrarToast({ texto: `Não foi possível salvar: ${String(e)}` }));
+      sessao.emVoo.set(ev.id, ev);
+      sessao.durante?.push(ev);
+      persistencia.gravar(ev)
+        .catch((e) => mostrarToast({ texto: `Não foi possível salvar: ${String(e)}` }))
+        .finally(() => sessao.emVoo.delete(ev.id));
       avisarMudanca();
     };
     /** "Eu" deste aparelho: marca na tela e guarda na identidade local (kv cifrado). */
@@ -410,9 +420,25 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
     };
     const erroTexto = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
+    // Um registro feito enquanto o log é lido (ou ainda sendo gravado) não pode sumir da tela com o reset:
+    // entra por cima do que veio do banco (a vacina registrada no meio de uma sincronização sumia até reabrir o app).
     const recarregar = async () => {
-      const ini = await persistencia.iniciar();
-      const s = await abrirLog(ini);
+      const durante: Evento[] = [];
+      sessao.durante = durante;
+      let ini: Inicio;
+      let s: State;
+      try {
+        const lido = await persistencia.iniciar();
+        const ids = new Set(lido.eventos.map((e) => e.id));
+        const extras = [...sessao.emVoo.values(), ...durante].filter((e, i, xs) => !ids.has(e.id) && xs.findIndex((x) => x.id === e.id) === i);
+        ini = extras.length ? { ...lido, eventos: [...lido.eventos, ...extras] } : lido;
+        s = await abrirLog(ini);
+        // O que foi emitido durante o abrirLog também entra.
+        const tarde = durante.filter((e) => !ini.eventos.some((x) => x.id === e.id));
+        if (tarde.length) s = await abrirLog({ ...ini, eventos: [...ini.eventos, ...tarde] });
+      } finally {
+        sessao.durante = null;
+      }
       // Mantém o bloqueio atual: o bloqueio por inatividade pode ter entrado durante a sincronização.
       dispatch({ type: 'reset', state: { ...s, bloqueado: ref.current.bloqueado, temSenha: ini.temSenha, config: mesclarConfig(s.config, { backup: backupParaConfig(ini.backup), update: { ...s.config.update, instalada: ini.versao } }) } });
     };

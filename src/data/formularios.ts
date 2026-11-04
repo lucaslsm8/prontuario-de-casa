@@ -5,7 +5,7 @@ import { addDias, dataBR, diasEntre } from './format';
 import { novoId } from './persistencia';
 import { ehPdf } from './anexos';
 import { lerDosPdfs } from './pdf';
-import type { Anexo, CategoriaExame, Resultado, Consulta, Exame, Pessoa, Plano, Prevencao, Remedio, TipoMedicao, TipoProcedimento } from './types';
+import type { Anexo, CategoriaExame, Resultado, Consulta, Exame, Pessoa, Plano, Prevencao, Remedio, TipoMedicao, TipoProcedimento, Vacina } from './types';
 import { SINAIS, ehPet, familia, pets } from './pets';
 import { diffPessoa, formDePessoa, lerNumeroBR, normalizarTexto, novaChave, pessoaDoForm, type ErrosPerfil, type FormPerfil, type FormPet, type LinhaAlergia, type LinhaCondicao } from './perfil';
 import {
@@ -392,15 +392,17 @@ function useCampoData(inicial = isoParaBR(HOJE)) {
 }
 
 /** "Registrar vacina": nome (com sugestões), data, lote, veterinário e próximo reforço (atalhos ou data). */
-export function useFormVacina(pet: Pessoa, onSalvo: () => void) {
+/** Registrar vacina ou, com `vacina`, editar uma já registrada (só os campos que mudaram) e apagar. */
+export function useFormVacina(pet: Pessoa, onSalvo: () => void, vacina?: Vacina) {
   const { api } = useStore();
-  const [nome, setNome] = useState('');
-  const data = useCampoData();
-  const [lote, setLote] = useState('');
-  const [veterinario, setVeterinario] = useState(pet.pet?.veterinario?.nome ?? '');
+  const [nome, setNome] = useState(vacina?.nome ?? '');
+  const data = useCampoData(vacina ? isoParaBR(vacina.data) : undefined);
+  const [lote, setLote] = useState(vacina?.lote ?? '');
+  const [veterinario, setVeterinario] = useState(vacina ? vacina.veterinario ?? '' : pet.pet?.veterinario?.nome ?? '');
   // Atalho escolhido (recalcula o reforço quando a data muda); digitar a data do reforço solta o atalho.
-  const [atalho, setAtalhoBruto] = useState<AtalhoReforco | ''>('1a');
-  const [proximaDigitada, setProximaDigitada] = useState('');
+  // Na edição, o reforço começa como foi salvo (data digitada, ou "Sem reforço").
+  const [atalho, setAtalhoBruto] = useState<AtalhoReforco | ''>(vacina ? (vacina.proxima ? '' : 'sem') : '1a');
+  const [proximaDigitada, setProximaDigitada] = useState(vacina?.proxima ? isoParaBR(vacina.proxima) : '');
   const [erroProxima, setErroProxima] = useState<string>();
   const dataIso = brParaISO(data.valor);
   const doAtalho = atalho && dataIso ? dataDoReforco(dataIso, atalho) : undefined;
@@ -418,24 +420,36 @@ export function useFormVacina(pet: Pessoa, onSalvo: () => void) {
       setErroProxima(p.erro);
       return;
     }
-    api.addVacina({
-      id: idRegistro('vac'),
+    const nova: Vacina = {
+      id: vacina?.id ?? idRegistro('vac'),
       pessoaId: pet.id,
       nome: nome.trim().replace(/\s+/g, ' '),
       data: d.iso!,
       lote: textoOuNada(lote),
       veterinario: textoOuNada(veterinario),
       proxima: p.iso,
-    });
-    api.toast({ texto: 'Vacina registrada' });
+    };
+    if (vacina) {
+      // Só o que mudou; campo esvaziado vai como null (apaga).
+      const patch: Record<string, unknown> = {};
+      for (const k of ['nome', 'data', 'lote', 'veterinario', 'proxima'] as const) {
+        if (nova[k] !== vacina[k]) patch[k] = nova[k] ?? null;
+      }
+      api.editar('vacinas', vacina.id, patch, 'Vacina atualizada');
+    } else {
+      api.addVacina(nova);
+      api.toast({ texto: 'Vacina registrada' });
+    }
     onSalvo();
   };
+  const apagar = vacina && (() => { api.remover('vacinas', vacina, `${vacina.nome} apagada`); onSalvo(); });
 
   return {
+    editando: !!vacina,
     nome, setNome, data: data.valor, setData, lote, setLote, veterinario, setVeterinario,
     atalho, setAtalho, proxima, setProxima,
     erros: { data: data.erro, proxima: erroProxima },
-    valido: !!nome.trim() && !!data.valor, salvar,
+    valido: !!nome.trim() && !!data.valor, salvar, apagar,
   };
 }
 

@@ -5,7 +5,7 @@ import { Avatar, SecaoLista, cx } from '../ui';
 import { IcAgenda, IcConsulta, IcCadeado, IcEmergencia, IcExame, IcInicio, IcMarcaCheia, IcPlano, IcRemedio } from '../ui/Icones';
 import { quando } from '../data/format';
 import { useVoltar } from './useVoltar';
-import { DEditarPerfil, DFichaEmergencia, DNovaConsulta, DNovaPessoa, DNovoExame, DNovaMedicao, DNovoPet, DNovoPlano, DNovoRemedio, DRegistroPet, REGISTROS_PET, type RegistroPet } from './Formularios';
+import { DEditarPerfil, DEditarVacina, DFichaEmergencia, DNovaConsulta, DNovaPessoa, DNovoExame, DNovaMedicao, DNovoPet, DNovoPlano, DNovoRemedio, DRegistroPet, REGISTROS_PET, type RegistroPet } from './Formularios';
 import { familia, pets } from '../data/pets';
 import type { TipoMedicao } from '../data/types';
 import { BuscaDesktop } from '../ui/Busca';
@@ -59,6 +59,7 @@ function Dialogo() {
   if (tipo === 'editar-remedio') { const r = state.remedios.find((x) => x.id === arg); return r ? <DNovoRemedio key={abrir} remedio={r} onClose={fechar} /> : null; }
   if (tipo === 'editar-consulta') { const c = state.consultas.find((x) => x.id === arg); return c ? <DNovaConsulta key={abrir} consulta={c} onClose={fechar} /> : null; }
   if (tipo === 'editar-exame') { const e = state.exames.find((x) => x.id === arg); return e ? <DNovoExame key={abrir} exame={e} onClose={fechar} /> : null; }
+  if (tipo === 'editar-vacina') return <DEditarVacina key={abrir} id={arg} onClose={fechar} />;
   if (tipo === 'editar-plano') { const pl = state.planos.find((x) => x.id === arg); return pl ? <DNovoPlano key={abrir} plano={pl} onClose={fechar} /> : null; }
   if (tipo === 'plano') return <DNovoPlano key={abrir} pessoaId={arg} onClose={fechar} />;
   if (tipo === 'emergencia') return <DFichaEmergencia key={abrir} pessoaId={arg} onClose={fechar} />;
