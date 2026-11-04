@@ -37,9 +37,6 @@ button.row:hover { background: #F8FAFA; }
 .perfil-botao { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 4px 0 0; flex-shrink: 0; border-radius: 22px; }
 .perfil-botao__nome { font-size: 14px; font-weight: 600; max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .perfil-botao__seta { font-size: 11px; color: var(--text-2); }
-.faixa-perfil { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -4px 0 0; padding: 4px 6px 4px 4px; border-radius: var(--r-btn); background: var(--teal-light); }
-.faixa-perfil__quem { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 14px; color: var(--teal-dark); }
-.faixa-perfil__voltar { min-height: 44px; padding: 0 8px; font-size: 13px; font-weight: 600; color: var(--teal); }
 .avatar-stack { display: flex; }
 .avatar-stack .avatar { border: 2px solid var(--bg); }
 .avatar-stack .avatar + .avatar { margin-left: -9px; }

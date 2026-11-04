@@ -104,21 +104,3 @@ export function BotaoPerfil({ compacto }: { compacto?: boolean }) {
     </button>
   );
 }
-
-/** Faixa no topo das abas quando o perfil não é o seu: de quem é o que está na tela e o botão de trocar. */
-export function FaixaPerfil() {
-  const { state } = useStore();
-  const { id, abrirSeletor } = usePerfil();
-  const p = id ? pessoa(state, id) : undefined;
-  const meu = state.pessoas.find((x) => x.souEu);
-  if (!p || !meu || p.id === meu.id) return null;
-  return (
-    <div className="faixa-perfil">
-      <button type="button" className="faixa-perfil__quem" onClick={abrirSeletor}>
-        <Avatar pessoa={p} size={28} font={11} />
-        <span>Perfil de <b>{p.curto}</b></span>
-      </button>
-      <button type="button" className="faixa-perfil__voltar" onClick={abrirSeletor}>Trocar perfil</button>
-    </div>
-  );
-}

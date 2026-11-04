@@ -4,7 +4,7 @@ import { pessoa, useStore } from '../data/store';
 import { ehPet } from '../data/pets';
 import { cx } from '../ui';
 import { IcAgenda, IcExame, IcFotos, IcInicio, IcPlano, IcRemedio } from '../ui/Icones';
-import { FaixaPerfil, PerfilProvider, usePerfil } from './Perfil';
+import { PerfilProvider, usePerfil } from './Perfil';
 
 const TABS = [
   { to: '/', nome: 'Início', end: true, Icone: IcInicio },
@@ -46,9 +46,9 @@ function StatusBar({ style, semHora }: { style?: CSSProperties; semHora?: boolea
  * `pad` segue o mockup: telas com tab bar usam "14px 20px 0", formulários "14px 20px 34px".
  */
 export function MScreen({
-  children, gap = 16, tabs, pad, bg, statusStyle, semHora, style, scrollRef, semFaixa,
+  children, gap = 16, tabs, pad, bg, statusStyle, semHora, style, scrollRef,
 }: {
-  children: ReactNode; gap?: number; tabs?: boolean; pad?: string; bg?: string; statusStyle?: CSSProperties; semHora?: boolean; semFaixa?: boolean;
+  children: ReactNode; gap?: number; tabs?: boolean; pad?: string; bg?: string; statusStyle?: CSSProperties; semHora?: boolean;
   style?: CSSProperties; scrollRef?: React.Ref<HTMLDivElement>;
 }) {
   const padding = pad ?? (tabs ? '14px 20px 120px' : '14px 20px 34px');
@@ -57,7 +57,6 @@ export function MScreen({
       <StatusBar style={statusStyle} semHora={semHora} />
       <div className="screen__scroll" ref={scrollRef}>
         <div className="screen__body" style={{ padding, gap, ...style }}>
-          {tabs && !semFaixa && <FaixaPerfil />}
           {children}
         </div>
       </div>

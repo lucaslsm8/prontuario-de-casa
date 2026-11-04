@@ -2,10 +2,10 @@ import { useNavigate } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
 import { eu, pessoa, proximos, useStore } from '../data/store';
 import { dataLonga, mesSigla, quem } from '../data/format';
-import { saudacao } from '../data/inicio';
 import { Bar, Check, Circle, Label, SecaoLista } from '../ui';
 import { CartaoDose, LinhaDia, ListaDoses, RemedioAcabando, useDoseDaVez, useRemedioAcabando } from '../ui/Inicio';
 import { agruparFamiliaPets, ehPet } from '../data/pets';
+import { saudacao } from '../data/inicio';
 import type { Consulta } from '../data/types';
 import { MScreen } from './Shell';
 import { BotaoConfig, BotaoPerfil } from './Perfil';
@@ -20,12 +20,21 @@ export function Inicio() {
   return vazio ? <InicioVazio /> : <InicioCheio />;
 }
 
-function Saudacao({ agora }: { agora?: number }) {
+/** Topo do Início: numa linha, "Bom dia, Fulano" à esquerda e a data à direita; embaixo Buscar, Configurações e a foto que troca o perfil. */
+function Topo({ agora }: { agora?: number }) {
   const { state } = useStore();
+  const nav = useNavigate();
   return (
-    <div className="stack" style={{ gap: 2, minWidth: 0 }}>
-      <span style={{ fontSize: 13, color: 'var(--text-2)' }}>{dataLonga(HOJE)}</span>
-      <h1 className="title title--26" style={{ margin: 0 }}>{agora == null ? 'Olá' : saudacao(agora)}, {eu(state).curto}</h1>
+    <div className="stack" style={{ gap: 6 }}>
+      <div className="hstack" style={{ justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
+        <span style={{ fontSize: 17, fontWeight: 600, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{agora == null ? 'Olá' : saudacao(agora)}, {eu(state).curto}</span>
+        <span style={{ fontSize: 13, color: 'var(--text-2)', whiteSpace: 'nowrap', flexShrink: 0 }}>{dataLonga(HOJE)}</span>
+      </div>
+      <div className="hstack" style={{ justifyContent: 'flex-end' }}>
+        <button type="button" className="btn btn--outline btn--h40" style={{ marginRight: 8, minWidth: 44, flexShrink: 0 }} onClick={() => nav('/busca')} aria-label="Buscar">Buscar</button>
+        <BotaoConfig />
+        <BotaoPerfil />
+      </div>
     </div>
   );
 }
@@ -58,12 +67,7 @@ function InicioCheio() {
 
   return (
     <MScreen tabs gap={14}>
-      <div className="hstack" style={{ justifyContent: 'space-between' }}>
-        <Saudacao agora={agora} />
-        <button type="button" className="btn btn--outline btn--h40" style={{ marginLeft: 'auto', marginRight: 8, minWidth: 44, flexShrink: 0 }} onClick={() => nav('/busca')} aria-label="Buscar">Buscar</button>
-        <BotaoConfig />
-        <BotaoPerfil />
-      </div>
+      <Topo agora={agora} />
 
       <CartaoDose dv={dv} compacto onCadastrar={() => nav('/remedios/novo')} />
 
@@ -106,10 +110,7 @@ function InicioVazio() {
   const feitos = passos.filter((p) => p.feito).length;
   return (
     <MScreen tabs gap={20}>
-      <div className="hstack" style={{ justifyContent: 'space-between' }}>
-        <Saudacao />
-        <span className="hstack" style={{ marginLeft: 'auto' }}><BotaoConfig /><BotaoPerfil /></span>
-      </div>
+      <Topo />
       <div className="card" style={{ padding: 18, gap: 14 }}>
         <div className="hstack" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
           <span style={{ fontSize: 17, fontWeight: 600 }}>Vamos começar</span>
