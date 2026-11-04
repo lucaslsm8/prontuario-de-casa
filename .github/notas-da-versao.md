@@ -1,2 +1,4 @@
+- Sincronização: se algo registrado em outro aparelho não chegou aqui, use "Baixar tudo de novo" em Família e aparelhos (Configurações › Privacidade no celular, Privacidade no desktop)
+- Sincronização: um pacote que não baixou direito agora é tentado de novo, em vez de ser pulado
 - Celular: o topo do Início ficou mais enxuto, com a saudação e a data numa linha só
 - Celular: saiu a faixa "Perfil de …"; para trocar de perfil, toque na sua foto no topo do Início
