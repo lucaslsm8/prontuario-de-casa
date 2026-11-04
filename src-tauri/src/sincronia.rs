@@ -152,7 +152,7 @@ pub fn pular_ilegivel(tentativas: &mut BTreeMap<String, u32>, dono: &str, epoca:
     false
 }
 
-/// "Baixar tudo de novo": zera o que já foi lido (relê todos os pacotes; o que já está no banco é ignorado).
+/// "Sincronizar tudo de novo": zera o que já foi lido (relê todos os pacotes; o que já está no banco é ignorado).
 /// Os aparelhos lidos passam para `vistos`, para os eventos deles continuarem sem subir daqui.
 pub fn reler(lidos: &mut Lidos, vistos: &mut std::collections::BTreeSet<String>) {
     vistos.extend(lidos.aparelhos().cloned());

@@ -86,10 +86,10 @@ export function CardFamilia({ desktop }: { desktop?: boolean }) {
           </div>
           <div className="row" style={{ padding: pad, flexWrap: 'wrap', gap: 10 }}>
             <span className="stack" style={{ gap: 2, minWidth: 0, flex: 1 }}>
-              <span>Faltando alguma coisa de outro aparelho?</span>
-              <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Baixa de novo tudo o que a família já enviou. O que já está aqui não duplica.</span>
+              <span>Faltando alguma coisa entre os aparelhos?</span>
+              <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Baixa de novo tudo o que a família já enviou e reenvia tudo deste aparelho. Use no aparelho onde o registro foi feito. Nada duplica.</span>
             </span>
-            <button type="button" className={`btn btn--outline ${btn}`} style={{ background: 'transparent' }} disabled={s.estado === 'sincronizando'} onClick={() => void baixarTudoDeNovo(store)}>Baixar tudo de novo</button>
+            <button type="button" className={`btn btn--outline ${btn}`} style={{ background: 'transparent' }} disabled={s.estado === 'sincronizando'} onClick={() => void baixarTudoDeNovo(store)}>Sincronizar tudo de novo</button>
           </div>
         </>
       )}

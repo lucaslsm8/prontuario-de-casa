@@ -76,7 +76,7 @@ export interface Persistencia {
   syncEnviar(aparelho: string, eventos: Evento[]): Promise<number>;
   /** Baixa os pacotes dos outros aparelhos; devolve quantos eventos chegaram. */
   syncReceber(aparelho: string): Promise<number>;
-  /** "Baixar tudo de novo": a próxima sincronização relê todos os pacotes da família. */
+  /** "Sincronizar tudo de novo": a próxima sincronização relê todos os pacotes da família e reenvia tudo daqui. */
   syncReler(): Promise<void>;
   /** Sincronização pelo Wi-Fi (lan.rs): liga o anúncio/servidor com o app aberto e desbloqueado; desliga ao sair. */
   lanIniciar(): Promise<void>;

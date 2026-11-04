@@ -183,7 +183,7 @@ export async function sincronizar(store: { api: Pick<Store['api'], 'aparelhoId' 
   return r;
 }
 
-/** "Baixar tudo de novo": relê todos os pacotes da família (recupera o que um download ruim fez pular) e sincroniza. */
+/** "Sincronizar tudo de novo": relê todos os pacotes da família, reenvia tudo deste aparelho e sincroniza. */
 export async function baixarTudoDeNovo(store: StoreSync): Promise<ResultadoSync> {
   try {
     await persistencia.syncReler();

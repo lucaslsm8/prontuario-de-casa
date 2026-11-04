@@ -406,8 +406,8 @@ async fn sync_receber(st: State<'_, Estado>, aparelho: String) -> R<usize> {
     Ok(entraram)
 }
 
-/// "Baixar tudo de novo": relê todos os pacotes da família na próxima sincronização (o que já está no banco é ignorado).
-/// Recupera eventos de pacotes que um download ruim fez pular.
+/// "Sincronizar tudo de novo": relê todos os pacotes da família e reenvia tudo deste aparelho na próxima sincronização
+/// (o que já está no banco de cada um é ignorado). Recupera o que um download ruim fez pular ou o que não subiu.
 #[tauri::command]
 async fn sync_reler(st: State<'_, Estado>) -> R<()> {
     let _vez = st.sync.lock().await;
@@ -421,7 +421,12 @@ async fn sync_reler(st: State<'_, Estado>) -> R<()> {
         b.kv_set(&chave_vistos, &serde_json::to_value(&vistos).map_err(|e| e.to_string())?)?;
         b.kv_set(&format!("sync_lidos:{}", f.familia_id), &Value::Null)?;
         b.kv_set(&format!("sync_lidos_epocas:{}", f.familia_id), &Value::Null)?;
-        b.kv_set(&format!("sync_ilegiveis:{}", f.familia_id), &Value::Null)
+        b.kv_set(&format!("sync_ilegiveis:{}", f.familia_id), &Value::Null)?;
+        // E reenvia tudo deste aparelho: sem o último id, o front manda o log inteiro daqui (duplicatas são ignoradas por quem lê).
+        let chave_envio = format!("sync_envio:{}", f.familia_id);
+        let mut p: sincronia::Pendencia = ler_kv(b, &chave_envio)?;
+        p.ultimo_id = None;
+        b.kv_set(&chave_envio, &serde_json::to_value(p).map_err(|e| e.to_string())?)
     })
 }
 
