@@ -135,6 +135,30 @@ pub fn baixar_proximo(remoto: &dyn Remoto, familia_id: &str, chave: &[u8; 32], e
     }))
 }
 
+/// Quantas rodadas um pacote que não decifra é tentado de novo antes de ser pulado.
+pub const TENTATIVAS_ILEGIVEL: u32 = 5;
+
+/// Pacote baixado que não decifrou. Antes ele era pulado na hora, e um download ruim (resposta incompleta)
+/// perdia os eventos dele para sempre neste aparelho. Agora conta as tentativas por "dono|época|n":
+/// devolve `true` (pular e seguir) só a partir da `TENTATIVAS_ILEGIVEL`-ésima; senão a sequência para e tenta na próxima rodada.
+pub fn pular_ilegivel(tentativas: &mut BTreeMap<String, u32>, dono: &str, epoca: u32, n: u32) -> bool {
+    let chave = format!("{dono}|{epoca}|{n}");
+    let t = tentativas.entry(chave.clone()).or_insert(0);
+    *t += 1;
+    if *t >= TENTATIVAS_ILEGIVEL {
+        tentativas.remove(&chave);
+        return true;
+    }
+    false
+}
+
+/// "Baixar tudo de novo": zera o que já foi lido (relê todos os pacotes; o que já está no banco é ignorado).
+/// Os aparelhos lidos passam para `vistos`, para os eventos deles continuarem sem subir daqui.
+pub fn reler(lidos: &mut Lidos, vistos: &mut std::collections::BTreeSet<String>) {
+    vistos.extend(lidos.aparelhos().cloned());
+    *lidos = Lidos::default();
+}
+
 /// Eventos de um pacote que podem entrar em `aparelho` (este): `id` e `aparelho` em texto, e `aparelho` diferente
 /// deste (ninguém escreve em nome do aparelho que recebe; o `config` dele vale por inteiro só aqui).
 /// Eventos de outros aparelhos, da família ou de fora (backup restaurado), passam. Os malformados são ignorados.
@@ -251,6 +275,32 @@ mod testes {
         let f = Familia::nova("a/b", "t");
         enviar(&m, &f, "pc-a", &evs(&["1"]), 1).unwrap();
         assert_eq!(enviar(&m, &f, "pc-a", &evs(&["9"]), 1).unwrap(), (2, 1, Some("9".into())));
+    }
+
+    #[test]
+    fn ilegivel_e_tentado_de_novo_antes_de_pular() {
+        let mut t = BTreeMap::new();
+        for _ in 1..TENTATIVAS_ILEGIVEL {
+            assert!(!pular_ilegivel(&mut t, "cel-a", 0, 8));
+        }
+        assert!(pular_ilegivel(&mut t, "cel-a", 0, 8));
+        assert!(t.is_empty());
+        // Cada pacote conta separado.
+        assert!(!pular_ilegivel(&mut t, "cel-a", 0, 9));
+        assert!(!pular_ilegivel(&mut t, "pc-b", 0, 8));
+    }
+
+    #[test]
+    fn reler_zera_lidos_e_guarda_os_aparelhos_em_vistos() {
+        let mut l = Lidos::default();
+        l.marcar("cel-a", 0, 8);
+        l.marcar("pc-b", 2, 3);
+        let mut v = std::collections::BTreeSet::new();
+        reler(&mut l, &mut v);
+        assert_eq!(l.ultimo("cel-a", 0), 0);
+        assert_eq!(l.ultimo("pc-b", 2), 0);
+        assert_eq!(v.into_iter().collect::<Vec<_>>(), ["cel-a", "pc-b"]);
+        assert_eq!(recebidos(&l, &["cel-a".to_string()].into_iter().collect()), ["cel-a"]);
     }
 
     #[test]

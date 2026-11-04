@@ -183,6 +183,18 @@ export async function sincronizar(store: { api: Pick<Store['api'], 'aparelhoId' 
   return r;
 }
 
+/** "Baixar tudo de novo": relê todos os pacotes da família (recupera o que um download ruim fez pular) e sincroniza. */
+export async function baixarTudoDeNovo(store: StoreSync): Promise<ResultadoSync> {
+  try {
+    await persistencia.syncReler();
+  } catch (e) {
+    const { texto } = mensagemErro(e);
+    store.api.toast({ texto: `Não foi possível: ${texto}` });
+    return { ok: false, erro: texto };
+  }
+  return sincronizar(store, { manual: true });
+}
+
 /** Só o Wi-Fi (a cada 2 min): troca com quem está na rede e reprojeta se chegou algo. Com outra rodada em andamento, pula. */
 export async function sincronizarPeloWifi(store: StoreSync) {
   if (!info.familia || info.removido || emAndamento) return;

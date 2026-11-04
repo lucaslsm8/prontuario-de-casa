@@ -76,6 +76,8 @@ export interface Persistencia {
   syncEnviar(aparelho: string, eventos: Evento[]): Promise<number>;
   /** Baixa os pacotes dos outros aparelhos; devolve quantos eventos chegaram. */
   syncReceber(aparelho: string): Promise<number>;
+  /** "Baixar tudo de novo": a próxima sincronização relê todos os pacotes da família. */
+  syncReler(): Promise<void>;
   /** Sincronização pelo Wi-Fi (lan.rs): liga o anúncio/servidor com o app aberto e desbloqueado; desliga ao sair. */
   lanIniciar(): Promise<void>;
   lanParar(): Promise<void>;
@@ -139,6 +141,7 @@ function tauri(): Persistencia {
     syncCursor: () => call<CursorEnvio>('sync_cursor'),
     syncEnviar: (aparelho, eventos) => call<number>('sync_enviar', { aparelho, eventos }),
     syncReceber: (aparelho) => call<number>('sync_receber', { aparelho }),
+    syncReler: () => call<void>('sync_reler'),
     lanIniciar: () => call('lan_iniciar'),
     lanParar: () => call('lan_parar'),
     lanSincronizarAgora: () => call<ResumoLan>('lan_sincronizar_agora'),
@@ -210,6 +213,7 @@ function memoria(): Persistencia {
     syncCursor: async () => ({ ultimoId: null, recebidos: [] }),
     syncEnviar: async () => 0,
     syncReceber: async () => 0,
+    syncReler: async () => {},
     lanIniciar: async () => {},
     lanParar: async () => {},
     lanSincronizarAgora: async () => ({ pares: 0, chegaram: 0 }),

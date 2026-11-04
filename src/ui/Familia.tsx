@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useStore } from '../data/store';
 import { persistencia } from '../data/persistencia';
-import { atualizarFamilia, definirFamilia, ehRemovido, marcarRemovido, mensagemErro, sincronizar, useInfoSync } from '../data/sincronizacao';
+import { atualizarFamilia, definirFamilia, ehRemovido, marcarRemovido, mensagemErro, baixarTudoDeNovo, sincronizar, useInfoSync } from '../data/sincronizacao';
 import { quando } from '../data/format';
 import { aparelhosDaFamilia, planoRemocao } from '../data/aparelhos';
 import type { Aparelho } from '../data/types';
@@ -83,6 +83,13 @@ export function CardFamilia({ desktop }: { desktop?: boolean }) {
             <button type="button" className={`btn btn--ink ${btn}`} style={desktop ? undefined : { flex: 1 }} onClick={() => setFolha('convite')}>Convidar aparelho</button>
             <button type="button" className={`btn btn--outline ${btn}`} style={{ background: 'transparent', ...(desktop ? {} : { flex: 1 }) }} onClick={() => setFolha('token')}>Trocar token</button>
             <button type="button" className={`btn btn--outline ${btn}`} style={{ background: 'transparent', color: 'var(--danger)', ...(desktop ? {} : { flex: 1 }) }} onClick={() => setFolha('sair')}>Sair da família</button>
+          </div>
+          <div className="row" style={{ padding: pad, flexWrap: 'wrap', gap: 10 }}>
+            <span className="stack" style={{ gap: 2, minWidth: 0, flex: 1 }}>
+              <span>Faltando alguma coisa de outro aparelho?</span>
+              <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Baixa de novo tudo o que a família já enviou. O que já está aqui não duplica.</span>
+            </span>
+            <button type="button" className={`btn btn--outline ${btn}`} style={{ background: 'transparent' }} disabled={s.estado === 'sincronizando'} onClick={() => void baixarTudoDeNovo(store)}>Baixar tudo de novo</button>
           </div>
         </>
       )}

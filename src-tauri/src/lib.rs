@@ -357,6 +357,8 @@ async fn sync_receber(st: State<'_, Estado>, aparelho: String) -> R<usize> {
     let mut vistos: std::collections::BTreeSet<String> = com_banco(&st, |b| ler_kv(b, &chave_vistos))?;
     let (f2, ap) = (f.clone(), aparelho.clone());
     let donos = rede(move || sincronia::donos(&remoto::GitHub::new(&f2.repo, &f2.token), &ap)).await?;
+    let chave_tentativas = format!("sync_ilegiveis:{}", f.familia_id);
+    let mut tentativas: std::collections::BTreeMap<String, u32> = com_banco(&st, |b| ler_kv(b, &chave_tentativas))?;
     let mut entraram = 0;
     // Cada (aparelho, época) é uma sequência própria: lê todas as épocas cuja chave este aparelho tem.
     let sequencias: Vec<(String, u32, [u8; 32])> = donos.iter().flat_map(|d| chaves.iter().map(|(e, k)| (d.clone(), *e, *k))).collect();
@@ -365,11 +367,18 @@ async fn sync_receber(st: State<'_, Estado>, aparelho: String) -> R<usize> {
         let mut n = lidos.ultimo(&dono, epoca) + 1;
         loop {
             let (g, d) = (f.clone(), dono.clone());
-            // Erro de rede: aborta e tenta no próximo ciclo. Só o que não decifra é pulado.
+            // Erro de rede: aborta e tenta no próximo ciclo. O que não decifra é tentado de novo e só pulado depois de várias rodadas.
             let Some(baixado) = rede(move || sincronia::baixar_proximo(&remoto::GitHub::new(&g.repo, &g.token), &g.familia_id, &chave, epoca, &d, n)).await? else { break };
             let evs = match baixado {
                 sincronia::Baixado::Eventos(evs) => evs,
-                sincronia::Baixado::Ilegivel => vec![],
+                sincronia::Baixado::Ilegivel => {
+                    let pular = sincronia::pular_ilegivel(&mut tentativas, &dono, epoca, n);
+                    com_banco(&st, |b| b.kv_set(&chave_tentativas, &serde_json::to_value(&tentativas).map_err(|e| e.to_string())?))?;
+                    if !pular {
+                        break;
+                    }
+                    vec![]
+                }
             };
             entraram += com_banco(&st, |b| {
                 let mut c = 0;
@@ -395,6 +404,25 @@ async fn sync_receber(st: State<'_, Estado>, aparelho: String) -> R<usize> {
     // Um recebimento completo: daqui em diante, ficar sem selo numa época nova é "removido", não "convite velho".
     com_banco(&st, |b| b.kv_set(&kv_recem(&fid), &Value::Null))?;
     Ok(entraram)
+}
+
+/// "Baixar tudo de novo": relê todos os pacotes da família na próxima sincronização (o que já está no banco é ignorado).
+/// Recupera eventos de pacotes que um download ruim fez pular.
+#[tauri::command]
+async fn sync_reler(st: State<'_, Estado>) -> R<()> {
+    let _vez = st.sync.lock().await;
+    let f = exigir_familia(&st)?;
+    com_banco(&st, |b| {
+        let chave_vistos = format!("sync_vistos:{}", f.familia_id);
+        let mut lidos = ler_lidos(b, &f.familia_id)?;
+        let mut vistos: std::collections::BTreeSet<String> = ler_kv(b, &chave_vistos)?;
+        sincronia::reler(&mut lidos, &mut vistos);
+        // Vistos primeiro: se cair no meio, nenhum evento de outro aparelho passa a subir daqui.
+        b.kv_set(&chave_vistos, &serde_json::to_value(&vistos).map_err(|e| e.to_string())?)?;
+        b.kv_set(&format!("sync_lidos:{}", f.familia_id), &Value::Null)?;
+        b.kv_set(&format!("sync_lidos_epocas:{}", f.familia_id), &Value::Null)?;
+        b.kv_set(&format!("sync_ilegiveis:{}", f.familia_id), &Value::Null)
+    })
 }
 
 /// "Verificar de novo": confere no remoto se este aparelho ainda está fora da família (tira a marca se não estiver).
@@ -1045,6 +1073,7 @@ pub fn run() {
             sync_cursor,
             sync_enviar,
             sync_receber,
+            sync_reler,
             lan_iniciar,
             lan_parar,
             lan_sincronizar_agora,
