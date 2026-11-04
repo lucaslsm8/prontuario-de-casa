@@ -1,4 +1,3 @@
-- Sincronização: se algo registrado em outro aparelho não chegou aqui, use "Baixar tudo de novo" em Família e aparelhos (Configurações › Privacidade no celular, Privacidade no desktop)
+- Sincronização: "Sincronizar tudo de novo" (em Família e aparelhos) agora também reenvia tudo deste aparelho. Se algo feito num aparelho não aparece no outro, use no aparelho onde foi feito
 - Sincronização: um pacote que não baixou direito agora é tentado de novo, em vez de ser pulado
-- Celular: o topo do Início ficou mais enxuto: só a data, à direita, sem a saudação
-- Celular: saiu a faixa "Perfil de …"; para trocar de perfil, toque na sua foto no topo do Início
+- Celular: o topo do Início ficou mais enxuto: só a data, à direita
