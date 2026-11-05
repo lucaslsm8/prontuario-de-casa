@@ -1,3 +1,5 @@
-- Sincronização: "Sincronizar tudo de novo" (em Família e aparelhos) agora também reenvia tudo deste aparelho. Se algo feito num aparelho não aparece no outro, use no aparelho onde foi feito
-- Sincronização: um pacote que não baixou direito agora é tentado de novo, em vez de ser pulado
-- Celular: o topo do Início ficou mais enxuto: só a data, à direita
+- Celular: a última aba agora é a foto do perfil aberto. Toque para trocar de pessoa (a lista mostra o que cada um tem pendente); segure para abrir o perfil dela
+- Celular: "Família toda" no seletor mostra todo mundo junto, como no computador
+- Celular: no perfil de outra pessoa, o topo das abas avisa de quem é a tela e tem "Voltar para você"; o botão de salvar diz para quem salva ("Salvar remédio para Roberto")
+- Celular: o Início mostra os mesmos números do computador (doses de hoje, próxima consulta, estoque baixo) e o perfil da pessoa segue a ordem do computador
+- Celular: os planos de saúde ficam no perfil de cada pessoa e em "Carteirinhas", no seletor; as fotos do pet ficam no Início dele
