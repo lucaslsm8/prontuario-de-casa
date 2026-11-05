@@ -7,6 +7,7 @@ import type { Exame } from '../data/types';
 import { ChipGroup, Field, FieldGroup, Label, Row, SecaoLista, Thumb, TopNav, InlineInput } from '../ui';
 import { agruparFamiliaPets, opcoesPessoas } from '../data/pets';
 import { MScreen, TabHeader } from './Shell';
+import { textoSalvar } from './Perfil';
 import { AnexosPendentes, GaleriaAnexos } from '../ui/Anexos';
 import { anexosDe, ehPdf } from '../data/anexos';
 import { ConfirmarSheet } from '../ui/Confirmar';
@@ -214,7 +215,7 @@ export function AdicionarExame({ onDone, exame }: { onDone?: () => void; exame?:
         <textarea className="input input--area" value={anotacao} onChange={(e) => setAnotacao(e.target.value)} placeholder="Ex.: mostrar ao cardiologista" />
       </Field>
       <button type="button" className="btn btn--cta" style={{ marginTop: 'auto' }} disabled={!valido} onClick={salvar}>
-        {editando ? 'Salvar alterações' : 'Salvar exame'}
+        {editando ? 'Salvar alterações' : textoSalvar(state, de, 'Salvar exame')}
       </button>
     </MScreen>
   );

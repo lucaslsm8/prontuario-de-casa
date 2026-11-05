@@ -13,7 +13,7 @@ import { Label, Pill, Row, TopNav, reticencias } from '../ui';
 import { FotoDoPerfil } from '../ui/Foto';
 import { AdicionarItem } from './EditarPerfil';
 import { MScreen, TabHeader } from './Shell';
-import { BotaoConfig, BotaoPerfil, useAbrirNoPerfil } from './Perfil';
+import { BotaoConfig, useAbrirNoPerfil } from './Perfil';
 import { Grafico } from '../ui/Grafico';
 import { pontosPesagem } from '../data/medicoes';
 import { RemoverPessoaMobile } from '../ui/Confirmar';
@@ -24,7 +24,7 @@ const sub = { fontSize: 13, color: 'var(--text-2)' } as const;
 
 /**
  * Perfil do pet no celular (linguagem do M10). Pets não têm compartilhamento: todo mundo vê e edita.
- * `inicio`: é o Início do perfil do pet (com a tab bar; o álbum fica na aba Fotos).
+ * `inicio`: é o Início do perfil do pet (com a tab bar).
  */
 export function PetPerfil({ pet: p, inicio }: { pet: Pessoa; inicio?: boolean }) {
   const nav = useNavigate();
@@ -35,7 +35,6 @@ export function PetPerfil({ pet: p, inicio }: { pet: Pessoa; inicio?: boolean })
         <div className="hstack" style={{ justifyContent: 'flex-end' }}>
           <button type="button" className="btn btn--outline btn--h40" style={{ marginRight: 'auto', padding: '0 14px' }} onClick={() => nav(`/pessoa/${p.id}/editar`)}>Editar</button>
           <BotaoConfig />
-          <BotaoPerfil />
         </div>
       ) : (
         <TopNav voltar="Família" voltarPara="/familia" acao="Editar" onAcao={() => nav(`/pessoa/${p.id}/editar`)} />
@@ -57,7 +56,7 @@ export function PetPerfil({ pet: p, inicio }: { pet: Pessoa; inicio?: boolean })
         </div>
       )}
       <Contatos p={p} />
-      {!inicio && <Fotos pet={p} />}
+      <Fotos pet={p} />
 
       <ProximosCuidados id={p.id} />
       <Vacinas id={p.id} />

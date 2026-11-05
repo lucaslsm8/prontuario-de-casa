@@ -248,3 +248,48 @@ button.consultas__linha:hover { background: #F8FAFA; }
 .tabbar--icones { justify-content: space-around; }
 .tabbar--icones a { width: 52px; padding: 0; }
 .tabbar--icones a.active { padding: 0; }
+
+/* ── Perfil aberto na tab bar e faixa de aviso (modelo 2, 04/11/2026) ───── */
+.tabbar__perfil {
+  color: inherit; height: 46px; min-width: 46px; padding: 0 8px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  font: inherit; -webkit-touch-callout: none; user-select: none;
+  transition: background var(--t) var(--ease), color var(--t) var(--ease);
+}
+.tabbar__perfil .avatar, .tabbar__perfil .avatar-todos { box-shadow: 0 0 0 2px var(--ink), 0 0 0 3.5px var(--teal-on-dark); border-radius: 50%; }
+.tabbar__perfil.active { background: var(--teal-light); color: var(--ink); }
+.tabbar__perfil.active .avatar { box-shadow: none; }
+.tabbar__perfil:hover:not(.active) { color: #fff; }
+.tabbar--icones .tabbar__perfil { width: 52px; padding: 0; }
+
+.aviso-perfil {
+  display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 10px; border-radius: var(--r-card);
+  background: var(--sol-light); color: var(--sol-dark); font-size: 14px;
+}
+.aviso-perfil strong { font-weight: 600; }
+.aviso-perfil button { min-height: 44px; padding: 0 10px; border-radius: var(--r-btn); font-size: 13px; font-weight: 600; color: var(--sol-dark); flex: none; }
+.aviso-perfil button:active { background: rgba(140, 90, 18, .1); }
+
+.seletor__linha {
+  display: flex; align-items: center; gap: 12px; padding: 10px 8px; min-height: 60px; width: 100%; text-align: left;
+  border-radius: var(--r-card); transition: background var(--t) var(--ease);
+}
+.seletor__linha.is-vendo { background: var(--teal-light); }
+.seletor__pend { font-size: 13px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seletor__pend.is-alerta { color: var(--warn-text); font-weight: 600; }
+
+.avatar-todos { position: relative; display: inline-block; flex: none; }
+.avatar-todos .avatar { border: 2px solid var(--surface); }
+
+/* Três números do Início (os mesmos do painel do desktop). */
+.numeros-m { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.numeros-m > button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 12px; min-height: 60px; text-align: left; min-width: 0; }
+.numeros-m > button + button { border-left: 1px solid var(--divider); }
+.numeros-m__rot { font-size: 11px; color: var(--text-2); }
+.numeros-m__valor { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.numeros-m__det { font-size: 11px; color: var(--text-3); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.numeros-m .is-alerta { color: var(--warn-text); }
+.indicadores-m { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.indicadores-m > div { border-bottom: 1px solid var(--divider); }
+.indicadores-m > div:not(:nth-child(3n)) { border-right: 1px solid var(--divider); }
+.indicadores-m > div:nth-child(n+4) { border-bottom: 0; }
+.indicadores-m > div:last-child { border-right: 0; }

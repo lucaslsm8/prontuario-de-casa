@@ -8,6 +8,7 @@ import type { Remedio } from '../data/types';
 import { Bar, ChipGroup, Field, FieldGroup, Label, Pill, Row, SecaoLista, Segmented, Toggle, TopNav, InlineInput } from '../ui';
 import { agruparFamiliaPets, opcoesPessoas } from '../data/pets';
 import { MScreen, TabHeader } from './Shell';
+import { textoSalvar } from './Perfil';
 import { AdesaoSemanal } from '../ui/Adesao';
 import { AnexosPendentes, GaleriaAnexos } from '../ui/Anexos';
 import { anexosDe } from '../data/anexos';
@@ -214,7 +215,7 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
         </FieldGroup>
       )}
       <button type="button" className="btn btn--cta" style={{ marginTop: 'auto' }} disabled={!valido} onClick={salvar}>
-        {editando ? 'Salvar alterações' : 'Salvar remédio'}
+        {editando ? 'Salvar alterações' : textoSalvar(state, para, 'Salvar remédio')}
       </button>
     </MScreen>
   );

@@ -1,13 +1,14 @@
 import { useNavigate } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
 import { eu, pessoa, proximos, useStore } from '../data/store';
-import { dataLonga, mesSigla, quem } from '../data/format';
+import { dataLonga, diaMes, estoqueBaixo, mesSigla, quem } from '../data/format';
 import { Bar, Check, Circle, Label, SecaoLista } from '../ui';
 import { CartaoDose, LinhaDia, ListaDoses, RemedioAcabando, useDoseDaVez, useRemedioAcabando } from '../ui/Inicio';
-import { agruparFamiliaPets, ehPet } from '../data/pets';
+import { agruparFamiliaPets, ehPet, proximaConsultaDaFamilia } from '../data/pets';
+import { estadoDose } from '../data/inicio';
 import type { Consulta } from '../data/types';
 import { MScreen } from './Shell';
-import { BotaoConfig, BotaoPerfil } from './Perfil';
+import { BotaoConfig } from './Perfil';
 import { PetPerfil } from './Pet';
 
 /** M03 Início · M20 quando ainda não há nada cadastrado. No perfil de um pet, o perfil dele. */
@@ -19,7 +20,7 @@ export function Inicio() {
   return vazio ? <InicioVazio /> : <InicioCheio />;
 }
 
-/** Topo do Início: a data numa linha, à direita; embaixo Buscar, Configurações e a foto que troca o perfil. */
+/** Topo do Início: a data numa linha, à direita; embaixo Buscar e Configurações. O perfil fica na última aba. */
 function Topo() {
   const nav = useNavigate();
   return (
@@ -28,7 +29,6 @@ function Topo() {
       <div className="hstack" style={{ justifyContent: 'flex-end' }}>
         <button type="button" className="btn btn--outline btn--h40" style={{ marginRight: 8, minWidth: 44, flexShrink: 0 }} onClick={() => nav('/busca')} aria-label="Buscar">Buscar</button>
         <BotaoConfig />
-        <BotaoPerfil />
       </div>
     </div>
   );
@@ -66,6 +66,8 @@ function InicioCheio() {
 
       <CartaoDose dv={dv} compacto onCadastrar={() => nav('/remedios/novo')} />
 
+      <Numeros />
+
       {doses.length > 0 && (
         <section className="card" style={{ padding: '14px 16px', gap: 6 }}>
           <div className="hstack" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -88,6 +90,36 @@ function InicioCheio() {
         </div>
       </div>
     </MScreen>
+  );
+}
+
+/** Os três números do painel do desktop (D01): doses de hoje, próxima consulta e estoque baixo, do perfil aberto. */
+function Numeros() {
+  const { state } = useStore();
+  const nav = useNavigate();
+  const { doses, agora } = useDoseDaVez();
+  const tomadas = doses.filter((d) => d.dose?.status === 'tomada').length;
+  const atrasadas = doses.filter((d) => estadoDose(d, agora) === 'atrasada').length;
+  const prox = proximaConsultaDaFamilia(state);
+  const baixos = state.remedios.filter((r) => r.ativo && estoqueBaixo(r));
+  return (
+    <section className="card numeros-m">
+      <button type="button" onClick={() => nav('/remedios')}>
+        <span className="numeros-m__rot">Doses de hoje</span>
+        <span className="numeros-m__valor">{tomadas}/{doses.length}</span>
+        <span className={atrasadas ? 'numeros-m__det is-alerta' : 'numeros-m__det'}>{atrasadas ? (atrasadas === 1 ? '1 atrasada' : `${atrasadas} atrasadas`) : doses.length ? 'Nenhuma atrasada' : 'Sem horário'}</span>
+      </button>
+      <button type="button" onClick={() => nav('/agenda')}>
+        <span className="numeros-m__rot">Próxima consulta</span>
+        <span className="numeros-m__valor">{prox ? diaMes(prox.data) : '—'}</span>
+        <span className="numeros-m__det">{prox ? prox.titulo : 'Nada marcado'}</span>
+      </button>
+      <button type="button" onClick={() => nav('/remedios')}>
+        <span className="numeros-m__rot">Estoque baixo</span>
+        <span className={baixos.length ? 'numeros-m__valor is-alerta' : 'numeros-m__valor'}>{baixos.length}</span>
+        <span className="numeros-m__det">{baixos.length ? baixos.map((r) => r.nome.split(' ')[0]).join(', ') : 'Tudo em dia'}</span>
+      </button>
+    </section>
   );
 }
 

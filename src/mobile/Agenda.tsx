@@ -9,6 +9,7 @@ import { ChipGroup, Field, FieldGroup, Label, Row, SecaoLista, Segmented, Toggle
 import { distancia, filtrarConsultas, porMesConsultas, type Quando, type TipoFiltro } from '../data/consultas';
 import { SECOES_PET, agruparFamiliaPets, ehPet, linhaAlergia, opcoesPessoas, resumoPet, type SecaoPet } from '../data/pets';
 import { MScreen, TabHeader } from './Shell';
+import { textoSalvar } from './Perfil';
 import { ConfirmarSheet } from '../ui/Confirmar';
 import { PosConsulta } from '../ui/PosConsulta';
 import { AgendaIcs } from '../ui/AgendaIcs';
@@ -304,7 +305,7 @@ export function NovaConsulta({ onDone, consulta }: { onDone?: () => void; consul
         <ChipGroup gap6 tom="teal" tamanho="md" opcoes={LEMBRAR.map((x) => ({ id: x, nome: x }))} valor={lembrar} onChange={setLembrar} />
       </FieldGroup>
       <button type="button" className="btn btn--cta" style={{ marginTop: 'auto' }} disabled={!valido} onClick={salvar}>
-        Salvar consulta
+        {editando ? 'Salvar consulta' : textoSalvar(state, para, 'Salvar consulta')}
       </button>
     </MScreen>
   );

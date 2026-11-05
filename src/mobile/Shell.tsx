@@ -1,33 +1,29 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { pessoa, useStore } from '../data/store';
-import { ehPet } from '../data/pets';
+import { useStore } from '../data/store';
 import { cx } from '../ui';
-import { IcAgenda, IcExame, IcFotos, IcInicio, IcPlano, IcRemedio } from '../ui/Icones';
-import { PerfilProvider, usePerfil } from './Perfil';
+import { IcAgenda, IcExame, IcInicio, IcRemedio } from '../ui/Icones';
+import { AbaPerfil, AvisoPerfil, PerfilProvider } from './Perfil';
 
+/** A quinta aba é a foto do perfil aberto (`AbaPerfil`): troca de perfil e abre a página da pessoa. */
 const TABS = [
   { to: '/', nome: 'Início', end: true, Icone: IcInicio },
   { to: '/agenda', nome: 'Agenda', Icone: IcAgenda },
   { to: '/remedios', nome: 'Remédios', Icone: IcRemedio },
   { to: '/exames', nome: 'Exames', Icone: IcExame },
-  { to: '/planos', nome: 'Plano', Icone: IcPlano },
 ];
-/** Pet não tem plano de saúde: no lugar, o álbum de fotos. */
-const TABS_PET = [...TABS.slice(0, 4), { to: '/fotos', nome: 'Fotos', Icone: IcFotos }];
 
 export function TabBar() {
   const { state } = useStore();
-  const { id } = usePerfil();
-  const p = id ? pessoa(state, id) : undefined;
   const icones = !!state.config.menuIcones;
   return (
     <nav className={cx('tabbar', icones && 'tabbar--icones')} aria-label="Navegação principal">
-      {(p && ehPet(p) ? TABS_PET : TABS).map(({ to, nome, end, Icone }) => (
+      {TABS.map(({ to, nome, end, Icone }) => (
         <NavLink key={to} to={to} end={end} className={({ isActive }) => cx(isActive && 'active')} aria-label={icones ? nome : undefined} title={icones ? nome : undefined}>
           {icones ? <Icone size={22} /> : nome}
         </NavLink>
       ))}
+      <AbaPerfil />
     </nav>
   );
 }
@@ -57,6 +53,7 @@ export function MScreen({
       <StatusBar style={statusStyle} semHora={semHora} />
       <div className="screen__scroll" ref={scrollRef}>
         <div className="screen__body" style={{ padding, gap, ...style }}>
+          {tabs && <AvisoPerfil />}
           {children}
         </div>
       </div>

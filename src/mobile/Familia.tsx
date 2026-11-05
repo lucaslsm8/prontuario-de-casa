@@ -127,6 +127,31 @@ export function Familia() {
   );
 }
 
+/** Sangue · Peso · Altura / Pressão · Alergias (sem alergia) · Contato de emergência: os indicadores do desktop (D02). */
+function Indicadores({ p }: { p: Pessoa }) {
+  const contato = p.contatoEmergencia;
+  const celulas: [string, string, string?][] = [
+    ['Sangue', p.sangue ?? '—'],
+    ['Peso', p.peso ? `${numCurto(p.peso)} kg` : '—'],
+    ['Altura', p.altura ? `${numBR(p.altura)} m` : '—'],
+    ['Pressão', p.pressao?.valor ?? '—', p.pressao && `em ${diaMes(p.pressao.data)}`],
+    // Com alergia, ela vem no cartão de alerta logo abaixo, com a reação.
+    ...(p.alergias.length ? [] : [['Alergias', 'Nenhuma'] as [string, string]]),
+    ['Contato de emergência', contato?.nome ?? '—', contato?.relacao],
+  ];
+  return (
+    <div className="card indicadores-m">
+      {celulas.map(([k, v, sub], i) => (
+        <div key={k} className="stack" style={{ padding: '12px 14px', gap: 2, minWidth: 0, gridColumn: i === celulas.length - 1 && celulas.length === 5 ? 'span 2' : undefined }}>
+          <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{k}</span>
+          <span style={{ fontSize: 20, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v}</span>
+          {sub && <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{sub}</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** M04 — Perfil do membro. */
 export function PerfilMembro() {
   const { id } = useParams();
@@ -161,18 +186,7 @@ export function PerfilMembro() {
 
       {ver('perfil') && (
         <>
-          <div className="card" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))' }}>
-            {[
-              ['Sangue', p.sangue ?? '—'],
-              ['Peso', p.peso ? `${numCurto(p.peso)} kg` : '—'],
-              ['Altura', p.altura ? `${numBR(p.altura)} m` : '—'],
-            ].map(([k, v], i) => (
-              <div key={k} className="stack" style={{ padding: '12px 14px', gap: 2, borderRight: i < 2 ? '1px solid var(--divider)' : undefined }}>
-                <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{k}</span>
-                <span style={{ fontSize: 20, fontWeight: 600 }}>{v}</span>
-              </div>
-            ))}
-          </div>
+          <Indicadores p={p} />
           {alergia && (
             <div className="card card--warn" style={{ padding: '14px 16px', gap: 4 }}>
               <span className="mono" style={{ fontSize: 11, letterSpacing: '.1em', color: 'var(--warn-text)' }}>ALERGIA</span>
@@ -191,14 +205,12 @@ export function PerfilMembro() {
         </>
       )}
 
-      <div className="card" style={{ fontSize: 15 }}>
-        {ver('perfil') && <Row mutedLabel={false} label="Histórico" valor={<span className="muted">linha do tempo ›</span>} onClick={() => nav(`/pessoa/${p.id}/historico`)} />}
-        {ver('perfil') && <Row mutedLabel={false} label="Medições" valor={<span className="muted">{resumoMedicoes(state.medicoes, p.id)} ›</span>} onClick={() => nav(`/pessoa/${p.id}/medicoes`)} />}
-        {ver('remedios') && <Row mutedLabel={false} label="Remédios" valor={<span className="muted">{remedios.length} em uso ›</span>} onClick={() => abrirNoPerfil(p.id, '/remedios')} />}
-        {ver('consultas') && <Row mutedLabel={false} label="Consultas" valor={<span className="muted">{prox ? `próxima ${diaMes(prox.data)}` : 'nenhuma marcada'} ›</span>} onClick={() => abrirNoPerfil(p.id, '/agenda')} />}
-        {ver('exames') && <Row mutedLabel={false} label="Exames" valor={<span className="muted">{exames.length} arquivados ›</span>} onClick={() => abrirNoPerfil(p.id, '/exames')} />}
-        {ver('plano') && <Row mutedLabel={false} label="Plano de saúde" valor={<span className="muted">{plano ? plano.operadora.split(' ')[0] : 'adicionar'} ›</span>} onClick={() => nav(`/pessoa/${p.id}/plano`)} />}
-      </div>
+      {/* Mesma ordem das abas da pessoa no desktop: Medições, Vacinas, Histórico, Remédios, Consultas, Exames, Plano. */}
+      {ver('perfil') && (
+        <div className="card" style={{ fontSize: 15 }}>
+          <Row mutedLabel={false} label="Medições" valor={<span className="muted">{resumoMedicoes(state.medicoes, p.id)} ›</span>} onClick={() => nav(`/pessoa/${p.id}/medicoes`)} />
+        </div>
+      )}
 
       {ver('perfil') && (
         <div className="card" style={{ fontSize: 15 }}>
@@ -209,6 +221,14 @@ export function PerfilMembro() {
           {podeEditar && <Row mutedLabel={false} label={<span style={{ color: 'var(--teal)', fontWeight: 600 }}>+ Registrar vacina</span>} onClick={() => nav(`/pet/${p.id}/vacina`)} style={{ padding: '10px 16px' }} />}
         </div>
       )}
+      <div className="card" style={{ fontSize: 15 }}>
+        {ver('perfil') && <Row mutedLabel={false} label="Histórico" valor={<span className="muted">linha do tempo ›</span>} onClick={() => nav(`/pessoa/${p.id}/historico`)} />}
+        {ver('remedios') && <Row mutedLabel={false} label="Remédios" valor={<span className="muted">{remedios.length} em uso ›</span>} onClick={() => abrirNoPerfil(p.id, '/remedios')} />}
+        {ver('consultas') && <Row mutedLabel={false} label="Consultas" valor={<span className="muted">{prox ? `próxima ${diaMes(prox.data)}` : 'nenhuma marcada'} ›</span>} onClick={() => abrirNoPerfil(p.id, '/agenda')} />}
+        {ver('exames') && <Row mutedLabel={false} label="Exames" valor={<span className="muted">{exames.length} arquivados ›</span>} onClick={() => abrirNoPerfil(p.id, '/exames')} />}
+        {ver('plano') && <Row mutedLabel={false} label="Plano" valor={<span className="muted">{plano ? plano.operadora.split(' ')[0] : 'adicionar'} ›</span>} onClick={() => nav(`/pessoa/${p.id}/plano`)} />}
+      </div>
+
       {ver('perfil') && (
         <button type="button" className="btn btn--outline-ink btn--h50" onClick={() => nav(`/pessoa/${p.id}/emergencia`)}>Ficha de emergência</button>
       )}

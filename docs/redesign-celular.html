@@ -1,0 +1,643 @@
+<title>Prontuário de Casa: redesign do celular</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: documento de uma coluna larga; os modelos alternam celular + texto, empilhando no celular.
+   Paleta e tipos tirados de src/styles/tokens.css do app. */
+:root {
+  --bg: #F4F7F7; --surface: #FFFFFF; --ink: #14202A; --text-2: #5B6B75; --text-3: #8C9AA2;
+  --line: #DFE6E7; --divider: #E9EEEF;
+  --teal: #1F6E74; --teal-light: #E3F0F0; --teal-on-dark: #7FC4C8;
+  --sol: #E3A03A; --sol-light: #FBF0DA; --sol-dark: #8C5A12;
+  --warn-bg: #FBEEE8; --warn-text: #9A4524; --warn-bar: #C4643E;
+  --danger: #B23A2A; --danger-bg: #FBE9E7;
+  --hero: #14202A; --hero-2: #22323D; --hero-t2: #A7B4BB;
+  --frame: #14202A; --chip: #EEF2F3;
+  --sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0F171D; --surface: #17222A; --ink: #E6EDEF; --text-2: #A3B2BA; --text-3: #73848D;
+  --line: #26353F; --divider: #1F2C35;
+  --teal: #4FA3A9; --teal-light: #183338; --teal-on-dark: #7FC4C8;
+  --sol: #E3A03A; --sol-light: #33280F; --sol-dark: #EBC27E;
+  --warn-bg: #3A2219; --warn-text: #F0A685; --warn-bar: #D9805C;
+  --danger: #E0705F; --danger-bg: #3A1D19;
+  --hero: #0A1015; --hero-2: #1C2933; --hero-t2: #A7B4BB;
+  --frame: #2B3943; --chip: #1F2C35; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0F171D; --surface: #17222A; --ink: #E6EDEF; --text-2: #A3B2BA; --text-3: #73848D;
+  --line: #26353F; --divider: #1F2C35;
+  --teal: #4FA3A9; --teal-light: #183338; --teal-on-dark: #7FC4C8;
+  --sol: #E3A03A; --sol-light: #33280F; --sol-dark: #EBC27E;
+  --warn-bg: #3A2219; --warn-text: #F0A685; --warn-bar: #D9805C;
+  --danger: #E0705F; --danger-bg: #3A1D19;
+  --hero: #0A1015; --hero-2: #1C2933; --hero-t2: #A7B4BB;
+  --frame: #2B3943; --chip: #1F2C35; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--sans); }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 40px 80px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 56px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(28px, 4.5vw, 40px); line-height: 1.15; font-weight: 600; letter-spacing: -.01em; }
+h2 { font-size: 24px; font-weight: 600; }
+h3 { font-size: 18px; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+.eyebrow { font: 500 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--text-3); }
+.lead { color: var(--text-2); font-size: 17px; }
+.sec { display: flex; flex-direction: column; gap: 20px; }
+.sec > header { display: flex; flex-direction: column; gap: 8px; }
+.muted { color: var(--text-2); }
+.mono { font-family: var(--mono); }
+
+/* Índice */
+.toc { display: flex; flex-wrap: wrap; gap: 8px; }
+.toc a { font-size: 13px; color: var(--teal); text-decoration: none; border: 1px solid var(--line); background: var(--surface);
+  padding: 6px 10px; border-radius: 6px; }
+.toc a:hover, .toc a:focus-visible { border-color: var(--teal); outline: none; }
+
+/* Diagnóstico */
+.probs { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.prob { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.prob .onde { font: 500 11px/1.2 var(--mono); color: var(--text-3); }
+.prob strong { font-weight: 600; }
+.prob p { font-size: 14px; color: var(--text-2); }
+
+/* Modelos */
+.modelo { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 32px; align-items: start;
+  padding-top: 28px; border-top: 1px solid var(--line); }
+.modelo__fones { display: flex; gap: 16px; flex-wrap: wrap; }
+.modelo__txt { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.modelo__tag { display: inline-flex; gap: 8px; align-items: center; }
+.letra { font: 600 13px/1 var(--mono); background: var(--ink); color: var(--bg); width: 26px; height: 26px; border-radius: 6px; display: inline-grid; place-items: center; }
+.pc { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pc div { font-size: 14px; }
+.pc b { display: block; font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); margin-bottom: 6px; }
+.pc ul, .ideias { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.ideias li { font-size: 14px; }
+.rec { background: var(--teal-light); border-radius: 10px; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; }
+.rec h3 { color: var(--teal); }
+@media (max-width: 760px) { .modelo { grid-template-columns: minmax(0, 1fr); } .pc { grid-template-columns: 1fr; } }
+
+/* ── Celular de mentira ─────────────────────────── */
+.fone { width: 232px; flex: none; display: flex; flex-direction: column; gap: 8px; }
+.fone__leg { font: 500 11px/1.3 var(--mono); color: var(--text-3); text-align: center; }
+.tela { position: relative; height: 480px; border: 7px solid var(--frame); border-radius: 30px; background: var(--bg);
+  overflow: hidden; font-size: 11px; line-height: 1.35; display: flex; flex-direction: column; }
+.tela__corpo { flex: 1; padding: 22px 12px 0; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+.t-h { font-size: 19px; font-weight: 600; letter-spacing: -.01em; }
+.t-sub { color: var(--text-2); font-size: 10px; }
+.t-lbl { font: 500 8.5px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); padding-top: 4px; }
+.t-card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.t-row { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-bottom: 1px solid var(--divider); }
+.t-row:last-child { border-bottom: 0; }
+.t-row .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.t-row .nm { font-weight: 600; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t-row .q { color: var(--text-2); font-size: 9.5px; }
+.t-hora { font: 500 10px var(--mono); color: var(--text-2); width: 32px; }
+.av { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 9px; font-weight: 600; flex: none;
+  background: var(--teal-light); color: var(--teal); }
+.av--r { background: #EDE7F6; color: #5E4A8C; } .av--p { background: var(--sol-light); color: var(--sol-dark); }
+.av--m { background: #E8F1E4; color: #47703A; }
+.t-btn { background: var(--teal); color: #fff; border-radius: 5px; padding: 4px 8px; font-weight: 600; font-size: 9.5px; flex: none; }
+.t-btn--o { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.t-pill { font-size: 9px; padding: 2px 6px; border-radius: 4px; background: var(--chip); color: var(--text-2); flex: none; }
+.t-pill--ok { background: var(--teal-light); color: var(--teal); }
+.t-pill--warn { background: var(--warn-bg); color: var(--warn-text); }
+.hero-m { background: var(--hero); color: #fff; border-radius: 10px; padding: 11px; display: flex; flex-direction: column; gap: 8px; }
+.hero-m .r { font: 500 8.5px var(--mono); letter-spacing: .1em; color: var(--sol); text-transform: uppercase; }
+.hero-m .l { display: flex; gap: 10px; align-items: baseline; }
+.hero-m .h { font: 500 22px var(--mono); }
+.hero-m .n { font-size: 13px; font-weight: 600; }
+.hero-m .s { color: var(--hero-t2); font-size: 9.5px; }
+.hero-m .bts { display: flex; gap: 5px; }
+.hero-m .bts span { flex: 1; text-align: center; border-radius: 5px; padding: 6px 0; background: var(--hero-2); font-weight: 600; font-size: 9.5px; }
+.hero-m .bts span:first-child { background: var(--teal-on-dark); color: var(--hero); flex: 1.6; }
+.tab { display: flex; justify-content: space-around; align-items: center; padding: 7px 6px 12px; background: var(--surface); border-top: 1px solid var(--line); }
+.tab span { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 8.5px; color: var(--text-3); }
+.tab span i { width: 16px; height: 16px; border-radius: 4px; border: 1.6px solid currentColor; display: block; }
+.tab span.on { color: var(--teal); font-weight: 600; }
+.tab .fab { width: 38px; height: 38px; border-radius: 10px; background: var(--teal); color: #fff; font-size: 22px; font-weight: 400; display: grid; place-items: center; margin-top: -18px; box-shadow: 0 6px 14px -6px rgba(20,40,50,.5); }
+.fab-solto { position: absolute; right: 12px; bottom: 58px; width: 42px; height: 42px; border-radius: 12px; background: var(--teal); color: #fff; font-size: 24px; display: grid; place-items: center; box-shadow: 0 8px 18px -8px rgba(20,40,50,.6); }
+.sheet { position: absolute; inset: auto 0 0 0; background: var(--surface); border-radius: 14px 14px 0 0; padding: 8px 12px 14px; box-shadow: 0 -10px 30px -10px rgba(10,20,30,.35); display: flex; flex-direction: column; gap: 8px; }
+.sheet::before { content: ""; width: 32px; height: 4px; border-radius: 2px; background: var(--line); align-self: center; }
+.veu { position: absolute; inset: 0; background: rgba(10,20,30,.35); }
+.grade { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+.grade span { background: var(--bg); border-radius: 8px; padding: 9px 4px; text-align: center; font-size: 9.5px; font-weight: 500; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.grade span i { width: 18px; height: 18px; border-radius: 5px; background: var(--teal-light); border: 1.5px solid var(--teal); display: block; }
+.busca-m { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; color: var(--text-3); font-size: 10px; }
+.chips { display: flex; gap: 4px; flex-wrap: wrap; }
+.chips span { padding: 4px 8px; border-radius: 5px; background: var(--surface); border: 1px solid var(--line); font-size: 9.5px; }
+.chips span.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.pessoa-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 9px; display: flex; flex-direction: column; gap: 5px; }
+.pessoa-card .top { display: flex; gap: 7px; align-items: center; }
+.pessoa-card .top b { font-size: 12px; }
+.pessoa-card .st { font-size: 9.5px; color: var(--text-2); display: flex; flex-direction: column; gap: 2px; }
+.pessoa-card .st .w { color: var(--warn-text); font-weight: 600; }
+.duas { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.emerg { background: var(--danger-bg); color: var(--danger); border-radius: 8px; padding: 8px 10px; font-weight: 600; font-size: 10.5px; display: flex; justify-content: space-between; }
+.swipe { position: relative; overflow: hidden; border-radius: 8px; }
+.swipe .fundo { position: absolute; inset: 0; background: var(--teal); color: #fff; display: flex; align-items: center; padding-left: 12px; font-weight: 600; font-size: 10px; }
+.swipe .t-card { position: relative; transform: translateX(64px); }
+.big { font-size: 15px; }
+.passo { display: flex; gap: 3px; } .passo i { flex: 1; height: 3px; border-radius: 2px; background: var(--line); display: block; } .passo i.on { background: var(--teal); }
+.opcao { background: var(--surface); border: 1px solid var(--line); border-radius: 9px; padding: 10px; font-size: 12px; font-weight: 500; display: flex; justify-content: space-between; }
+.opcao.on { border-color: var(--teal); background: var(--teal-light); color: var(--teal); }
+.rodape-m { padding: 10px 12px 14px; background: var(--surface); border-top: 1px solid var(--line); display: flex; gap: 6px; }
+.rodape-m span { flex: 1; text-align: center; padding: 9px 0; border-radius: 7px; font-weight: 600; font-size: 11px; background: var(--chip); }
+.rodape-m span.p { background: var(--teal); color: #fff; flex: 2; }
+.simples { gap: 10px; }
+.simples .bt { border-radius: 14px; padding: 16px 14px; font-size: 16px; font-weight: 600; display: flex; flex-direction: column; gap: 3px; }
+.simples .bt small { font-size: 11px; font-weight: 400; opacity: .85; }
+.simples .bt--1 { background: var(--teal); color: #fff; }
+.simples .bt--2 { background: var(--surface); border: 1.5px solid var(--line); }
+.simples .bt--3 { background: var(--danger-bg); color: var(--danger); }
+.linha-t { display: flex; gap: 8px; }
+.linha-t .eixo { width: 2px; background: var(--line); border-radius: 1px; margin: 4px 0 0 14px; }
+.tl { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+
+/* Troca de perfil */
+.base { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.base__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px 24px; }
+.base__grid div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.base__grid b { font-weight: 600; font-size: 14px; }
+.base__grid p { font-size: 14px; color: var(--text-2); }
+.av--t { background: #F3E6E0; color: #8A4B33; }
+.av--todos { background: var(--ink); color: var(--bg); }
+.faixa { display: flex; gap: 8px; overflow: hidden; padding-bottom: 2px; }
+.faixa .fa { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 8.5px; color: var(--text-2); flex: none; }
+.faixa .fa .av { width: 30px; height: 30px; font-size: 11px; }
+.faixa .fa.on { color: var(--ink); font-weight: 600; }
+.faixa .fa.on .av, .faixa--mini .av.on { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--teal); }
+.faixa--mini { gap: 6px; }
+.aviso { display: flex; justify-content: space-between; gap: 6px; background: var(--sol-light); color: var(--sol-dark); border-radius: 6px; padding: 5px 8px; font-size: 9.5px; }
+.aviso span:last-child { font-weight: 600; }
+.aviso--suave { background: var(--teal-light); color: var(--teal); }
+.aviso--suave span:last-child { font-weight: 400; }
+.indic, .numeros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.indic div, .numeros div { background: var(--surface); border: 1px solid var(--line); border-radius: 7px; padding: 5px 7px; font-weight: 600; font-size: 11px; display: flex; flex-direction: column; min-width: 0; }
+.indic small, .numeros small { font-weight: 400; font-size: 8.5px; color: var(--text-3); }
+.indic .al, .numeros .al { background: var(--warn-bg); border-color: transparent; color: var(--warn-text); }
+.tab .on-av { color: var(--ink); font-weight: 600; }
+.tab .on-av .av { width: 18px; height: 18px; font-size: 8px; box-shadow: 0 0 0 1.5px var(--teal); }
+.t-row.sel { background: var(--teal-light); }
+.cab-pessoa { display: flex; gap: 8px; align-items: center; }
+.chips--rolo { flex-wrap: nowrap; overflow: hidden; }
+.chips--rolo span { flex: none; }
+.cab-cor { padding: 20px 12px 10px; display: flex; flex-direction: column; gap: 8px; }
+.cab-cor--r { background: #EDE7F6; color: #3F2F66; }
+.pontos { display: flex; gap: 4px; justify-content: center; }
+.pontos i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .3; display: block; }
+.pontos i.on { opacity: 1; width: 14px; border-radius: 3px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .cab-cor--r { background: #2A2340; color: #D9CFF0; } }
+:root[data-theme="dark"] .cab-cor--r { background: #2A2340; color: #D9CFF0; }
+
+/* Funções */
+.grupo { display: flex; flex-direction: column; gap: 10px; }
+.funcs { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; }
+.func { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.func__top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.func__top strong { font-weight: 600; }
+.func p { font-size: 14px; color: var(--text-2); }
+.tags { display: flex; gap: 4px; flex: none; }
+.tg { font: 500 10px/1 var(--mono); padding: 4px 6px; border-radius: 4px; background: var(--chip); color: var(--text-2); white-space: nowrap; }
+.tg--alto { background: var(--teal-light); color: var(--teal); }
+.tg--rede { background: var(--sol-light); color: var(--sol-dark); }
+.legenda { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--text-2); align-items: center; }
+
+/* Ajustes rápidos */
+.tabela-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14px; }
+th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--divider); vertical-align: top; }
+th { font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 500; width: 30%; }
+td:last-child { color: var(--text-2); }
+
+.ordem { counter-reset: o; list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.ordem li { counter-increment: o; display: grid; grid-template-columns: 32px 1fr; gap: 10px; align-items: start; }
+.ordem li::before { content: counter(o); font: 600 13px/1 var(--mono); width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center; background: var(--teal); color: #fff; }
+.ordem li span { min-width: 0; }
+a:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+
+<header class="sec" style="gap:14px">
+  <span class="eyebrow">Prontuário de Casa · versão 0.5.9 · 04/11/2026</span>
+  <h1>Redesign do celular e próximas funções</h1>
+  <p class="lead">O visual do app Android está bom. O que pesa é o caminho até as coisas: ações escondidas, botões no alto da tela, seletores que não parecem seletores e uma aba inteira para algo que se abre pouco. Abaixo, o que encontrei nas telas, quatro modelos de redesign em que cada pessoa vê o próprio perfil e troca para o de outro familiar, o que o desktop mostra e onde isso fica no celular e uma lista de funções novas que cabem na regra do app (tudo no aparelho, cifrado).</p>
+  <nav class="toc" aria-label="Seções">
+    <a href="#problemas">O que atrapalha hoje</a>
+    <a href="#modelos">4 modelos com troca de perfil</a>
+    <a href="#paridade">Paridade com o desktop</a>
+    <a href="#ajustes">Ajustes que valem para qualquer modelo</a>
+    <a href="#funcoes">Funções novas</a>
+    <a href="#ordem">Ordem sugerida</a>
+  </nav>
+</header>
+
+<section class="sec" id="problemas">
+  <header>
+    <span class="eyebrow">Parte 2 · diagnóstico</span>
+    <h2>O que atrapalha hoje no celular</h2>
+    <p class="muted">Abri cada aba nos dados de exemplo, com 375 px de largura.</p>
+  </header>
+  <div class="probs">
+    <div class="prob"><span class="onde">Tab bar</span><strong>"Plano" ocupa uma das 5 abas</strong><p>A carteirinha é aberta poucas vezes por mês. Enquanto isso, Família, perfil de cada pessoa e Ficha de emergência só aparecem pela foto no topo do Início ou pela engrenagem.</p></div>
+    <div class="prob"><span class="onde">Tab bar</span><strong>Texto ou ícone, nunca os dois</strong><p>A opção "Texto / Ícones" obriga a escolher. Só texto fica pequeno e difícil de acertar; só ícone exige decorar. O padrão do Android é ícone com rótulo.</p></div>
+    <div class="prob"><span class="onde">Início</span><strong>Controles no alto, longe do polegar</strong><p>Buscar, Configurações e troca de perfil ficam no canto superior direito. O "+" de cada aba também. Com uma mão, é a área mais difícil de alcançar.</p></div>
+    <div class="prob"><span class="onde">Início</span><strong>"Tudo em dia" ocupa o espaço da dose</strong><p>Sem dose pendente, o cartão escuro continua grande e cinza. É a posição mais valiosa da tela mostrando que não há nada a fazer.</p></div>
+    <div class="prob"><span class="onde">Perfil</span><strong>O recorte por pessoa é invisível</strong><p>O celular mostra só o perfil escolhido, mas nada além da foto pequena avisa isso. Quem cuida de outra pessoa não percebe que está vendo só a si.</p></div>
+    <div class="prob"><span class="onde">Novo remédio</span><strong>Seletores que avançam com toque</strong><p>Dose, Frequência, Duração e "Avisar para repor" mudam a cada toque (componente <span class="mono">Ciclo</span>). Não parecem clicáveis, não mostram as opções e para voltar uma opção é preciso dar a volta inteira.</p></div>
+    <div class="prob"><span class="onde">Novo remédio</span><strong>Horários aparecem duas vezes e Salvar está em dois lugares</strong><p>Os horários vêm em chips e de novo num campo de texto. "Salvar" aparece no topo e no fim do formulário.</p></div>
+    <div class="prob"><span class="onde">Agenda</span><strong>Três botões de configuração acima do calendário</strong><p>"Conectar Google Agenda", "Importar .ics" e "Exportar .ics" são usados uma vez e ficam sempre no topo, empurrando as consultas para baixo.</p></div>
+    <div class="prob"><span class="onde">Remédios</span><strong>Não dá para marcar a dose daqui</strong><p>A aba Remédios mostra estoque, mas "Tomei" só existe no Início. Quem abre Remédios para registrar a dose precisa voltar.</p></div>
+    <div class="prob"><span class="onde">Geral</span><strong>Sem texto grande e sem tema escuro</strong><p>Não há controle de tamanho do texto nem modo escuro. Para quem cuida de pais idosos, isso decide se o app é usado.</p></div>
+  </div>
+</section>
+
+<section class="sec" id="modelos">
+  <header>
+    <span class="eyebrow">Parte 2 · propostas</span>
+    <h2>Quatro modelos, todos com troca de perfil</h2>
+    <p class="muted">O app abre no seu perfil. Você troca para outra pessoa da família, vê o que ela compartilha e pode editar e adicionar coisas para ela. Os quatro modelos seguem essa ideia e mudam só onde fica o seletor e como as telas se organizam. Cores, fontes e o cartão escuro da dose continuam os mesmos.</p>
+  </header>
+
+  <div class="base">
+    <h3>Regras que valem para os quatro</h3>
+    <div class="base__grid">
+      <div><b>Sempre se sabe de quem é a tela</b><p>Nome e cor do perfil aparecem no topo de toda aba: "Remédios · Pedro", e não só "Remédios".</p></div>
+      <div><b>No perfil de outra pessoa, há uma faixa de aviso</b><p>"Você está no perfil do Pedro · Voltar para você". Um toque leva de volta ao seu.</p></div>
+      <div><b>O que você adiciona vai para o perfil aberto</b><p>"De quem" já vem preenchido com a pessoa aberta. Dá para trocar no próprio formulário.</p></div>
+      <div><b>Quem registrou fica guardado</b><p>"Adicionado por Helena em 28/10". Os eventos já guardam o <span class="mono">autor</span>.</p></div>
+      <div><b>Mostra o mesmo que o desktop</b><p>O que a pessoa não compartilha aparece com cadeado e a mesma frase do desktop. Nada some sem explicação.</p></div>
+      <div><b>"Família toda" também é um perfil</b><p>A última opção do seletor mostra todo mundo junto, igual ao painel do desktop: doses de hoje, próxima consulta, estoque baixo.</p></div>
+    </div>
+  </div>
+
+  <!-- Modelo 1 -->
+  <article class="modelo">
+    <div class="modelo__fones">
+      <div class="fone">
+        <div class="tela">
+          <div class="tela__corpo">
+            <div class="faixa">
+              <span class="fa"><span class="av">H</span>Você</span>
+              <span class="fa"><span class="av av--r">R</span>Roberto</span>
+              <span class="fa on"><span class="av av--p">P</span>Pedro</span>
+              <span class="fa"><span class="av av--m">M</span>Mel</span>
+              <span class="fa"><span class="av av--t">T</span>Thor</span>
+              <span class="fa"><span class="av av--todos">4</span>Todos</span>
+            </div>
+            <div class="aviso"><span>Perfil do <b>Pedro</b></span><span>Voltar para você</span></div>
+            <div class="hero-m">
+              <span class="r">Agora · 14:00</span>
+              <div class="l"><span class="h">14:00</span><span style="display:flex;flex-direction:column"><span class="n">Amoxicilina 500 mg</span><span class="s">Pedro · 1 cápsula</span></span></div>
+              <div class="bts"><span>Tomei</span><span>15 min</span><span>Pular</span></div>
+            </div>
+            <span class="t-lbl">Doses de hoje do Pedro · 1 de 3</span>
+            <div class="t-card">
+              <div class="t-row"><span class="t-hora">07:00</span><span class="grow"><span class="nm">Amoxicilina</span></span><span class="t-pill t-pill--ok">07:05</span></div>
+              <div class="t-row"><span class="t-hora">22:00</span><span class="grow"><span class="nm">Amoxicilina</span></span><span class="t-btn t-btn--o">Tomei</span></div>
+            </div>
+            <span class="t-lbl">Próximos</span>
+            <div class="t-card"><div class="t-row"><span class="t-hora">qui</span><span class="grow"><span class="nm">Pediatra</span><span class="q">10:30 · Dra. Ana</span></span></div></div>
+          </div>
+          <div class="tab"><span class="on"><i></i>Início</span><span><i></i>Agenda</span><span><i></i>Remédios</span><span><i></i>Exames</span><span><i></i>Perfil</span></div>
+        </div>
+        <span class="fone__leg">Faixa de fotos no topo do Início</span>
+      </div>
+      <div class="fone">
+        <div class="tela">
+          <div class="tela__corpo">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span class="t-h">Perfil</span><span class="t-sub">Editar</span></div>
+            <div class="faixa faixa--mini">
+              <span class="av">H</span><span class="av av--r on">R</span><span class="av av--p">P</span><span class="av av--m">M</span><span class="av av--t">T</span>
+            </div>
+            <div style="display:flex;flex-direction:column"><span style="font-size:15px;font-weight:600">Roberto Almeida</span><span class="t-sub">58 anos · compartilha tudo</span></div>
+            <div class="indic">
+              <div><small>Sangue</small>A+</div><div><small>Peso</small>84 kg</div><div><small>Pressão</small>13/8</div>
+              <div class="al"><small>Alergias</small>Penicilina</div><div style="grid-column:span 2"><small>Emergência</small>Helena · esposa</div>
+            </div>
+            <div class="t-card">
+              <div class="t-row"><span class="grow"><span class="nm">Perfil clínico</span></span><span class="q">›</span></div>
+              <div class="t-row"><span class="grow"><span class="nm">Medições</span></span><span class="q">pressão 13/8 ›</span></div>
+              <div class="t-row"><span class="grow"><span class="nm">Vacinas</span></span><span class="q">gripe 2026 ›</span></div>
+              <div class="t-row"><span class="grow"><span class="nm">Histórico</span></span><span class="q">›</span></div>
+              <div class="t-row"><span class="grow"><span class="nm">Plano</span></span><span class="q">Vitalis ›</span></div>
+            </div>
+          </div>
+          <div class="tab"><span><i></i>Início</span><span><i></i>Agenda</span><span><i></i>Remédios</span><span><i></i>Exames</span><span class="on"><i></i>Perfil</span></div>
+        </div>
+        <span class="fone__leg">Aba Perfil, com as seções do desktop</span>
+      </div>
+    </div>
+    <div class="modelo__txt">
+      <span class="modelo__tag"><span class="letra">1</span><span class="eyebrow">Faixa de perfis</span></span>
+      <h3>Fotos da família sempre à vista no topo</h3>
+      <p>Uma fileira com a foto de cada pessoa e pet, mais "Todos". Um toque troca o perfil. A foto escolhida fica destacada e a tela inteira passa a ser daquela pessoa. Nas outras abas a faixa encolhe para só as fotos, sem nomes.</p>
+      <ul class="ideias">
+        <li>Abas: <b>Início · Agenda · Remédios · Exames · Perfil</b>. "Perfil" substitui "Plano" e mostra a pessoa como no desktop: indicadores, condições, Medições, Vacinas, Histórico e Plano.</li>
+        <li>Arrastar a faixa mostra famílias maiores. Segurar uma foto abre a Ficha de emergência dela.</li>
+      </ul>
+      <div class="pc">
+        <div><b>A favor</b><ul><li>A troca fica à vista e é a mais rápida: 1 toque.</li><li>Fica óbvio quantas pessoas existem e quem está aberto.</li></ul></div>
+        <div><b>Contra</b><ul><li>Ocupa cerca de 60 px no topo de cada tela.</li><li>A faixa fica no alto, longe do polegar.</li></ul></div>
+      </div>
+    </div>
+  </article>
+
+  <!-- Modelo 2 -->
+  <article class="modelo">
+    <div class="modelo__fones">
+      <div class="fone">
+        <div class="tela">
+          <div class="tela__corpo">
+            <div style="display:flex;flex-direction:column;gap:2px"><span class="t-sub">Remédios de</span><span class="t-h">Roberto</span></div>
+            <div class="chips"><span class="on">Em uso · 2</span><span>Encerrados</span></div>
+            <div class="t-card">
+              <div class="t-row"><span class="grow"><span class="nm">Losartana 50 mg</span><span class="q">08:00 · 22 dias de estoque</span></span></div>
+              <div class="t-row"><span class="grow"><span class="nm">Sinvastatina 20 mg</span><span class="q">22:00 · 9 dias</span></span><span class="t-pill t-pill--warn">Repor</span></div>
+            </div>
+            <span class="t-lbl">Adicionado por você · 12/10</span>
+            <div style="flex:1"></div>
+          </div>
+          <div class="fab-solto" style="bottom:62px">+</div>
+          <div class="tab"><span><i></i>Início</span><span><i></i>Agenda</span><span class="on"><i></i>Remédios</span><span><i></i>Exames</span><span class="on-av"><span class="av av--r">R</span>Roberto</span></div>
+        </div>
+        <span class="fone__leg">A foto do perfil é a última aba</span>
+      </div>
+      <div class="fone">
+        <div class="tela">
+          <div class="tela__corpo" style="opacity:.45">
+            <span class="t-h">Roberto</span>
+            <div class="t-card" style="height:90px"></div>
+          </div>
+          <div class="veu"></div>
+          <div class="sheet">
+            <span style="font-weight:600;font-size:13px">Ver o perfil de</span>
+            <div class="t-card">
+              <div class="t-row"><span class="av">H</span><span class="grow"><span class="nm">Você</span><span class="q">Tudo em dia</span></span></div>
+              <div class="t-row sel"><span class="av av--r">R</span><span class="grow"><span class="nm">Roberto</span><span class="q">Sinvastatina acabando</span></span><span>✓</span></div>
+              <div class="t-row"><span class="av av--p">P</span><span class="grow"><span class="nm">Pedro</span><span class="q">1 dose agora</span></span><span class="t-pill t-pill--warn">1</span></div>
+              <div class="t-row"><span class="av av--m">M</span><span class="grow"><span class="nm">Mel</span><span class="q">Vermífugo 18:00</span></span></div>
+              <div class="t-row"><span class="av av--todos">4</span><span class="grow"><span class="nm">Família toda</span><span class="q">Como no desktop</span></span></div>
+            </div>
+            <span class="t-sub" style="text-align:center">Abrir perfil do Roberto · Ficha de emergência</span>
+          </div>
+        </div>
+        <span class="fone__leg">Toque na foto: lista com o que está pendente</span>
+      </div>
+    </div>
+    <div class="modelo__txt">
+      <span class="modelo__tag"><span class="letra">2</span><span class="eyebrow">Perfil na barra</span></span>
+      <h3>A foto de quem está aberto vira a última aba</h3>
+      <p>No lugar de "Plano", a barra de baixo mostra a foto e o nome do perfil aberto. Um toque abre uma folha com a família e o que cada um tem pendente; escolher troca o perfil. Segurar abre direto a página da pessoa (indicadores, Medições, Vacinas, Histórico, Plano), como no desktop.</p>
+      <ul class="ideias">
+        <li>O título de cada aba diz de quem é a tela: "Remédios de Roberto".</li>
+        <li>A folha já avisa onde há pendência (dose agora, remédio acabando), então serve também de painel rápido da família.</li>
+        <li>O "+" flutuante cria o registro no perfil aberto.</li>
+      </ul>
+      <div class="pc">
+        <div><b>A favor</b><ul><li>A troca fica no alcance do polegar.</li><li>Não ocupa espaço no topo.</li><li>É o mesmo jeito de trocar de conta de apps conhecidos.</li></ul></div>
+        <div><b>Contra</b><ul><li>Trocar leva 2 toques em vez de 1.</li><li>Uma aba fica com dois papéis: trocar perfil e abrir o perfil.</li></ul></div>
+      </div>
+    </div>
+  </article>
+
+  <!-- Modelo 3 -->
+  <article class="modelo">
+    <div class="modelo__fones">
+      <div class="fone">
+        <div class="tela">
+          <div class="tela__corpo">
+            <div class="cab-pessoa">
+              <span class="av av--p" style="width:34px;height:34px;font-size:13px">P</span>
+              <span style="display:flex;flex-direction:column;flex:1;min-width:0"><span style="font-size:15px;font-weight:600">Pedro ▾</span><span class="t-sub">9 anos · A+ · alergia a dipirona</span></span>
+              <span class="t-pill">Ficha</span>
+            </div>
+            <div class="chips chips--rolo"><span>Perfil clínico</span><span>Medições</span><span>Vacinas</span><span>Histórico</span><span class="on">Remédios</span><span>Consultas</span><span>Exames</span><span>Plano</span></div>
+            <div class="t-card">
+              <div class="t-row"><span class="grow"><span class="nm">Amoxicilina 500 mg</span><span class="q">8 em 8 h · até 04/11</span></span><span class="q">92% em 30 d</span></div>
+              <div class="t-row"><span class="grow"><span class="nm">Paracetamol gotas</span><span class="q">se necessário</span></span><span class="q">ontem 21:40</span></div>
+            </div>
+            <div class="t-card" style="padding:8px 9px;display:flex;justify-content:space-between;align-items:center"><span class="q" style="font-size:10px">Adicionar remédio para o Pedro</span><span class="t-btn">+</span></div>
+            <span class="t-lbl">Encerrados</span>
+            <div class="t-card"><div class="t-row"><span class="grow"><span class="nm" style="color:var(--text-3)">Ibuprofeno</span><span class="q">7 dias · 09/2026</span></span></div></div>
+          </div>
+          <div class="tab"><span><i></i>Hoje</span><span class="on"><i></i>Pessoa</span><span class="fab">+</span><span><i></i>Agenda</span><span><i></i>Buscar</span></div>
+        </div>
+        <span class="fone__leg">A página da pessoa do desktop, em abas que rolam</span>
+      </div>
+    </div>
+    <div class="modelo__txt">
+      <span class="modelo__tag"><span class="letra">3</span><span class="eyebrow">Espelho do desktop</span></span>
+      <h3>Tudo de uma pessoa numa página só, com as mesmas abas do desktop</h3>
+      <p>No desktop, a página da pessoa tem as abas Perfil clínico, Medições, Vacinas, Histórico, Remédios, Consultas, Exames e Plano. Aqui a aba "Pessoa" é exatamente isso, com os mesmos nomes e a mesma ordem, em abas que rolam de lado. O nome no topo ("Pedro ▾") troca o perfil. "Hoje" junta o que falta no dia; "Agenda" mantém o calendário.</p>
+      <ul class="ideias">
+        <li>Quem usa os dois aparelhos encontra cada coisa no mesmo lugar.</li>
+        <li>Remédios e Exames deixam de ser abas próprias; ficam dentro da pessoa.</li>
+        <li>Em "Família toda", a página mostra as listas de todos, separadas por pessoa, como as telas Remédios e Exames do desktop.</li>
+      </ul>
+      <div class="pc">
+        <div><b>A favor</b><ul><li>Fica igual ao desktop: mesma estrutura e os mesmos nomes.</li><li>Menos abas na barra.</li></ul></div>
+        <div><b>Contra</b><ul><li>Oito abas que rolam de lado: as últimas ficam fora da tela.</li><li>Ver "todos os exames da família" pede trocar para Família toda.</li></ul></div>
+      </div>
+    </div>
+  </article>
+
+  <!-- Modelo 4 -->
+  <article class="modelo">
+    <div class="modelo__fones">
+      <div class="fone">
+        <div class="tela">
+          <div class="cab-cor cab-cor--r">
+            <span style="display:flex;justify-content:space-between;align-items:center"><span class="t-h" style="color:inherit">Roberto</span><span class="av av--r">R</span></span>
+            <span class="pontos"><i></i><i class="on"></i><i></i><i></i><i></i></span>
+          </div>
+          <div class="tela__corpo" style="padding-top:10px">
+            <div class="numeros">
+              <div><small>Doses hoje</small>1 de 2</div><div><small>Próxima</small>Cardio 12/11</div><div class="al"><small>Estoque</small>1 baixo</div>
+            </div>
+            <span class="t-lbl">Doses de hoje</span>
+            <div class="t-card">
+              <div class="t-row"><span class="t-hora">08:00</span><span class="grow"><span class="nm">Losartana</span><span class="q">marcado por Helena</span></span><span class="t-pill t-pill--ok">08:12</span></div>
+              <div class="t-row"><span class="t-hora">22:00</span><span class="grow"><span class="nm">Sinvastatina</span></span><span class="t-btn t-btn--o">Tomei</span></div>
+            </div>
+            <span class="t-sub" style="text-align:center">‹ Você · arraste · Pedro ›</span>
+          </div>
+          <div class="tab"><span class="on"><i></i>Início</span><span><i></i>Agenda</span><span><i></i>Remédios</span><span><i></i>Exames</span><span><i></i>Perfil</span></div>
+        </div>
+        <span class="fone__leg">Arrastar de lado troca a pessoa</span>
+      </div>
+      <div class="fone">
+        <div class="tela">
+          <div class="tela__corpo" style="gap:9px">
+            <div style="display:flex;justify-content:space-between"><span class="t-sub">Cancelar</span><span class="t-sub">Nova consulta</span></div>
+            <span class="t-lbl">De quem</span>
+            <div class="chips"><span>Você</span><span class="on">Roberto</span><span>Pedro</span><span>Mel</span></div>
+            <div class="t-card">
+              <div class="t-row"><span class="grow"><span class="q">Especialidade</span><span class="nm">Cardiologista</span></span></div>
+              <div class="t-row"><span class="grow"><span class="q">Data e hora</span><span class="nm">12/11/2026 · 09:00</span></span></div>
+              <div class="t-row"><span class="grow"><span class="q">Profissional</span><span class="nm">Dr. Paulo Reis</span></span></div>
+            </div>
+            <div class="aviso aviso--suave"><span>Roberto vai ver esta consulta no celular dele.</span></div>
+          </div>
+          <div class="rodape-m"><span class="p">Salvar para Roberto</span></div>
+        </div>
+        <span class="fone__leg">Formulário já aberto no perfil certo</span>
+      </div>
+    </div>
+    <div class="modelo__txt">
+      <span class="modelo__tag"><span class="letra">4</span><span class="eyebrow">Páginas por pessoa</span></span>
+      <h3>Cada pessoa é uma página; arrastar de lado troca</h3>
+      <p>O Início vira um carrossel: sua página primeiro, depois cada pessoa e pet, por último Família toda. O topo ganha a cor da pessoa, e os pontinhos mostram em qual página você está. As outras abas seguem o perfil escolhido. No topo da página ficam os três números do desktop: doses de hoje, próxima consulta e estoque baixo.</p>
+      <ul class="ideias">
+        <li>Cor por pessoa (a do avatar) no topo e no botão Salvar evita registrar no perfil errado.</li>
+        <li>O botão do formulário diz para quem salva: "Salvar para Roberto".</li>
+        <li>Tocar nos pontinhos abre a lista de pessoas, para quem não gosta de arrastar.</li>
+      </ul>
+      <div class="pc">
+        <div><b>A favor</b><ul><li>Trocar fica natural: um gesto, sem menu.</li><li>A cor deixa claro de quem é a tela, mesmo de relance.</li></ul></div>
+        <div><b>Contra</b><ul><li>O gesto é escondido; precisa de dica na primeira vez.</li><li>Pode brigar com as linhas que se arrastam para marcar a dose.</li><li>Com 6 ou mais perfis, chegar ao último leva vários gestos.</li></ul></div>
+      </div>
+    </div>
+  </article>
+
+  <div class="rec">
+    <h3>Minha recomendação: modelo 2, com a aba Perfil e as cores do 4</h3>
+    <p>A foto na barra põe a troca no alcance do polegar, e a folha de perfis já funciona como painel da família. A página da pessoa segue as seções do desktop. Do modelo 4 eu pegaria a cor da pessoa no topo e o "Salvar para Roberto", que evitam registrar no perfil errado. Se você prefere trocar com 1 toque e não se importa com o espaço no topo, o modelo 1 é a alternativa.</p>
+  </div>
+</section>
+
+<section class="sec" id="paridade">
+  <header>
+    <span class="eyebrow">Parte 2 · mesmas informações</span>
+    <h2>O que o desktop mostra e onde fica no celular</h2>
+    <p class="muted">Regra: cada informação do desktop existe no celular, com o mesmo nome. O desktop mostra a família toda; o celular mostra o perfil aberto, e "Família toda" mostra o mesmo que o desktop.</p>
+  </header>
+  <div class="tabela-wrap">
+    <table>
+      <thead><tr><th>No desktop</th><th>No celular hoje</th><th>Proposta</th></tr></thead>
+      <tbody>
+        <tr><td>Início: Doses de hoje, Próxima consulta, Estoque baixo, Próximos compromissos</td><td>Início do perfil, sem os três números</td><td>Os três números no topo do Início, do perfil aberto ou da família toda.</td></tr>
+        <tr><td>Agenda e Consultas</td><td>Agenda com as vistas Agenda e Consultas</td><td>Mantém. Em "Família toda", lista de todos, como a aba Consultas do desktop.</td></tr>
+        <tr><td>Remédios (lista e detalhe com adesão)</td><td>Aba Remédios do perfil</td><td>Mantém; mostra "% em 30 d" na lista, como no desktop.</td></tr>
+        <tr><td>Exames</td><td>Aba Exames do perfil</td><td>Mantém.</td></tr>
+        <tr><td>Planos de saúde</td><td>Aba Plano</td><td>Vira seção do perfil; "Família toda" mostra todas as carteirinhas.</td></tr>
+        <tr><td>Pessoa · indicadores: sangue, peso, altura, pressão, alergias, contato de emergência</td><td>Só sangue, peso e altura no topo</td><td>Os seis indicadores, alergia em destaque como no desktop.</td></tr>
+        <tr><td>Pessoa · abas: Perfil clínico, Medições, Vacinas, Histórico, Remédios, Consultas, Exames, Plano</td><td>Linhas soltas na página da pessoa, em outra ordem</td><td>Mesmos nomes e mesma ordem do desktop.</td></tr>
+        <tr><td>Ficha de emergência</td><td>Botão no fim da página da pessoa</td><td>Também no seletor de perfis (segurar a foto).</td></tr>
+        <tr><td>Privacidade (o que compartilho, aparelhos, backup)</td><td>Configurações</td><td>Mantém; o nome "Privacidade" aparece igual nos dois.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+
+<section class="sec" id="ajustes">
+  <header>
+    <span class="eyebrow">Parte 2 · rápidos</span>
+    <h2>Ajustes que valem para qualquer modelo</h2>
+    <p class="muted">Dá para fazer antes de decidir o modelo. Cada um é uma tarde ou menos.</p>
+  </header>
+  <div class="tabela-wrap">
+    <table>
+      <thead><tr><th>Ajuste</th><th>Onde</th><th>Por quê</th></tr></thead>
+      <tbody>
+        <tr><td>Tab bar com ícone e rótulo juntos</td><td><span class="mono">Shell.tsx</span></td><td>Remove a escolha Texto/Ícones e aumenta o alvo de toque.</td></tr>
+        <tr><td>Trocar "Plano" por "Perfil" na barra</td><td><span class="mono">Shell.tsx</span>, perfil</td><td>A página da pessoa e a Ficha de emergência são mais usadas que a carteirinha. Plano vira seção do perfil.</td></tr>
+        <tr><td>Seletores <span class="mono">Ciclo</span> viram folha com a lista</td><td><span class="mono">Remedios.tsx</span></td><td>Mostram as opções e permitem voltar uma.</td></tr>
+        <tr><td>Um só campo de horários e Salvar fixo embaixo</td><td>Novo remédio, consulta, exame</td><td>Tira a duplicação e põe a ação no alcance do polegar.</td></tr>
+        <tr><td>Google / .ics num menu "⋯" da Agenda</td><td><span class="mono">Agenda.tsx</span></td><td>As consultas sobem para o topo da tela.</td></tr>
+        <tr><td>Cartão "Tudo em dia" encolhe para uma linha</td><td><span class="mono">ui/Inicio.tsx</span></td><td>Libera espaço para o que ainda falta.</td></tr>
+        <tr><td>Nome do perfil visível no topo de cada aba</td><td>Todas as abas</td><td>"Remédios de Pedro" deixa claro o recorte atual.</td></tr>
+        <tr><td>Voltar do Android fecha folhas e diálogos</td><td>Folhas, <span class="mono">Confirmar</span></td><td>Hoje o gesto de voltar pode sair da tela inteira.</td></tr>
+        <tr><td>Tamanho do texto (Normal, Grande, Maior)</td><td>Configurações, tokens</td><td>Pais e avós. Escala as variáveis de fonte.</td></tr>
+        <tr><td>Tema escuro</td><td><span class="mono">tokens.css</span></td><td>Remédio das 23:00 sem acender a tela no quarto.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="sec" id="funcoes">
+  <header>
+    <span class="eyebrow">Parte 1 · melhorias e funções novas</span>
+    <h2>Funções novas</h2>
+    <p class="muted">O que já está em <span class="mono">docs/melhorias.md</span> e foi feito ficou de fora. Tudo abaixo roda no aparelho; o que precisaria de rede está marcado.</p>
+    <div class="legenda"><span class="tg tg--alto">valor alto</span><span class="tg">P / M / G = esforço</span><span class="tg tg--rede">avaliar regra</span></div>
+  </header>
+
+  <div class="grupo">
+    <h3>Android de verdade</h3>
+    <div class="funcs">
+      <div class="func"><div class="func__top"><strong>Widget de doses na tela inicial</strong><span class="tags"><span class="tg tg--alto">alto</span><span class="tg">M</span></span></div><p>Mostra a próxima dose com "Tomei" sem abrir o app. Com "Esconder nomes" ligado, mostra só o horário e a pessoa.</p></div>
+      <div class="func"><div class="func__top"><strong>Atalhos do ícone</strong><span class="tags"><span class="tg">P</span></span></div><p>Toque longo no ícone: "Registrar dose", "Nova consulta", "Ficha de emergência".</p></div>
+      <div class="func"><div class="func__top"><strong>Ler texto de exame e receita</strong><span class="tags"><span class="tg tg--alto">alto</span><span class="tg">G</span></span></div><p>Reconhecimento de texto do ML Kit, que roda no aparelho, sem rede. Da foto do exame sugere os valores (TSH, LDL, glicose) para o gráfico; da receita, nome e posologia.</p></div>
+      <div class="func"><div class="func__top"><strong>Health Connect</strong><span class="tags"><span class="tg">M</span></span></div><p>Ler peso, pressão e glicemia que balança, relógio ou medidor já gravam no Android. Comunicação local, entre apps do aparelho.</p></div>
+      <div class="func"><div class="func__top"><strong>Ficha de emergência sem desbloquear</strong><span class="tags"><span class="tg tg--alto">alto</span><span class="tg">M</span></span></div><p>Já existe a rota <span class="mono">emergencia-bloqueado</span>. Falta um acesso pela tela de bloqueio (atalho ou notificação fixa opcional) só com o que a pessoa escolheu mostrar.</p></div>
+    </div>
+  </div>
+
+  <div class="grupo">
+    <h3>Remédios</h3>
+    <div class="funcs">
+      <div class="func"><div class="func__top"><strong>Doses que variam</strong><span class="tags"><span class="tg tg--alto">alto</span><span class="tg">M</span></span></div><p>Desmame (prednisona 40, 30, 20 mg), remédio semanal (metotrexato às segundas), dias alternados e insulina com dose anotada na hora.</p></div>
+      <div class="func"><div class="func__top"><strong>Validade da receita</strong><span class="tags"><span class="tg">P</span></span></div><p>Receita de controle especial vale 30 dias; antibiótico, 10. Avisar antes de vencer e antes de acabar o estoque, juntos.</p></div>
+      <div class="func"><div class="func__top"><strong>Farmacinha da casa</strong><span class="tags"><span class="tg">M</span></span></div><p>O que tem guardado (dipirona, soro, termômetro), com validade. "Tem antitérmico em casa?" responde na hora.</p></div>
+      <div class="func"><div class="func__top"><strong>Lista da farmácia</strong><span class="tags"><span class="tg">P</span></span></div><p>Junta tudo o que está acabando na família numa lista só, com "Comprei" que repõe o estoque de cada um.</p></div>
+      <div class="func"><div class="func__top"><strong>Alerta de remédio repetido ou alergia</strong><span class="tags"><span class="tg tg--rede">avaliar</span><span class="tg">G</span></span></div><p>Avisar se o remédio novo tem o mesmo princípio ativo de outro em uso ou bate com uma alergia cadastrada. Precisa de uma base de princípios ativos embutida no app; interação entre remédios exige fonte confiável e eu não começaria por ela.</p></div>
+    </div>
+  </div>
+
+  <div class="grupo">
+    <h3>Cuidado e prevenção</h3>
+    <div class="funcs">
+      <div class="func"><div class="func__top"><strong>Calendário de vacinas por idade</strong><span class="tags"><span class="tg tg--alto">alto</span><span class="tg">M</span></span></div><p>Tabela do calendário nacional embutida: a partir da data de nascimento, o app lista o que falta e lembra (pediátricas, HPV, gripe anual, reforço de tétano a cada 10 anos).</p></div>
+      <div class="func"><div class="func__top"><strong>Check-ups por idade</strong><span class="tags"><span class="tg">M</span></span></div><p>Igual à prevenção dos pets, para pessoas: mamografia, papanicolau, colonoscopia, PSA, dentista, oftalmo. Mostra "último" e "próximo".</p></div>
+      <div class="func"><div class="func__top"><strong>Diário de sintomas e febre</strong><span class="tags"><span class="tg tg--alto">alto</span><span class="tg">P</span></span></div><p>Pets já têm sintomas. Para pessoas, sobretudo crianças: temperatura com hora, remédio dado e curva de febre para mostrar ao pediatra.</p></div>
+      <div class="func"><div class="func__top"><strong>Preparar a consulta</strong><span class="tags"><span class="tg">M</span></span></div><p>Antes da consulta: perguntas anotadas, o que mudou desde a última (remédios, medições, exames) e um PDF curto para entregar ao médico. Reaproveita <span class="mono">relatorio.ts</span>.</p></div>
+      <div class="func"><div class="func__top"><strong>Curva de crescimento</strong><span class="tags"><span class="tg">M</span></span></div><p>Altura e peso das crianças contra as curvas da OMS, com percentil.</p></div>
+      <div class="func"><div class="func__top"><strong>Alerta para quem cuida</strong><span class="tags"><span class="tg tg--alto">alto</span><span class="tg">M</span></span></div><p>Se a dose do pai não for marcada em 1 hora, o celular de quem cuida avisa. Usa a sincronização que já existe (Wi-Fi ou GitHub); sem ela, não funciona.</p></div>
+    </div>
+  </div>
+
+  <div class="grupo">
+    <h3>Dinheiro e plano</h3>
+    <div class="funcs">
+      <div class="func"><div class="func__top"><strong>Despesas médicas para o Imposto de Renda</strong><span class="tags"><span class="tg tg--alto">alto</span><span class="tg">M</span></span></div><p>Recibo de consulta, exame, dentista, psicólogo: valor, CPF ou CNPJ do prestador e foto. No fim do ano, o total por pessoa no formato que a declaração pede.</p></div>
+      <div class="func"><div class="func__top"><strong>Reembolso do plano</strong><span class="tags"><span class="tg">M</span></span></div><p>Pedido enviado, protocolo, valor pedido e valor recebido. Lembra se passou o prazo sem resposta.</p></div>
+      <div class="func"><div class="func__top"><strong>Custo dos remédios</strong><span class="tags"><span class="tg">P</span></span></div><p>Preço pago no "Comprei mais" e o gasto mensal da família com remédios.</p></div>
+    </div>
+  </div>
+
+  <div class="grupo">
+    <h3>Dados e confiança</h3>
+    <div class="funcs">
+      <div class="func"><div class="func__top"><strong>Backup automático</strong><span class="tags"><span class="tg tg--alto">alto</span><span class="tg">P</span></span></div><p>Um <span class="mono">.fsaude</span> por semana numa pasta escolhida, guardando os 4 últimos. Hoje o backup depende de lembrar de fazer.</p></div>
+      <div class="func"><div class="func__top"><strong>Quem registrou</strong><span class="tags"><span class="tg">P</span></span></div><p>Os eventos já têm <span class="mono">autor</span>. Mostrar "marcado por Roberto às 14:02" evita dose dada duas vezes.</p></div>
+      <div class="func"><div class="func__top"><strong>Acesso temporário</strong><span class="tags"><span class="tg">G</span></span></div><p>Para babá ou avós por um fim de semana: QR com a ficha e os remédios da criança, que expira sozinho.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="ordem">
+  <header>
+    <span class="eyebrow">Próximo passo</span>
+    <h2>Ordem sugerida</h2>
+  </header>
+  <ol class="ordem">
+    <li><span><b>Ajustes rápidos</b> da tabela acima, sobretudo tab bar, seletores e Salvar embaixo.</span></li>
+    <li><span><b>Escolher o modelo de troca de perfil</b> (1 a 4), aplicar as regras comuns e alinhar as seções com o desktop.</span></li>
+    <li><span><b>Funções de valor alto e esforço P:</b> diário de febre, backup automático, quem registrou.</span></li>
+    <li><span><b>Widget de doses e Ficha de emergência sem desbloquear.</b></span></li>
+    <li><span><b>Calendário de vacinas, doses que variam e despesas para o IR.</b></span></li>
+    <li><span><b>Alerta para quem cuida</b>, quando a sincronização estiver estável.</span></li>
+  </ol>
+</section>
+
+</div>
