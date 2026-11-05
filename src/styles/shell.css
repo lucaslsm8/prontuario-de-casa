@@ -249,7 +249,7 @@ button.consultas__linha:hover { background: #F8FAFA; }
 .tabbar--icones a { width: 52px; padding: 0; }
 .tabbar--icones a.active { padding: 0; }
 
-/* ── Perfil aberto na tab bar e faixa de aviso (modelo 2, 04/11/2026) ───── */
+/* ── Perfil aberto na tab bar (modelo 2, 04/11/2026) ───────────────────── */
 .tabbar__perfil {
   color: inherit; height: 46px; min-width: 46px; padding: 0 8px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
   font: inherit; -webkit-touch-callout: none; user-select: none;
@@ -260,14 +260,6 @@ button.consultas__linha:hover { background: #F8FAFA; }
 .tabbar__perfil.active .avatar { box-shadow: none; }
 .tabbar__perfil:hover:not(.active) { color: #fff; }
 .tabbar--icones .tabbar__perfil { width: 52px; padding: 0; }
-
-.aviso-perfil {
-  display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 10px; border-radius: var(--r-card);
-  background: var(--sol-light); color: var(--sol-dark); font-size: 14px;
-}
-.aviso-perfil strong { font-weight: 600; }
-.aviso-perfil button { min-height: 44px; padding: 0 10px; border-radius: var(--r-btn); font-size: 13px; font-weight: 600; color: var(--sol-dark); flex: none; }
-.aviso-perfil button:active { background: rgba(140, 90, 18, .1); }
 
 .seletor__linha {
   display: flex; align-items: center; gap: 12px; padding: 10px 8px; min-height: 60px; width: 100%; text-align: left;

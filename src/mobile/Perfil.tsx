@@ -15,8 +15,8 @@ import { Folha } from '../ui/Backup';
 import { IcConfig } from '../ui/Icones';
 
 /** `id` é o perfil aberto; em "Família toda" fica vazio e `todos` é verdadeiro. */
-interface ValorPerfil { id?: string; todos: boolean; trocar: (id: string) => void; voltarParaMim: () => void; abrirSeletor: () => void }
-const PerfilCtx = createContext<ValorPerfil>({ todos: false, trocar: () => undefined, voltarParaMim: () => undefined, abrirSeletor: () => undefined });
+interface ValorPerfil { id?: string; todos: boolean; trocar: (id: string) => void; abrirSeletor: () => void }
+const PerfilCtx = createContext<ValorPerfil>({ todos: false, trocar: () => undefined, abrirSeletor: () => undefined });
 export const usePerfil = () => useContext(PerfilCtx);
 
 const TODOS = '*';
@@ -44,7 +44,7 @@ export function PerfilProvider({ children }: { children: ReactNode }) {
   // Perfil escolhido que saiu da família (removido): volta para o seu.
   const id = todos ? undefined : escolhido && pessoa(state, escolhido) ? escolhido : meu;
   const valor = useMemo<ValorPerfil>(() => ({
-    id, todos, trocar: setEscolhido, voltarParaMim: () => setEscolhido(undefined), abrirSeletor: () => setSeletor(true),
+    id, todos, trocar: setEscolhido, abrirSeletor: () => setSeletor(true),
   }), [id, todos]);
   const recorte = temEu(state) && !SEM_RECORTE.test(loc.pathname) ? id : undefined;
   return (
@@ -130,7 +130,7 @@ export function AvatarTodos({ pessoas, size }: { pessoas: Pessoa[]; size: number
 }
 
 /**
- * Última aba: a foto do perfil aberto (o nome fica na faixa `AvisoPerfil`; na barra não cabe).
+ * Última aba: a foto do perfil aberto (o nome fica no seletor e no `title`; na barra não cabe).
  * Toque abre o seletor; segurar abre a página da pessoa.
  */
 export function AbaPerfil() {
@@ -165,21 +165,6 @@ export function AbaPerfil() {
   );
 }
 
-/** Faixa no topo das abas quando o perfil aberto não é o seu: de quem é a tela e como voltar. */
-export function AvisoPerfil() {
-  const { state } = useStore();
-  const { id, todos, voltarParaMim } = usePerfil();
-  const p = id ? pessoa(state, id) : undefined;
-  if (!temEu(state) || (!todos && (!p || p.souEu))) return null;
-  return (
-    <div className="aviso-perfil" role="status">
-      {todos ? <AvatarTodos pessoas={familia(state)} size={24} /> : <Avatar pessoa={p!} size={24} font={10} />}
-      <span style={{ flex: 1, minWidth: 0 }}>{todos ? <>Vendo a <strong>família toda</strong></> : <>Perfil de <strong>{p!.curto}</strong></>}</span>
-      <button type="button" onClick={voltarParaMim}>Voltar para você</button>
-    </div>
-  );
-}
-
 /** "Salvar remédio" → "Salvar remédio para Roberto" quando é de outra pessoa. */
 export function textoSalvar(state: State, pessoaId: string | undefined, base: string) {
   const p = pessoaId ? pessoa(state, pessoaId) : undefined;
@@ -190,7 +175,7 @@ export function textoSalvar(state: State, pessoaId: string | undefined, base: st
 export function BotaoConfig() {
   const nav = useNavigate();
   return (
-    <button type="button" className="btn btn--outline btn--h40" style={{ width: 44, minWidth: 44, padding: 0, marginRight: 8, flexShrink: 0 }} onClick={() => nav('/configuracoes')} aria-label="Configurações" title="Configurações">
+    <button type="button" className="btn btn--outline btn--h40" style={{ width: 44, minWidth: 44, padding: 0, flexShrink: 0 }} onClick={() => nav('/configuracoes')} aria-label="Configurações" title="Configurações">
       <IcConfig size={20} />
     </button>
   );

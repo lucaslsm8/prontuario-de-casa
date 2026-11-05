@@ -5,7 +5,8 @@ import { dataLonga, diaMes, estoqueBaixo, mesSigla, quem } from '../data/format'
 import { Bar, Check, Circle, Label, SecaoLista } from '../ui';
 import { CartaoDose, LinhaDia, ListaDoses, RemedioAcabando, useDoseDaVez, useRemedioAcabando } from '../ui/Inicio';
 import { agruparFamiliaPets, ehPet, proximaConsultaDaFamilia } from '../data/pets';
-import { estadoDose } from '../data/inicio';
+import { estadoDose, saudacao } from '../data/inicio';
+import { useAgora } from '../data/useAgora';
 import type { Consulta } from '../data/types';
 import { MScreen } from './Shell';
 import { BotaoConfig } from './Perfil';
@@ -20,13 +21,21 @@ export function Inicio() {
   return vazio ? <InicioVazio /> : <InicioCheio />;
 }
 
-/** Topo do Início: a data numa linha, à direita; embaixo Buscar e Configurações. O perfil fica na última aba. */
+/** Topo do Início: "Bom dia, Helena" e a data à esquerda, Buscar e Configurações na mesma linha. O perfil fica na última aba. */
 function Topo() {
+  const { state } = useStore();
   const nav = useNavigate();
+  const agora = useAgora();
+  const me = state.pessoas.find((p) => p.souEu);
   return (
-    <div className="stack" style={{ gap: 6 }}>
-      <span style={{ fontSize: 13, color: 'var(--text-2)', textAlign: 'right', whiteSpace: 'nowrap' }}>{dataLonga(HOJE)}</span>
-      <div className="hstack" style={{ justifyContent: 'flex-end' }}>
+    <div className="hstack" style={{ gap: 8 }}>
+      <div className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
+        <span style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {saudacao(agora)}{me ? `, ${me.curto}` : ''}
+        </span>
+        <span style={{ fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{dataLonga(HOJE)}</span>
+      </div>
+      <div className="hstack" style={{ flex: 'none' }}>
         <button type="button" className="btn btn--outline btn--h40" style={{ marginRight: 8, minWidth: 44, flexShrink: 0 }} onClick={() => nav('/busca')} aria-label="Buscar">Buscar</button>
         <BotaoConfig />
       </div>

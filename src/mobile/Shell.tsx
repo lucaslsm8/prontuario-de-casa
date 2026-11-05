@@ -3,7 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { useStore } from '../data/store';
 import { cx } from '../ui';
 import { IcAgenda, IcExame, IcInicio, IcRemedio } from '../ui/Icones';
-import { AbaPerfil, AvisoPerfil, PerfilProvider } from './Perfil';
+import { AbaPerfil, PerfilProvider } from './Perfil';
 
 /** A quinta aba é a foto do perfil aberto (`AbaPerfil`): troca de perfil e abre a página da pessoa. */
 const TABS = [
@@ -53,7 +53,6 @@ export function MScreen({
       <StatusBar style={statusStyle} semHora={semHora} />
       <div className="screen__scroll" ref={scrollRef}>
         <div className="screen__body" style={{ padding, gap, ...style }}>
-          {tabs && <AvisoPerfil />}
           {children}
         </div>
       </div>
