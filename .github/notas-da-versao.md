@@ -1,5 +1,3 @@
-- Celular: a última aba agora é a foto do perfil aberto. Toque para trocar de pessoa (a lista mostra o que cada um tem pendente); segure para abrir o perfil dela
-- Celular: "Família toda" no seletor mostra todo mundo junto, como no computador
-- Celular: no perfil de outra pessoa, o topo das abas avisa de quem é a tela e tem "Voltar para você"; o botão de salvar diz para quem salva ("Salvar remédio para Roberto")
-- Celular: o Início mostra os mesmos números do computador (doses de hoje, próxima consulta, estoque baixo) e o perfil da pessoa segue a ordem do computador
-- Celular: os planos de saúde ficam no perfil de cada pessoa e em "Carteirinhas", no seletor; as fotos do pet ficam no Início dele
+- Celular: o Início voltou a dizer "Bom dia" com o seu nome, na mesma linha de Buscar e Configurações
+- Celular: o botão de Configurações agora é uma engrenagem
+- Celular: saiu a faixa "Perfil de …"; para trocar de perfil ou voltar ao seu, toque na foto na última aba
