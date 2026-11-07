@@ -9,7 +9,7 @@ import { Label } from '../ui';
 import { FotoDoPerfil } from '../ui/Foto';
 import { useAbrir } from './Shell';
 import { AbaConsultas, AbaExames, AbaRemedios, CardRemediosEmUso, ListaCard, Stat, linha } from './AbasPessoa';
-import { DPet } from './Pet';
+import { AbaProcedimentos, DPet } from './Pet';
 import { CartaoMedicao, tiposVisiveis } from '../ui/Medicoes';
 import { RemoverPessoaDesktop } from './Acoes';
 import { CartaoMarcador } from '../ui/Resultados';
@@ -17,12 +17,13 @@ import { marcadoresDaPessoa } from '../data/resultados';
 import { LinhaDoTempo } from '../ui/Busca';
 import { linhaDoTempo } from '../data/busca';
 
-type Aba = Categoria | 'medicoes' | 'vacinas' | 'historico';
+type Aba = Categoria | 'medicoes' | 'vacinas' | 'procedimentos' | 'historico';
 /** Medições seguem a permissão do perfil. */
 const ABAS: { id: Aba; nome: string; cat: Categoria }[] = [
   { id: 'perfil', nome: 'Perfil clínico', cat: 'perfil' },
   { id: 'medicoes', nome: 'Medições', cat: 'perfil' },
   { id: 'vacinas', nome: 'Vacinas', cat: 'perfil' },
+  { id: 'procedimentos', nome: 'Procedimentos', cat: 'perfil' },
   { id: 'historico', nome: 'Histórico', cat: 'perfil' },
   { id: 'remedios', nome: 'Remédios', cat: 'remedios' },
   { id: 'consultas', nome: 'Consultas', cat: 'consultas' },
@@ -96,6 +97,7 @@ function DMembro({ id }: { id: string }) {
       {ativa === 'perfil' && <AbaPerfil id={p.id} />}
       {ativa === 'medicoes' && <AbaMedicoes id={p.id} podeEditar={podeEditar} />}
       {ativa === 'vacinas' && <AbaVacinasPessoa id={p.id} podeEditar={podeEditar} />}
+      {ativa === 'procedimentos' && <AbaProcedimentos id={p.id} podeEditar={podeEditar} />}
       {ativa === 'historico' && (
         <div className="card" style={{ padding: '18px 22px' }}>
           <LinhaDoTempo desktop eventos={linhaDoTempo(state, p.id, (c) => podeVer(state, p.id, c), HOJE)} />
@@ -175,7 +177,7 @@ function AbaMedicoes({ id, podeEditar }: { id: string; podeEditar: boolean }) {
         </div>
       )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 16 }}>
-        {tipos.map((t) => <CartaoMedicao key={t.id} pessoaId={id} tipo={t.id} onNova={podeEditar ? () => abrir(`medicao:${id}:${t.id}`) : undefined} />)}
+        {tipos.map((t) => <CartaoMedicao key={t.id} pessoaId={id} tipo={t.id} onNova={podeEditar ? () => abrir(`medicao:${id}:${t.id}`) : undefined} onEditar={podeEditar ? (m) => abrir(`editar-medicao:${m.id}`) : undefined} />)}
       </div>
       {marcadores.length > 0 && (
         <>

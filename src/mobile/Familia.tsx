@@ -7,7 +7,7 @@ import { dataBR, diaMes, idade, numBR, numCurto, quem } from '../data/format';
 import { CATEGORIAS, type Categoria, type Medicao, type Pessoa, type Plano } from '../data/types';
 import { fmtMedicao, infoMedicao } from '../data/medicoes';
 import { Avatar, FieldGroup, Label, Pill, Row, SecaoLista, Toggle, TopNav } from '../ui';
-import { descricaoPet, ehPet, familia, pesoAtual, pets, telHref } from '../data/pets';
+import { descricaoPet, ehPet, equipeProcedimento, familia, pesoAtual, pets, telHref, tituloProcedimento } from '../data/pets';
 import { FotoDoPerfil } from '../ui/Foto';
 import { PetPerfil } from './Pet';
 import { useAbrirNoPerfil } from './Perfil';
@@ -219,6 +219,23 @@ export function PerfilMembro() {
             <Row key={v.id} mutedLabel={false} label={v.nome} valor={<span className="faint mono" style={{ fontSize: 13 }}>{dataBR(v.data)}{v.proxima ? ` · reforço ${dataBR(v.proxima)}` : ''}{podeEditar ? ' ›' : ''}</span>} onClick={podeEditar ? () => nav(`/pet/${p.id}/vacina/${v.id}`) : undefined} style={{ padding: '10px 16px' }} />
           ))}
           {podeEditar && <Row mutedLabel={false} label={<span style={{ color: 'var(--teal)', fontWeight: 600 }}>+ Registrar vacina</span>} onClick={() => nav(`/pet/${p.id}/vacina`)} style={{ padding: '10px 16px' }} />}
+        </div>
+      )}
+      {ver('perfil') && (
+        <div className="card" style={{ fontSize: 15 }}>
+          <span className="label" style={{ padding: '12px 16px 4px' }}>Procedimentos</span>
+          {state.procedimentos.filter((x) => x.pessoaId === p.id).sort((a, b) => b.data.localeCompare(a.data)).map((x) => (
+            <Row
+              key={x.id}
+              mutedLabel={false}
+              label={<span className="stack" style={{ gap: 2 }}><span>{tituloProcedimento(x)}</span>{(x.clinica || equipeProcedimento(x)) && <span style={{ fontSize: 13, color: 'var(--text-2)' }}>{[x.clinica, equipeProcedimento(x)].filter(Boolean).join(' · ')}</span>}</span>}
+              valor={<span className="faint mono" style={{ fontSize: 13 }}>{dataBR(x.data)}{podeEditar ? ' ›' : ''}</span>}
+              onClick={podeEditar ? () => nav(`/pet/${p.id}/procedimento/${x.id}`) : undefined}
+              style={{ padding: '10px 16px' }}
+            />
+          ))}
+          {podeEditar && <Row mutedLabel={false} label={<span style={{ color: 'var(--teal)', fontWeight: 600 }}>+ Registrar procedimento</span>} onClick={() => nav(`/pet/${p.id}/procedimento`)} style={{ padding: '10px 16px' }} />}
+          {!podeEditar && !state.procedimentos.some((x) => x.pessoaId === p.id) && <Row mutedLabel={false} label={<span className="muted">Nenhum procedimento registrado.</span>} style={{ padding: '10px 16px' }} />}
         </div>
       )}
       <div className="card" style={{ fontSize: 15 }}>

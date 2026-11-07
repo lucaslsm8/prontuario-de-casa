@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { editaveis, estadoExemplo, podeVer, projetar } from './store';
 import type { Evento } from './persistencia';
 import type { Pessoa } from './types';
-import { SECOES_PET, resumoPet, agruparFamiliaPets, consultasDaFamilia, historicoPeso, novaAplicacao, proximosCuidados, reforcoVencido, ultimasVacinas, vencidaHa, descricaoPet, ehPet, familia, opcoesPessoas, pesoAtual, pets, proximaConsultaDaFamilia, proximaPrevencao, sintomasRecentes, ultimasPrevencoes, vacinasDoPet, SINAIS, TIPOS_PROCEDIMENTO, SUGESTOES_VACINA, linhaPet, rotuloCastrado, telHref } from './pets';
+import { SECOES_PET, resumoPet, agruparFamiliaPets, consultasDaFamilia, historicoPeso, novaAplicacao, proximosCuidados, reforcoVencido, ultimasVacinas, vencidaHa, descricaoPet, ehPet, familia, opcoesPessoas, pesoAtual, pets, proximaConsultaDaFamilia, proximaPrevencao, sintomasRecentes, ultimasPrevencoes, vacinasDoPet, SINAIS, TIPOS_PROCEDIMENTO, SUGESTOES_VACINA, tiposProcedimento, rotulosProcedimento, tituloProcedimento, equipeProcedimento, linhaPet, rotuloCastrado, telHref } from './pets';
 
 const ana: Pessoa = { id: 'ana', nome: 'Ana Souza', curto: 'Ana', cor: '#ccc', alergias: [], condicoes: [], souEu: true };
 const rex: Pessoa = { id: 'rex', nome: 'Rex', curto: 'Rex', cor: '#ddd', alergias: [], condicoes: [], tipo: 'pet', pet: { especie: 'cachorro', raca: 'Poodle' } };
@@ -127,6 +127,21 @@ describe('seletores', () => {
     expect(TIPOS_PROCEDIMENTO).toEqual(['Cirurgia', 'Castração', 'Limpeza de tártaro', 'Exame de imagem', 'Outro']);
     expect(SUGESTOES_VACINA).toEqual(['V8', 'V10', 'Antirrábica', 'Gripe canina', 'Giárdia', 'Leishmaniose']);
   });
+  it('procedimentos de pessoa e de pet', () => {
+    const pet = { tipo: 'pet' } as Pessoa;
+    const gente = { tipo: 'pessoa' } as Pessoa;
+    expect(tiposProcedimento(pet)).toEqual([...TIPOS_PROCEDIMENTO]);
+    expect(tiposProcedimento(gente)).toEqual(['Cirurgia', 'Endoscopia', 'Colonoscopia', 'Biópsia', 'Odontológico', 'Exame de imagem', 'Outro']);
+    // Na edição, o tipo já salvo continua na lista (antes de "Outro").
+    expect(tiposProcedimento(gente, 'Castração')).toEqual(['Cirurgia', 'Endoscopia', 'Colonoscopia', 'Biópsia', 'Odontológico', 'Exame de imagem', 'Castração', 'Outro']);
+    expect(rotulosProcedimento(pet).medico).toBe('Veterinário');
+    expect(rotulosProcedimento(gente).medico).toBe('Médico');
+    const proc = { id: 'p', pessoaId: 'x', data: '2026-01-02', tipo: 'Cirurgia' as const, descricao: 'Joelho' };
+    expect(tituloProcedimento(proc)).toBe('Cirurgia · Joelho');
+    expect(equipeProcedimento(proc)).toBeUndefined();
+    expect(equipeProcedimento({ ...proc, medico: 'Dr. A', anestesista: 'Dra. B' })).toBe('Dr. A · anestesia: Dra. B');
+    expect(equipeProcedimento({ ...proc, anestesista: 'Dra. B' })).toBe('anestesia: Dra. B');
+  });
 });
 
 describe('permissões de pets', () => {
@@ -159,7 +174,7 @@ describe('permissões de pets', () => {
       expect(pesoAtual(s, id)).toBeDefined();
     }
     expect(s.sintomas.map((x) => x.pessoaId)).toEqual(['mel']);
-    expect(s.procedimentos.map((x) => x.pessoaId + ':' + x.tipo)).toEqual(['thor:Castração']);
+    expect(s.procedimentos.map((x) => x.pessoaId + ':' + x.tipo)).toEqual(['thor:Castração', 'roberto:Colonoscopia']);
     expect(podeVer(s, 'mel', 'exames')).toBe(true);
   });
 });

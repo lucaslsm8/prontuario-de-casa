@@ -5,7 +5,7 @@ import { addDias, dataBR, diasEntre } from './format';
 import { novoId } from './persistencia';
 import { ehPdf } from './anexos';
 import { lerDosPdfs } from './pdf';
-import type { Anexo, CategoriaExame, Resultado, Consulta, Exame, Pessoa, Plano, Prevencao, Remedio, TipoMedicao, TipoProcedimento, Vacina } from './types';
+import type { Anexo, CategoriaExame, Resultado, Consulta, Exame, Medicao, Pesagem, Pessoa, Plano, Prevencao, Procedimento, Remedio, Sintoma, TipoMedicao, TipoProcedimento, Vacina } from './types';
 import { SINAIS, ehPet, familia, pets } from './pets';
 import { diffPessoa, formDePessoa, lerNumeroBR, normalizarTexto, novaChave, pessoaDoForm, type ErrosPerfil, type FormPerfil, type FormPet, type LinhaAlergia, type LinhaCondicao } from './perfil';
 import {
@@ -13,7 +13,7 @@ import {
   lerReforco, mascaraData, mascaraValidade, montarPlano, normalizarHora, somarDias, type AtalhoReforco, type ErrosPlano, type FormPlano, type Frequencia,
 } from './formularios-puro';
 import { mascararTelefone } from './format';
-import { montarMedicao, type ErrosMedicao, type FormMedicao } from './medicoes';
+import { infoMedicao, montarMedicao, type ErrosMedicao, type FormMedicao } from './medicoes';
 
 // Listas e funções puras ficam em formularios-puro.ts (sem depender do store); reexportadas aqui.
 export * from './formularios-puro';
@@ -462,15 +462,26 @@ export const TIPOS_PREVENCAO: { id: TipoPrevencao; nome: string; dias: number }[
 ];
 export const ATALHOS_INTERVALO = [30, 90];
 
-/** "Registrar prevenção": tipo, produto, data da aplicação e "a cada N dias" (próxima calculada ao vivo). */
-export function useFormPrevencao(pet: Pessoa, onSalvo: () => void) {
+/** Só os campos que mudaram; campo esvaziado vai como null (apaga). */
+function patchDe<T extends object>(novo: T, antigo: T, chaves: readonly (keyof T)[]) {
+  const patch: Record<string, unknown> = {};
+  for (const k of chaves) {
+    const n = novo[k], v = antigo[k];
+    const igual = Array.isArray(n) && Array.isArray(v) ? n.length === v.length && n.every((x, i) => x === v[i]) : n === v;
+    if (!igual) patch[k as string] = n ?? null;
+  }
+  return patch;
+}
+
+/** "Registrar prevenção": tipo, produto, data da aplicação e "a cada N dias" (próxima calculada ao vivo). Com `inicial`, edita e apaga. */
+export function useFormPrevencao(pet: Pessoa, onSalvo: () => void, inicial?: Prevencao) {
   const { api } = useStore();
-  const [tipo, setTipoBruto] = useState<TipoPrevencao | ''>('');
-  const [produto, setProduto] = useState('');
-  const data = useCampoData();
-  const [intervalo, setIntervaloBruto] = useState('30');
-  // Enquanto o intervalo não for mexido, segue o padrão do tipo (vermífugo 90, antipulgas 30).
-  const [intervaloMexido, setIntervaloMexido] = useState(false);
+  const [tipo, setTipoBruto] = useState<TipoPrevencao | ''>(inicial?.tipo ?? '');
+  const [produto, setProduto] = useState(inicial?.produto ?? '');
+  const data = useCampoData(inicial ? isoParaBR(inicial.data) : undefined);
+  const [intervalo, setIntervaloBruto] = useState(String(inicial?.intervaloDias ?? 30));
+  // Enquanto o intervalo não for mexido, segue o padrão do tipo (vermífugo 90, antipulgas 30). Na edição, fica o salvo.
+  const [intervaloMexido, setIntervaloMexido] = useState(!!inicial);
   const [erroIntervalo, setErroIntervalo] = useState<string>();
   const setTipo = (t: TipoPrevencao) => {
     setTipoBruto(t);
@@ -490,24 +501,30 @@ export function useFormPrevencao(pet: Pessoa, onSalvo: () => void) {
       setErroIntervalo(erroDias);
       return;
     }
-    api.addPrevencao({ id: idRegistro('prev'), pessoaId: pet.id, tipo, produto: produto.trim().replace(/\s+/g, ' '), data: d.iso!, intervaloDias: dias! });
-    api.toast({ texto: 'Prevenção registrada' });
+    const nova: Prevencao = { id: inicial?.id ?? idRegistro('prev'), pessoaId: pet.id, tipo, produto: produto.trim().replace(/\s+/g, ' '), data: d.iso!, intervaloDias: dias! };
+    if (inicial) api.editar('prevencoes', inicial.id, patchDe(nova, inicial, ['tipo', 'produto', 'data', 'intervaloDias']), 'Prevenção atualizada');
+    else {
+      api.addPrevencao(nova);
+      api.toast({ texto: 'Prevenção registrada' });
+    }
     onSalvo();
   };
+  const apagar = inicial && (() => { api.remover('prevencoes', inicial, 'Prevenção apagada'); onSalvo(); });
 
   return {
+    editando: !!inicial,
     tipo, setTipo, produto, setProduto, data: data.valor, setData: data.set, intervalo, setIntervalo, proxima,
     erros: { data: data.erro, intervalo: erroIntervalo },
-    valido: !!tipo && !!produto.trim() && !!data.valor && !!intervalo, salvar,
+    valido: !!tipo && !!produto.trim() && !!data.valor && !!intervalo, salvar, apagar,
   };
 }
 
-/** "Registrar sintoma": data, sinais (pelo menos um) e observação. */
-export function useFormSintoma(pet: Pessoa, onSalvo: () => void) {
+/** "Registrar sintoma": data, sinais (pelo menos um) e observação. Com `inicial`, edita e apaga. */
+export function useFormSintoma(pet: Pessoa, onSalvo: () => void, inicial?: Sintoma) {
   const { api } = useStore();
-  const data = useCampoData();
-  const [sinais, setSinais] = useState<string[]>([]);
-  const [nota, setNota] = useState('');
+  const data = useCampoData(inicial ? isoParaBR(inicial.data) : undefined);
+  const [sinais, setSinais] = useState<string[]>(inicial?.sinais ?? []);
+  const [nota, setNota] = useState(inicial?.nota ?? '');
   const alternarSinal = (s: string) => setSinais((x) => (x.includes(s) ? x.filter((y) => y !== s) : [...x, s]));
 
   const salvar = () => {
@@ -516,23 +533,34 @@ export function useFormSintoma(pet: Pessoa, onSalvo: () => void) {
       data.setErro(d.erro);
       return;
     }
-    // Sinais na ordem da lista fixa, não na dos cliques.
-    api.addSintoma({ id: idRegistro('sint'), pessoaId: pet.id, data: d.iso!, sinais: SINAIS.filter((s) => sinais.includes(s)), nota: nota.trim() || undefined });
-    api.toast({ texto: 'Sintoma registrado' });
+    // Sinais na ordem da lista fixa, não na dos cliques (algum fora da lista vai no fim).
+    const ordenados = [...SINAIS.filter((s) => sinais.includes(s)), ...sinais.filter((s) => !SINAIS.includes(s))];
+    const novo: Sintoma = { id: inicial?.id ?? idRegistro('sint'), pessoaId: pet.id, data: d.iso!, sinais: ordenados, nota: nota.trim() || undefined };
+    if (inicial) api.editar('sintomas', inicial.id, patchDe(novo, inicial, ['data', 'sinais', 'nota']), 'Sintoma atualizado');
+    else {
+      api.addSintoma(novo);
+      api.toast({ texto: 'Sintoma registrado' });
+    }
     onSalvo();
   };
+  const apagar = inicial && (() => { api.remover('sintomas', inicial, 'Sintoma apagado'); onSalvo(); });
 
-  return { data: data.valor, setData: data.set, sinais, alternarSinal, nota, setNota, erros: { data: data.erro }, valido: sinais.length > 0 && !!data.valor, salvar };
+  return { editando: !!inicial, data: data.valor, setData: data.set, sinais, alternarSinal, nota, setNota, erros: { data: data.erro }, valido: sinais.length > 0 && !!data.valor, salvar, apagar };
 }
 
-/** "Registrar procedimento": data, tipo, descrição, clínica (a do veterinário, se houver) e observações. */
-export function useFormProcedimento(pet: Pessoa, onSalvo: () => void) {
+/**
+ * "Registrar procedimento" (pessoa ou pet): data, tipo, descrição, clínica ou hospital, quem realizou,
+ * anestesista e observações. No pet novo, a clínica começa com a do veterinário. Com `inicial`, edita e apaga.
+ */
+export function useFormProcedimento(dono: Pessoa, onSalvo: () => void, inicial?: Procedimento) {
   const { api } = useStore();
-  const data = useCampoData();
-  const [tipo, setTipo] = useState<TipoProcedimento | ''>('');
-  const [descricao, setDescricao] = useState('');
-  const [clinica, setClinica] = useState(pet.pet?.veterinario?.clinica ?? '');
-  const [nota, setNota] = useState('');
+  const data = useCampoData(inicial ? isoParaBR(inicial.data) : undefined);
+  const [tipo, setTipo] = useState<TipoProcedimento | ''>(inicial?.tipo ?? '');
+  const [descricao, setDescricao] = useState(inicial?.descricao ?? '');
+  const [clinica, setClinica] = useState(inicial ? inicial.clinica ?? '' : dono.pet?.veterinario?.clinica ?? '');
+  const [medico, setMedico] = useState(inicial?.medico ?? '');
+  const [anestesista, setAnestesista] = useState(inicial?.anestesista ?? '');
+  const [nota, setNota] = useState(inicial?.nota ?? '');
 
   const salvar = () => {
     const d = lerDataRegistro(data.valor, HOJE);
@@ -540,30 +568,39 @@ export function useFormProcedimento(pet: Pessoa, onSalvo: () => void) {
       data.setErro(d.erro);
       return;
     }
-    api.addProcedimento({
-      id: idRegistro('proc'),
-      pessoaId: pet.id,
+    const novo: Procedimento = {
+      id: inicial?.id ?? idRegistro('proc'),
+      pessoaId: dono.id,
       data: d.iso!,
       tipo,
       descricao: textoOuNada(descricao),
       clinica: textoOuNada(clinica),
+      medico: textoOuNada(medico),
+      anestesista: textoOuNada(anestesista),
       nota: nota.trim() || undefined,
-    });
-    api.toast({ texto: 'Procedimento registrado' });
+    };
+    if (inicial) api.editar('procedimentos', inicial.id, patchDe(novo, inicial, ['data', 'tipo', 'descricao', 'clinica', 'medico', 'anestesista', 'nota']), 'Procedimento atualizado');
+    else {
+      api.addProcedimento(novo);
+      api.toast({ texto: 'Procedimento registrado' });
+    }
     onSalvo();
   };
+  const apagar = inicial && (() => { api.remover('procedimentos', inicial, 'Procedimento apagado'); onSalvo(); });
 
   return {
-    data: data.valor, setData: data.set, tipo, setTipo, descricao, setDescricao, clinica, setClinica, nota, setNota,
-    erros: { data: data.erro }, valido: !!tipo && !!data.valor, salvar,
+    editando: !!inicial,
+    data: data.valor, setData: data.set, tipo, setTipo, descricao, setDescricao, clinica, setClinica,
+    medico, setMedico, anestesista, setAnestesista, nota, setNota,
+    erros: { data: data.erro }, valido: !!tipo && !!data.valor, salvar, apagar,
   };
 }
 
-/** "Nova pesagem": data e peso em kg (vírgula decimal, até 150 kg). */
-export function useFormPesagem(pet: Pessoa, onSalvo: () => void) {
+/** "Nova pesagem": data e peso em kg (vírgula decimal, até 150 kg). Com `inicial`, edita e apaga. */
+export function useFormPesagem(pet: Pessoa, onSalvo: () => void, inicial?: Pesagem) {
   const { api } = useStore();
-  const data = useCampoData();
-  const [peso, setPesoBruto] = useState('');
+  const data = useCampoData(inicial ? isoParaBR(inicial.data) : undefined);
+  const [peso, setPesoBruto] = useState(inicial ? String(inicial.kg).replace('.', ',') : '');
   const [erroPeso, setErroPeso] = useState<string>();
   const setPeso = (v: string) => { setPesoBruto(v); setErroPeso(undefined); };
 
@@ -576,12 +613,17 @@ export function useFormPesagem(pet: Pessoa, onSalvo: () => void) {
       setErroPeso(erroKg);
       return;
     }
-    api.addPesagem({ id: `pes-${novoId()}`, pessoaId: pet.id, data: d.iso!, kg: kg! });
-    api.toast({ texto: 'Peso registrado' });
+    const nova: Pesagem = { id: inicial?.id ?? `pes-${novoId()}`, pessoaId: pet.id, data: d.iso!, kg: kg! };
+    if (inicial) api.editar('pesagens', inicial.id, patchDe(nova, inicial, ['data', 'kg']), 'Pesagem atualizada');
+    else {
+      api.addPesagem(nova);
+      api.toast({ texto: 'Peso registrado' });
+    }
     onSalvo();
   };
+  const apagar = inicial && (() => { api.remover('pesagens', inicial, 'Pesagem apagada'); onSalvo(); });
 
-  return { data: data.valor, setData: data.set, peso, setPeso, erros: { data: data.erro, peso: erroPeso }, valido: !!peso.trim() && !!data.valor, salvar };
+  return { editando: !!inicial, data: data.valor, setData: data.set, peso, setPeso, erros: { data: data.erro, peso: erroPeso }, valido: !!peso.trim() && !!data.valor, salvar, apagar };
 }
 
 // ── Editar perfil ───────────────────────────────────────────────────────────
@@ -643,12 +685,20 @@ export function useFormPerfil(p: Pessoa, onSalvo: () => void) {
 
 // ── Medição (peso, pressão, glicemia…) ──────────────────────────────────────
 
-export function useFormMedicao(pessoaId: string, tipoInicial: TipoMedicao, onSalvo: () => void) {
+/** Nova medição ou, com `inicial`, edição (só o que mudou) e apagar. */
+export function useFormMedicao(pessoaId: string, tipoInicial: TipoMedicao, onSalvo: () => void, inicial?: Medicao) {
   const { api } = useStore();
-  const agora = new Date();
-  const [f, setF] = useState<FormMedicao>({
-    tipo: tipoInicial, data: dataBR(HOJE), hora: `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`,
-    valor: '', valor2: '', contexto: 'Jejum', nota: '',
+  const [f, setF] = useState<FormMedicao>(() => {
+    if (inicial) {
+      const i = infoMedicao(inicial.tipo);
+      const valor = inicial.tipo === 'pressao' ? String(inicial.valor) : i.casas ? String(inicial.valor).replace('.', ',') : String(inicial.valor);
+      return { tipo: inicial.tipo, data: dataBR(inicial.data), hora: inicial.hora ?? '', valor, valor2: inicial.valor2 != null ? String(inicial.valor2) : '', contexto: inicial.contexto ?? 'Jejum', nota: inicial.nota ?? '' };
+    }
+    const agora = new Date();
+    return {
+      tipo: tipoInicial, data: dataBR(HOJE), hora: `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`,
+      valor: '', valor2: '', contexto: 'Jejum', nota: '',
+    };
   });
   const [erros, setErros] = useState<ErrosMedicao>({});
   const set = (patch: Partial<FormMedicao>) => {
@@ -658,8 +708,12 @@ export function useFormMedicao(pessoaId: string, tipoInicial: TipoMedicao, onSal
   const salvar = () => {
     const r = montarMedicao(f, pessoaId, HOJE);
     if (!r.medicao) { setErros(r.erros); return; }
-    api.addMedicao(r.medicao);
+    if (inicial) {
+      const nova: Medicao = { id: inicial.id, ...r.medicao };
+      api.editar('medicoes', inicial.id, patchDe(nova, inicial, ['tipo', 'data', 'hora', 'valor', 'valor2', 'contexto', 'nota']), 'Medição atualizada');
+    } else api.addMedicao(r.medicao);
     onSalvo();
   };
-  return { f, set, erros, valido: !!f.valor.trim(), salvar };
+  const apagar = inicial && (() => { api.remover('medicoes', inicial, 'Medição apagada'); onSalvo(); });
+  return { editando: !!inicial, f, set, erros, valido: !!f.valor.trim(), salvar, apagar };
 }

@@ -5,8 +5,8 @@ import {
   ATALHOS_INTERVALO, ATALHOS_REFORCO, TIPOS_PREVENCAO, useFormPesagem, useFormPrevencao, useFormProcedimento, useFormSintoma, useFormVacina,
   type AtalhoReforco, type TipoPrevencao,
 } from '../data/formularios';
-import { SINAIS, SUGESTOES_VACINA, TIPOS_PROCEDIMENTO, ehPet } from '../data/pets';
-import type { Pessoa, TipoProcedimento, Vacina as VacinaT } from '../data/types';
+import { SINAIS, SUGESTOES_VACINA, ehPet, rotulosProcedimento, tiposProcedimento } from '../data/pets';
+import type { Pesagem as PesagemT, Pessoa, Prevencao as PrevencaoT, Procedimento as ProcedimentoT, Sintoma as SintomaT, TipoProcedimento, Vacina as VacinaT } from '../data/types';
 import { ConfirmarSheet } from '../ui/Confirmar';
 import { useState } from 'react';
 import { Chip, ChipGroup, Field, FieldGroup, Row, TopNav } from '../ui';
@@ -14,7 +14,8 @@ import { LinhaCampo, erroTexto } from './EditarPerfil';
 import { MScreen } from './Shell';
 import { SUGESTOES_VACINA as SUGESTOES_VACINA_PESSOA } from '../data/sugestoes';
 
-// Registros do pet no celular: /pet/:id/vacina|prevencao|sintoma|procedimento|pesagem.
+// Registros do pet no celular: /pet/:id/vacina|prevencao|sintoma|procedimento|pesagem; com /:rid no fim, edita o já registrado.
+// Vacina e procedimento valem também para pessoas.
 // Estado, validação e salvar vêm dos hooks compartilhados com os diálogos do desktop.
 
 type PropsPet = { pet: Pessoa; voltar: () => void };
@@ -40,6 +41,38 @@ const linhaData = (rotulo: string, valor: string, onChange: (v: string) => void)
 
 function Salvar({ texto, valido, onClick }: { texto: string; valido: boolean; onClick: () => void }) {
   return <button type="button" className="btn btn--cta" style={{ marginTop: 'auto' }} disabled={!valido} onClick={onClick}>{texto}</button>;
+}
+
+/** "Apagar X" no fim do formulário de edição, com confirmação. */
+function Apagar({ onApagar, rotulo, titulo, texto }: { onApagar?: () => void; rotulo: string; titulo: string; texto: string }) {
+  const [aberto, setAberto] = useState(false);
+  if (!onApagar) return null;
+  return (
+    <>
+      <button type="button" className="btn btn--danger-link" style={{ fontSize: 15, minHeight: 44, alignSelf: 'center' }} onClick={() => setAberto(true)}>{rotulo}</button>
+      {aberto && <ConfirmarSheet titulo={titulo} texto={texto} confirmar={rotulo} onConfirm={onApagar} onClose={() => setAberto(false)} />}
+    </>
+  );
+}
+
+type ColecaoPet = 'prevencoes' | 'sintomas' | 'procedimentos' | 'pesagens';
+/**
+ * /pet/:id/<registro> registra; /pet/:id/<registro>/:rid edita o registro `rid` (de `colecao`).
+ * Registro que não existe (ou de outro dono) volta ao perfil.
+ */
+function comRegistro<T extends { id: string; pessoaId: string }>(
+  colecao: ColecaoPet,
+  Form: (p: PropsPet & { inicial?: T }) => JSX.Element,
+  opcoes?: { pessoas?: boolean },
+) {
+  return comPet(function TelaRegistro({ pet, voltar }) {
+    const { rid } = useParams();
+    const { state } = useStore();
+    const lista = state[colecao] as unknown as T[];
+    const inicial = rid ? lista.find((x) => x.id === rid && x.pessoaId === pet.id) : undefined;
+    if (rid && !inicial) return <Navigate to={`/pessoa/${pet.id}`} replace />;
+    return <Form key={rid ?? 'novo'} pet={pet} voltar={voltar} inicial={inicial} />;
+  }, opcoes);
 }
 
 // ── Vacina ──────────────────────────────────────────────────────────────────
@@ -103,11 +136,11 @@ function Vacina({ pet, voltar, vacina }: PropsPet & { vacina?: VacinaT }) {
 
 // ── Prevenção ───────────────────────────────────────────────────────────────
 
-export const RegistrarPrevencao = comPet(function Prevencao({ pet, voltar }) {
-  const f = useFormPrevencao(pet, voltar);
+export const RegistrarPrevencao = comRegistro<PrevencaoT>('prevencoes', function Prevencao({ pet, voltar, inicial }) {
+  const f = useFormPrevencao(pet, voltar, inicial);
   return (
     <MScreen gap={14}>
-      <TopNav voltar="Cancelar" onVoltar={voltar} titulo="Registrar prevenção" acao="Salvar" onAcao={f.salvar} acaoDesativada={!f.valido} />
+      <TopNav voltar="Cancelar" onVoltar={voltar} titulo={f.editando ? 'Editar prevenção' : 'Registrar prevenção'} acao="Salvar" onAcao={f.salvar} acaoDesativada={!f.valido} />
       <FieldGroup label="Tipo">
         <ChipGroup largo opcoes={TIPOS_PREVENCAO} valor={f.tipo as TipoPrevencao} onChange={f.setTipo} />
       </FieldGroup>
@@ -126,21 +159,23 @@ export const RegistrarPrevencao = comPet(function Prevencao({ pet, voltar }) {
         {erroTexto(f.erros.data)}
         {erroTexto(f.erros.intervalo)}
       </div>
-      <Salvar texto="Salvar prevenção" valido={f.valido} onClick={f.salvar} />
+      <Salvar texto={f.editando ? 'Salvar alterações' : 'Salvar prevenção'} valido={f.valido} onClick={f.salvar} />
+      <Apagar onApagar={f.apagar} rotulo="Apagar aplicação" titulo="Apagar esta aplicação?" texto="A aplicação sai do histórico. Se houver uma anterior do mesmo produto, a próxima data passa a contar dela." />
     </MScreen>
   );
 });
 
 // ── Sintoma ─────────────────────────────────────────────────────────────────
 
-export const RegistrarSintoma = comPet(function Sintoma({ pet, voltar }) {
-  const f = useFormSintoma(pet, voltar);
+export const RegistrarSintoma = comRegistro<SintomaT>('sintomas', function Sintoma({ pet, voltar, inicial }) {
+  const f = useFormSintoma(pet, voltar, inicial);
+  const extras = f.sinais.filter((s) => !SINAIS.includes(s));
   return (
     <MScreen gap={14}>
-      <TopNav voltar="Cancelar" onVoltar={voltar} titulo="Registrar sintoma" acao="Salvar" onAcao={f.salvar} acaoDesativada={!f.valido} />
+      <TopNav voltar="Cancelar" onVoltar={voltar} titulo={f.editando ? 'Editar sintoma' : 'Registrar sintoma'} acao="Salvar" onAcao={f.salvar} acaoDesativada={!f.valido} />
       <FieldGroup label="Sinais">
         <div className="chips" role="group" aria-label="Sinais">
-          {SINAIS.map((s) => <Chip key={s} ativo={f.sinais.includes(s)} onClick={() => f.alternarSinal(s)}>{s}</Chip>)}
+          {[...SINAIS, ...extras].map((s) => <Chip key={s} ativo={f.sinais.includes(s)} onClick={() => f.alternarSinal(s)}>{s}</Chip>)}
         </div>
       </FieldGroup>
       <div className="stack" style={{ gap: 6 }}>
@@ -150,55 +185,61 @@ export const RegistrarSintoma = comPet(function Sintoma({ pet, voltar }) {
       <Field label="Observação">
         <textarea className="input input--area" rows={3} value={f.nota} onChange={(e) => f.setNota(e.target.value)} placeholder="Ex.: Comeu grama no passeio" />
       </Field>
-      <Salvar texto="Salvar sintoma" valido={f.valido} onClick={f.salvar} />
+      <Salvar texto={f.editando ? 'Salvar alterações' : 'Salvar sintoma'} valido={f.valido} onClick={f.salvar} />
+      <Apagar onApagar={f.apagar} rotulo="Apagar sintoma" titulo="Apagar este sintoma?" texto="O registro sai do histórico." />
     </MScreen>
   );
 });
 
 // ── Procedimento ────────────────────────────────────────────────────────────
 
-export const RegistrarProcedimento = comPet(function Procedimento({ pet, voltar }) {
-  const f = useFormProcedimento(pet, voltar);
+export const RegistrarProcedimento = comRegistro<ProcedimentoT>('procedimentos', function Procedimento({ pet, voltar, inicial }) {
+  const f = useFormProcedimento(pet, voltar, inicial);
+  const r = rotulosProcedimento(pet);
   return (
     <MScreen gap={14}>
-      <TopNav voltar="Cancelar" onVoltar={voltar} titulo="Registrar procedimento" acao="Salvar" onAcao={f.salvar} acaoDesativada={!f.valido} />
+      <TopNav voltar="Cancelar" onVoltar={voltar} titulo={f.editando ? 'Editar procedimento' : 'Registrar procedimento'} acao="Salvar" onAcao={f.salvar} acaoDesativada={!f.valido} />
       <FieldGroup label="Tipo">
-        <ChipGroup opcoes={TIPOS_PROCEDIMENTO.map((x) => ({ id: x, nome: x }))} valor={f.tipo as TipoProcedimento} onChange={f.setTipo} />
+        <ChipGroup opcoes={tiposProcedimento(pet, inicial?.tipo).map((x) => ({ id: x, nome: x }))} valor={f.tipo as TipoProcedimento} onChange={f.setTipo} />
       </FieldGroup>
       <div className="stack" style={{ gap: 6 }}>
         <div className="card" style={{ fontSize: 15 }}>
           {linhaData('Data', f.data, f.setData)}
-          <LinhaCampo rotulo="Clínica" value={f.clinica} onChange={(e) => f.setClinica(e.target.value)} aria-label="Clínica" autoComplete="off" />
+          <LinhaCampo rotulo={r.clinica} value={f.clinica} onChange={(e) => f.setClinica(e.target.value)} aria-label={r.clinica} autoComplete="off" />
+          <LinhaCampo rotulo={r.medico} value={f.medico} onChange={(e) => f.setMedico(e.target.value)} aria-label={`${r.medico} que realizou`} autoComplete="off" />
+          <LinhaCampo rotulo="Anestesista" value={f.anestesista} onChange={(e) => f.setAnestesista(e.target.value)} aria-label="Anestesista" autoComplete="off" />
         </div>
         {erroTexto(f.erros.data)}
       </div>
       <Field label="Descrição">
-        <input className="input input--50" value={f.descricao} onChange={(e) => f.setDescricao(e.target.value)} placeholder="Ex.: Retirada de nódulo" autoComplete="off" />
+        <input className="input input--50" value={f.descricao} onChange={(e) => f.setDescricao(e.target.value)} placeholder={r.descricao} autoComplete="off" />
       </Field>
       <Field label="Observações">
         <textarea className="input input--area" rows={3} value={f.nota} onChange={(e) => f.setNota(e.target.value)} />
       </Field>
-      <Salvar texto="Salvar procedimento" valido={f.valido} onClick={f.salvar} />
+      <Salvar texto={f.editando ? 'Salvar alterações' : 'Salvar procedimento'} valido={f.valido} onClick={f.salvar} />
+      <Apagar onApagar={f.apagar} rotulo="Apagar procedimento" titulo="Apagar este procedimento?" texto="O procedimento sai do histórico." />
     </MScreen>
   );
-});
+}, { pessoas: true });
 
 // ── Pesagem ─────────────────────────────────────────────────────────────────
 
-export const NovaPesagem = comPet(function Pesagem({ pet, voltar }) {
-  const f = useFormPesagem(pet, voltar);
+export const NovaPesagem = comRegistro<PesagemT>('pesagens', function Pesagem({ pet, voltar, inicial }) {
+  const f = useFormPesagem(pet, voltar, inicial);
   return (
     <MScreen gap={14}>
-      <TopNav voltar="Cancelar" onVoltar={voltar} titulo="Nova pesagem" acao="Salvar" onAcao={f.salvar} acaoDesativada={!f.valido} />
+      <TopNav voltar="Cancelar" onVoltar={voltar} titulo={f.editando ? 'Editar pesagem' : 'Nova pesagem'} acao="Salvar" onAcao={f.salvar} acaoDesativada={!f.valido} />
       <div className="stack" style={{ gap: 6 }}>
         <div className="card" style={{ fontSize: 15 }}>
           {linhaData('Data', f.data, f.setData)}
-          <LinhaCampo rotulo="Peso" sufixo="kg" className="mono" inputMode="decimal" placeholder="12,5" value={f.peso} onChange={(e) => f.setPeso(e.target.value)} aria-label="Peso em kg" autoFocus />
+          <LinhaCampo rotulo="Peso" sufixo="kg" className="mono" inputMode="decimal" placeholder="12,5" value={f.peso} onChange={(e) => f.setPeso(e.target.value)} aria-label="Peso em kg" autoFocus={!f.editando} />
         </div>
         {erroTexto(f.erros.data)}
         {erroTexto(f.erros.peso)}
       </div>
-      <Salvar texto="Salvar pesagem" valido={f.valido} onClick={f.salvar} />
+      <Salvar texto={f.editando ? 'Salvar alterações' : 'Salvar pesagem'} valido={f.valido} onClick={f.salvar} />
+      <Apagar onApagar={f.apagar} rotulo="Apagar pesagem" titulo="Apagar esta pesagem?" texto="A pesagem sai do histórico e do gráfico." />
     </MScreen>
   );
 });

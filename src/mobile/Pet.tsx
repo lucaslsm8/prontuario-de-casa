@@ -4,7 +4,7 @@ import { HOJE } from '../data/tempo';
 import { useStore } from '../data/store';
 import { novoId } from '../data/persistencia';
 import {
-  NOMES_PREVENCAO, ehPet, historicoPeso, linhaPet, novaAplicacao, pesoAtual, proximaPrevencao, proximosCuidados, reforcoVencido,
+  NOMES_PREVENCAO, ehPet, equipeProcedimento, historicoPeso, tituloProcedimento, linhaPet, novaAplicacao, pesoAtual, proximaPrevencao, proximosCuidados, reforcoVencido,
   rotuloCastrado, sintomasRecentes, telHref, ultimasPrevencoes, vacinasDoPet, vencidaHa,
 } from '../data/pets';
 import { dataBR, diaMes, diasDeEstoque, numCurto } from '../data/format';
@@ -260,10 +260,12 @@ function Prevencao({ id }: { id: string }) {
         const vencido = prox < HOJE;
         return (
           <div key={p.id} className="row" style={{ padding: '10px 10px 10px 16px', ...linhaVencida(vencido) }}>
-            <Texto
-              titulo={p.produto.trim() || NOMES_PREVENCAO[p.tipo]}
-              detalhe={`${NOMES_PREVENCAO[p.tipo]} · a cada ${p.intervaloDias} dias`}
-            />
+            <button type="button" className="stack" style={{ textAlign: 'left', minWidth: 0, flex: 1, minHeight: 44, justifyContent: 'center' }} onClick={() => nav(`/pet/${id}/prevencao/${p.id}`)} aria-label={`Editar ${p.produto.trim() || NOMES_PREVENCAO[p.tipo]}`}>
+              <Texto
+                titulo={p.produto.trim() || NOMES_PREVENCAO[p.tipo]}
+                detalhe={`${NOMES_PREVENCAO[p.tipo]} · a cada ${p.intervaloDias} dias`}
+              />
+            </button>
             <span className="stack" style={{ gap: 4, alignItems: 'flex-end', flex: 'none' }}>
               {p.data === HOJE ? (
                 <span className="pill pill--teal">Aplicado hoje</span>
@@ -292,15 +294,15 @@ function Sintomas({ id }: { id: string }) {
   return (
     <Secao titulo="Sintomas recentes">
       {lista.map((s) => (
-        <div key={s.id} className="row" style={{ alignItems: 'flex-start' }}>
+        <button type="button" key={s.id} className="row" style={{ alignItems: 'flex-start', textAlign: 'left' }} onClick={() => nav(`/pet/${id}/sintoma/${s.id}`)}>
           <span className="stack" style={{ gap: 6, minWidth: 0, flex: 1 }}>
             <span className="hstack" style={{ gap: 6, flexWrap: 'wrap' }}>
               {s.sinais.map((x) => <Pill key={x} tom="neutral" pequeno>{x}</Pill>)}
             </span>
             {s.nota && <span style={sub}>{s.nota}</span>}
           </span>
-          <span className="mono faint" style={{ fontSize: 13, flex: 'none', lineHeight: '22px' }}>{diaMes(s.data)}</span>
-        </div>
+          <span className="mono faint" style={{ fontSize: 13, flex: 'none', lineHeight: '22px' }}>{diaMes(s.data)} ›</span>
+        </button>
       ))}
       {lista.length === 0 && <Vazio>Nenhum sintoma nos últimos 30 dias.</Vazio>}
       <AdicionarItem onClick={() => nav(`/pet/${id}/sintoma`)}>+ Registrar sintoma</AdicionarItem>
@@ -315,10 +317,10 @@ function Procedimentos({ id }: { id: string }) {
   return (
     <Secao titulo="Procedimentos">
       {lista.map((p) => (
-        <div key={p.id} className="row" style={{ alignItems: 'flex-start' }}>
-          <Texto titulo={`${p.tipo}${p.descricao ? ` · ${p.descricao}` : ''}`} detalhe={p.clinica} nota={p.nota} />
-          <span className="mono faint" style={{ fontSize: 13, flex: 'none', lineHeight: '22px' }}>{dataBR(p.data)}</span>
-        </div>
+        <button type="button" key={p.id} className="row" style={{ alignItems: 'flex-start', textAlign: 'left' }} onClick={() => nav(`/pet/${id}/procedimento/${p.id}`)}>
+          <Texto titulo={tituloProcedimento(p)} detalhe={[p.clinica, equipeProcedimento(p)].filter(Boolean).join(' · ') || undefined} nota={p.nota} />
+          <span className="mono faint" style={{ fontSize: 13, flex: 'none', lineHeight: '22px' }}>{dataBR(p.data)} ›</span>
+        </button>
       ))}
       {lista.length === 0 && <Vazio>Nenhum procedimento registrado.</Vazio>}
       <AdicionarItem onClick={() => nav(`/pet/${id}/procedimento`)}>+ Registrar procedimento</AdicionarItem>
@@ -338,10 +340,10 @@ function Peso({ id }: { id: string }) {
         </div>
       )}
       {lista.map(({ pesagem: x, delta }) => (
-        <div key={x.id} className="row">
+        <button type="button" key={x.id} className="row" style={{ textAlign: 'left' }} onClick={() => nav(`/pet/${id}/pesagem/${x.id}`)}>
           <Texto titulo={`${numCurto(x.kg)} kg`} detalhe={delta && <span className={delta.endsWith('kg') ? 'mono' : undefined}>{delta}</span>} />
-          <span className="mono faint" style={{ fontSize: 13, flex: 'none' }}>{dataBR(x.data)}</span>
-        </div>
+          <span className="mono faint" style={{ fontSize: 13, flex: 'none' }}>{dataBR(x.data)} ›</span>
+        </button>
       ))}
       {lista.length === 0 && <Vazio>Nenhuma pesagem registrada.</Vazio>}
       <AdicionarItem onClick={() => nav(`/pet/${id}/pesagem`)}>+ Nova pesagem</AdicionarItem>

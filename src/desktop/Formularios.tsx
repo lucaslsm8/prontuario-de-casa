@@ -7,13 +7,13 @@ import {
   ABRANGENCIAS, ACOMODACOES, SEGMENTACOES, SEXOS_PET, SEXO_DO_PET, TIPOS_PREVENCAO, sexoPetDoForm, normalizarHora, useFormConsulta, useFormExame, useFormPerfil, useFormPesagem, useFormPessoa, useFormPet,
   useFormPrevencao, useFormMedicao, useFormProcedimento, useFormPlano, useFormRemedio, useFormSintoma, useFormVacina, type AtalhoReforco, type TipoPrevencao,
 } from '../data/formularios';
-import { SINAIS, SUGESTOES_VACINA, TIPOS_PROCEDIMENTO, descricaoPet, ehPet, opcoesPessoas, rotuloCastrado } from '../data/pets';
+import { SINAIS, SUGESTOES_VACINA, descricaoPet, ehPet, opcoesPessoas, rotuloCastrado, rotulosProcedimento, tiposProcedimento } from '../data/pets';
 import { CorpoFichaPet } from '../mobile/Familia';
 import { TIPOS_CONDICAO, type TipoCondicao } from '../data/perfil';
 import { LISTA_POR_TIPO } from '../data/sugestoes';
 import { Sugestoes, SugestoesConsulta } from '../ui/Sugestoes';
 import { AnexosPendentes } from '../ui/Anexos';
-import type { Consulta, Exame, Pessoa, Plano, Remedio, TipoMedicao, TipoProcedimento, Vacina } from '../data/types';
+import type { Consulta, Exame, Medicao, Pesagem, Pessoa, Plano, Prevencao, Procedimento, Remedio, Sintoma, TipoMedicao, TipoProcedimento, Vacina } from '../data/types';
 import { CONTEXTOS_GLICEMIA, MEDICOES, infoMedicao } from '../data/medicoes';
 import { Chip } from '../ui';
 import { TrocarFoto, useEscolherFoto } from '../ui/Foto';
@@ -228,12 +228,28 @@ export function DNovoExame({ onClose, exame }: Props & { exame?: Exame }) {
 
 // ── Nova medição (peso, pressão, glicemia…) ────────────────────────────────
 
-export function DNovaMedicao({ pessoaId, tipo, onClose }: Props & { pessoaId: string; tipo?: TipoMedicao }) {
+/** ?abrir=editar-medicao:<id>. */
+export function DEditarMedicao({ id, onClose }: Props & { id?: string }) {
   const { state } = useStore();
-  const { f, set, erros, valido, salvar } = useFormMedicao(pessoaId, tipo && MEDICOES.some((m) => m.id === tipo) ? tipo : 'peso', onClose);
+  const m = state.medicoes.find((x) => x.id === id);
+  return m ? <DNovaMedicao pessoaId={m.pessoaId} medicao={m} onClose={onClose} /> : null;
+}
+
+export function DNovaMedicao({ pessoaId, tipo, medicao, onClose }: Props & { pessoaId: string; tipo?: TipoMedicao; medicao?: Medicao }) {
+  const { state } = useStore();
+  const { f, set, erros, valido, salvar, editando, apagar } = useFormMedicao(pessoaId, tipo && MEDICOES.some((m) => m.id === tipo) ? tipo : 'peso', onClose, medicao);
   const info = infoMedicao(f.tipo);
+  const [confirmar, setConfirmar] = useState(false);
+  const rodape = (
+    <>
+      {apagar && <BotaoApagar texto="Apagar medição" onClick={() => setConfirmar(true)} />}
+      <DRodape salvar={editando ? 'Salvar alterações' : 'Registrar'} onSalvar={salvar} valido={valido} onCancelar={onClose} />
+    </>
+  );
   return (
-    <DDialogo titulo={`Nova medição · ${quem(pessoa(state, pessoaId))}`} onClose={onClose} rodape={<DRodape salvar="Registrar" onSalvar={salvar} valido={valido} onCancelar={onClose} />}>
+    <>
+    {confirmar && apagar && <DConfirmar perigo titulo="Apagar esta medição?" texto="A medição sai do histórico e do gráfico." confirmar="Apagar medição" onConfirm={apagar} onClose={() => setConfirmar(false)} />}
+    <DDialogo titulo={`${editando ? 'Editar medição' : 'Nova medição'} · ${quem(pessoa(state, pessoaId))}`} onClose={onClose} rodape={rodape}>
       <DGrade>
         <DCampo label="O que mediu" span2 grupo>
           <DChips tom="teal" opcoes={MEDICOES.map((m) => ({ id: m.id, nome: m.nome }))} valor={f.tipo} onChange={(v) => set({ tipo: v })} />
@@ -271,6 +287,7 @@ export function DNovaMedicao({ pessoaId, tipo, onClose }: Props & { pessoaId: st
         </DCampo>
       </DGrade>
     </DDialogo>
+    </>
   );
 }
 
@@ -416,11 +433,48 @@ const FORMS_PET: Record<RegistroPet, (p: PropsPet) => JSX.Element> = {
 /** ?abrir=<registro>:<petId>. Sem o pet (ou se o id for de uma pessoa), não abre nada. */
 export function DRegistroPet({ registro, petId, onClose }: Props & { registro: RegistroPet; petId?: string }) {
   const { state } = useStore();
-  // Vacina vale também para pessoas; os outros registros são só de pets.
-  const pet = state.pessoas.find((p) => p.id === petId && (ehPet(p) || registro === 'vacina'));
+  // Vacina e procedimento valem também para pessoas; os outros registros são só de pets.
+  const pet = state.pessoas.find((p) => p.id === petId && (ehPet(p) || registro === 'vacina' || registro === 'procedimento'));
   if (!pet) return null;
   const Form = FORMS_PET[registro];
   return <Form pet={pet} onClose={onClose} />;
+}
+
+/** ?abrir=editar-<registro>:<id> — prevenção, sintoma, procedimento ou pesagem já registrados. */
+export function DEditarRegistroPet({ registro, id, onClose }: Props & { registro: Exclude<RegistroPet, 'vacina'>; id?: string }) {
+  const { state } = useStore();
+  const lista: { id: string; pessoaId: string }[] = {
+    prevencao: state.prevencoes, sintoma: state.sintomas, procedimento: state.procedimentos, pesagem: state.pesagens,
+  }[registro];
+  const item = lista.find((x) => x.id === id);
+  const dono = item && state.pessoas.find((p) => p.id === item.pessoaId);
+  if (!item || !dono) return null;
+  if (registro === 'prevencao') return <DPrevencao pet={dono} inicial={item as Prevencao} onClose={onClose} />;
+  if (registro === 'sintoma') return <DSintoma pet={dono} inicial={item as Sintoma} onClose={onClose} />;
+  if (registro === 'procedimento') return <DProcedimento pet={dono} inicial={item as Procedimento} onClose={onClose} />;
+  return <DPesagem pet={dono} inicial={item as Pesagem} onClose={onClose} />;
+}
+
+/** "Apagar X" à esquerda do rodapé dos diálogos de edição. */
+function BotaoApagar({ texto, onClick }: { texto: string; onClick: () => void }) {
+  return <button type="button" className="btn btn--h40d btn--danger-link" style={{ marginRight: 'auto' }} onClick={onClick}>{texto}</button>;
+}
+
+/** Rodapé de registrar/editar com "Apagar" (que pede confirmação) quando é edição. */
+function useRodapeRegistro({ editando, apagar, salvar, valido, onClose, nome, rotuloApagar, titulo, texto }: {
+  editando: boolean; apagar?: () => void; salvar: () => void; valido: boolean; onClose: () => void; nome: string; rotuloApagar: string; titulo: string; texto: string;
+}) {
+  const [confirmar, setConfirmar] = useState(false);
+  const rodape = (
+    <>
+      {apagar && <BotaoApagar texto={rotuloApagar} onClick={() => setConfirmar(true)} />}
+      <DRodape salvar={editando ? 'Salvar alterações' : `Salvar ${nome}`} onSalvar={salvar} valido={valido} onCancelar={onClose} />
+    </>
+  );
+  const dialogo = confirmar && apagar
+    ? <DConfirmar perigo titulo={titulo} texto={texto} confirmar={rotuloApagar} onConfirm={apagar} onClose={() => setConfirmar(false)} />
+    : null;
+  return { rodape, dialogo };
 }
 
 const inputData = (valor: string, onChange: (v: string) => void, rotulo?: string) => (
@@ -479,10 +533,13 @@ function DVacina({ pet, onClose, vacina }: PropsPet & { vacina?: Vacina }) {
   );
 }
 
-function DPrevencao({ pet, onClose }: PropsPet) {
-  const f = useFormPrevencao(pet, onClose);
+function DPrevencao({ pet, onClose, inicial }: PropsPet & { inicial?: Prevencao }) {
+  const f = useFormPrevencao(pet, onClose, inicial);
+  const r = useRodapeRegistro({ ...f, onClose, nome: 'prevenção', rotuloApagar: 'Apagar aplicação', titulo: 'Apagar esta aplicação?', texto: 'A aplicação sai do histórico. Se houver uma anterior do mesmo produto, a próxima data passa a contar dela.' });
   return (
-    <DDialogo titulo="Registrar prevenção" onClose={onClose} rodape={<DRodape salvar="Salvar prevenção" onSalvar={f.salvar} valido={f.valido} onCancelar={onClose} />}>
+    <>
+    {r.dialogo}
+    <DDialogo titulo={f.editando ? 'Editar prevenção' : 'Registrar prevenção'} onClose={onClose} rodape={r.rodape}>
       <DGrade>
         <DCampo label="Tipo" span2 grupo>
           <DChips opcoes={TIPOS_PREVENCAO} valor={f.tipo as TipoPrevencao} onChange={f.setTipo} />
@@ -503,17 +560,22 @@ function DPrevencao({ pet, onClose }: PropsPet) {
         </DCampo>
       </DGrade>
     </DDialogo>
+    </>
   );
 }
 
-function DSintoma({ pet, onClose }: PropsPet) {
-  const f = useFormSintoma(pet, onClose);
+function DSintoma({ pet, onClose, inicial }: PropsPet & { inicial?: Sintoma }) {
+  const f = useFormSintoma(pet, onClose, inicial);
+  const r = useRodapeRegistro({ ...f, onClose, nome: 'sintoma', rotuloApagar: 'Apagar sintoma', titulo: 'Apagar este sintoma?', texto: 'O registro sai do histórico.' });
+  const extras = f.sinais.filter((s) => !SINAIS.includes(s));
   return (
-    <DDialogo titulo="Registrar sintoma" onClose={onClose} rodape={<DRodape salvar="Salvar sintoma" onSalvar={f.salvar} valido={f.valido} onCancelar={onClose} />}>
+    <>
+    {r.dialogo}
+    <DDialogo titulo={f.editando ? 'Editar sintoma' : 'Registrar sintoma'} onClose={onClose} rodape={r.rodape}>
       <DGrade>
         <DCampo label="Sinais" span2 grupo>
           <div className="chips">
-            {SINAIS.map((s) => <Chip key={s} tamanho="xs" ativo={f.sinais.includes(s)} onClick={() => f.alternarSinal(s)}>{s}</Chip>)}
+            {[...SINAIS, ...extras].map((s) => <Chip key={s} tamanho="xs" ativo={f.sinais.includes(s)} onClick={() => f.alternarSinal(s)}>{s}</Chip>)}
           </div>
         </DCampo>
         <DCampo label="Data" erro={f.erros.data}>{inputData(f.data, f.setData)}</DCampo>
@@ -522,36 +584,51 @@ function DSintoma({ pet, onClose }: PropsPet) {
         </DCampo>
       </DGrade>
     </DDialogo>
+    </>
   );
 }
 
-function DProcedimento({ pet, onClose }: PropsPet) {
-  const f = useFormProcedimento(pet, onClose);
+function DProcedimento({ pet, onClose, inicial }: PropsPet & { inicial?: Procedimento }) {
+  const f = useFormProcedimento(pet, onClose, inicial);
+  const r = useRodapeRegistro({ ...f, onClose, nome: 'procedimento', rotuloApagar: 'Apagar procedimento', titulo: 'Apagar este procedimento?', texto: 'O procedimento sai do histórico.' });
+  const rot = rotulosProcedimento(pet);
   return (
-    <DDialogo titulo="Registrar procedimento" onClose={onClose} rodape={<DRodape salvar="Salvar procedimento" onSalvar={f.salvar} valido={f.valido} onCancelar={onClose} />}>
+    <>
+    {r.dialogo}
+    <DDialogo titulo={f.editando ? 'Editar procedimento' : `Registrar procedimento${ehPet(pet) ? '' : ` · ${quem(pet)}`}`} onClose={onClose} rodape={r.rodape}>
       <DGrade>
         <DCampo label="Tipo" span2 grupo>
-          <DChips opcoes={TIPOS_PROCEDIMENTO.map((x) => ({ id: x, nome: x }))} valor={f.tipo as TipoProcedimento} onChange={f.setTipo} />
+          <DChips opcoes={tiposProcedimento(pet, inicial?.tipo).map((x) => ({ id: x, nome: x }))} valor={f.tipo as TipoProcedimento} onChange={f.setTipo} />
         </DCampo>
         <DCampo label="Data" erro={f.erros.data}>{inputData(f.data, f.setData)}</DCampo>
-        <DCampo label="Clínica">
+        <DCampo label={rot.clinica}>
           <input className="input input--desk" value={f.clinica} onChange={(e) => f.setClinica(e.target.value)} autoComplete="off" />
         </DCampo>
+        <DCampo label={rot.medico}>
+          <input className="input input--desk" value={f.medico} onChange={(e) => f.setMedico(e.target.value)} placeholder="Quem realizou" autoComplete="off" />
+        </DCampo>
+        <DCampo label="Anestesista">
+          <input className="input input--desk" value={f.anestesista} onChange={(e) => f.setAnestesista(e.target.value)} autoComplete="off" />
+        </DCampo>
         <DCampo label="Descrição" span2>
-          <input className="input input--desk" value={f.descricao} onChange={(e) => f.setDescricao(e.target.value)} placeholder="Ex.: Retirada de nódulo" autoComplete="off" />
+          <input className="input input--desk" value={f.descricao} onChange={(e) => f.setDescricao(e.target.value)} placeholder={rot.descricao} autoComplete="off" />
         </DCampo>
         <DCampo label="Observações" span2>
           <textarea className="input input--desk input--area" rows={3} value={f.nota} onChange={(e) => f.setNota(e.target.value)} />
         </DCampo>
       </DGrade>
     </DDialogo>
+    </>
   );
 }
 
-function DPesagem({ pet, onClose }: PropsPet) {
-  const f = useFormPesagem(pet, onClose);
+function DPesagem({ pet, onClose, inicial }: PropsPet & { inicial?: Pesagem }) {
+  const f = useFormPesagem(pet, onClose, inicial);
+  const r = useRodapeRegistro({ ...f, onClose, nome: 'pesagem', rotuloApagar: 'Apagar pesagem', titulo: 'Apagar esta pesagem?', texto: 'A pesagem sai do histórico e do gráfico.' });
   return (
-    <DDialogo titulo="Nova pesagem" largura={480} onClose={onClose} rodape={<DRodape salvar="Salvar pesagem" onSalvar={f.salvar} valido={f.valido} onCancelar={onClose} />}>
+    <>
+    {r.dialogo}
+    <DDialogo titulo={f.editando ? 'Editar pesagem' : 'Nova pesagem'} largura={480} onClose={onClose} rodape={r.rodape}>
       <DGrade>
         <DCampo label="Data" erro={f.erros.data}>{inputData(f.data, f.setData)}</DCampo>
         <DCampo label="Peso" erro={f.erros.peso}>
@@ -562,6 +639,7 @@ function DPesagem({ pet, onClose }: PropsPet) {
         </DCampo>
       </DGrade>
     </DDialogo>
+    </>
   );
 }
 

@@ -5,7 +5,7 @@ import { Avatar, SecaoLista, cx } from '../ui';
 import { IcAgenda, IcConsulta, IcCadeado, IcEmergencia, IcExame, IcInicio, IcMarcaCheia, IcPlano, IcRemedio } from '../ui/Icones';
 import { quando } from '../data/format';
 import { useVoltar } from './useVoltar';
-import { DEditarPerfil, DEditarVacina, DFichaEmergencia, DNovaConsulta, DNovaPessoa, DNovoExame, DNovaMedicao, DNovoPet, DNovoPlano, DNovoRemedio, DRegistroPet, REGISTROS_PET, type RegistroPet } from './Formularios';
+import { DEditarMedicao, DEditarPerfil, DEditarRegistroPet, DEditarVacina, DFichaEmergencia, DNovaConsulta, DNovaPessoa, DNovoExame, DNovaMedicao, DNovoPet, DNovoPlano, DNovoRemedio, DRegistroPet, REGISTROS_PET, type RegistroPet } from './Formularios';
 import { familia, pets } from '../data/pets';
 import type { TipoMedicao } from '../data/types';
 import { BuscaDesktop } from '../ui/Busca';
@@ -25,7 +25,8 @@ const NAV = [
 
 /**
  * Abre um formulário num diálogo largo: ?abrir=consulta|remedio|exame|pessoa|pet|plano[:<id>]|emergencia:<id>|perfil:<id>
- * e, para um pet, vacina|prevencao|sintoma|procedimento|pesagem:<petId>.
+ * e, para um pet, vacina|prevencao|sintoma|procedimento|pesagem:<petId> (vacina e procedimento também de pessoa);
+ * editar-<remedio|consulta|exame|plano|vacina|prevencao|sintoma|procedimento|pesagem|medicao>:<id>.
  */
 export function useAbrir() {
   const [params, setParams] = useSearchParams();
@@ -60,6 +61,11 @@ function Dialogo() {
   if (tipo === 'editar-consulta') { const c = state.consultas.find((x) => x.id === arg); return c ? <DNovaConsulta key={abrir} consulta={c} onClose={fechar} /> : null; }
   if (tipo === 'editar-exame') { const e = state.exames.find((x) => x.id === arg); return e ? <DNovoExame key={abrir} exame={e} onClose={fechar} /> : null; }
   if (tipo === 'editar-vacina') return <DEditarVacina key={abrir} id={arg} onClose={fechar} />;
+  if (tipo === 'editar-medicao') return <DEditarMedicao key={abrir} id={arg} onClose={fechar} />;
+  // editar-prevencao|sintoma|procedimento|pesagem:<id>
+  if (tipo.startsWith('editar-') && (REGISTROS_PET as string[]).includes(tipo.slice(7)) && tipo !== 'editar-vacina') {
+    return <DEditarRegistroPet key={abrir} registro={tipo.slice(7) as Exclude<RegistroPet, 'vacina'>} id={arg} onClose={fechar} />;
+  }
   if (tipo === 'editar-plano') { const pl = state.planos.find((x) => x.id === arg); return pl ? <DNovoPlano key={abrir} plano={pl} onClose={fechar} /> : null; }
   if (tipo === 'plano') return <DNovoPlano key={abrir} pessoaId={arg} onClose={fechar} />;
   if (tipo === 'emergencia') return <DFichaEmergencia key={abrir} pessoaId={arg} onClose={fechar} />;

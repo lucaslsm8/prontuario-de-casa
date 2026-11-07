@@ -1,9 +1,11 @@
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useState } from 'react';
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { editaveis, pessoa, podeVer, useStore } from '../data/store';
 import { quem } from '../data/format';
 import { CONTEXTOS_GLICEMIA, MEDICOES, infoMedicao } from '../data/medicoes';
 import { normalizarHora, useFormMedicao } from '../data/formularios';
-import type { TipoMedicao } from '../data/types';
+import type { Medicao, TipoMedicao } from '../data/types';
+import { ConfirmarSheet } from '../ui/Confirmar';
 import { ChipGroup, Field, FieldGroup, TopNav } from '../ui';
 import { CartaoMedicao, tiposVisiveis } from '../ui/Medicoes';
 import { erroTexto } from './EditarPerfil';
@@ -27,7 +29,7 @@ export function MedicoesPessoa() {
       <TopNav voltar={p.souEu ? 'Perfil' : p.curto} acao={podeEditar ? 'Registrar' : undefined} onAcao={() => nova()} />
       <h1 className="title" style={{ margin: 0 }}>Medições</h1>
       {tiposVisiveis(state.medicoes, id).map((t) => (
-        <CartaoMedicao key={t.id} pessoaId={id} tipo={t.id} altura={140} onNova={podeEditar ? () => nova(t.id) : undefined} />
+        <CartaoMedicao key={t.id} pessoaId={id} tipo={t.id} altura={140} onNova={podeEditar ? () => nova(t.id) : undefined} onEditar={podeEditar ? (m) => nav(`/pessoa/${id}/medicoes/${m.id}`) : undefined} />
       ))}
       {podeVer(state, id, 'exames') && marcadoresDaPessoa(state.exames, id).map((m, i) => (
         <div key={m} className="stack" style={{ gap: 8 }}>
@@ -39,18 +41,26 @@ export function MedicoesPessoa() {
   );
 }
 
-/** Nova medição (celular). */
+/** Nova medição (celular); /pessoa/:id/medicoes/:mid edita (e apaga) uma já registrada. */
 export function NovaMedicao() {
-  const { id = '' } = useParams();
+  const { id = '', mid } = useParams();
+  const { state } = useStore();
+  const medicao = mid ? state.medicoes.find((m) => m.id === mid && m.pessoaId === id) : undefined;
+  if (mid && !medicao) return <Navigate to={`/pessoa/${id}/medicoes`} replace />;
+  return <FormMedicaoMobile key={mid ?? 'nova'} id={id} medicao={medicao} />;
+}
+
+function FormMedicaoMobile({ id, medicao }: { id: string; medicao?: Medicao }) {
   const [params] = useSearchParams();
   const { state } = useStore();
   const nav = useNavigate();
+  const [apagar, setApagar] = useState(false);
   const inicial = MEDICOES.find((m) => m.id === params.get('tipo'))?.id ?? 'peso';
-  const { f, set, erros, valido, salvar } = useFormMedicao(id, inicial, () => nav(-1));
+  const { f, set, erros, valido, salvar, editando, apagar: onApagar } = useFormMedicao(id, inicial, () => nav(-1), medicao);
   const info = infoMedicao(f.tipo);
   return (
     <MScreen gap={14}>
-      <TopNav voltar="Cancelar" titulo={`Medição · ${quem(pessoa(state, id))}`} acao="Salvar" onAcao={salvar} acaoDesativada={!valido} />
+      <TopNav voltar="Cancelar" titulo={`${editando ? 'Editar medição' : 'Medição'} · ${quem(pessoa(state, id))}`} acao="Salvar" onAcao={salvar} acaoDesativada={!valido} />
       <FieldGroup label="O que mediu">
         <ChipGroup tom="teal" tamanho="md" opcoes={MEDICOES.map((m) => ({ id: m.id, nome: m.nome }))} valor={f.tipo} onChange={(v) => set({ tipo: v })} />
       </FieldGroup>
@@ -86,7 +96,11 @@ export function NovaMedicao() {
       <Field label="Observação">
         <input className="input input--50" value={f.nota} onChange={(e) => set({ nota: e.target.value })} placeholder="Ex.: medida depois do almoço" />
       </Field>
-      <button type="button" className="btn btn--cta" style={{ marginTop: 8 }} disabled={!valido} onClick={salvar}>Registrar medição</button>
+      <button type="button" className="btn btn--cta" style={{ marginTop: 8 }} disabled={!valido} onClick={salvar}>{editando ? 'Salvar alterações' : 'Registrar medição'}</button>
+      {onApagar && <button type="button" className="btn btn--danger-link" style={{ fontSize: 15, minHeight: 44, alignSelf: 'center' }} onClick={() => setApagar(true)}>Apagar medição</button>}
+      {apagar && onApagar && (
+        <ConfirmarSheet titulo="Apagar esta medição?" texto="A medição sai do histórico e do gráfico." confirmar="Apagar medição" onConfirm={onApagar} onClose={() => setApagar(false)} />
+      )}
     </MScreen>
   );
 }

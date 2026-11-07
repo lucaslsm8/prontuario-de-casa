@@ -48,8 +48,10 @@ export interface DadosPet {
 export interface Vacina { id: string; pessoaId: PessoaId; nome: string; data: string; lote?: string; veterinario?: string; proxima?: string }
 export interface Prevencao { id: string; pessoaId: PessoaId; tipo: 'vermifugo' | 'antipulgas' | 'outro'; produto: string; data: string; intervaloDias: number }
 export interface Sintoma { id: string; pessoaId: PessoaId; data: string; sinais: string[]; nota?: string }
-export type TipoProcedimento = 'Cirurgia' | 'Castração' | 'Limpeza de tártaro' | 'Exame de imagem' | 'Outro';
-export interface Procedimento { id: string; pessoaId: PessoaId; data: string; tipo: TipoProcedimento; descricao?: string; clinica?: string; nota?: string }
+/** Pets: Cirurgia, Castração, Limpeza de tártaro, Exame de imagem, Outro. Pessoas: Cirurgia, Endoscopia, Colonoscopia, Biópsia, Odontológico, Exame de imagem, Outro. */
+export type TipoProcedimento = 'Cirurgia' | 'Castração' | 'Limpeza de tártaro' | 'Endoscopia' | 'Colonoscopia' | 'Biópsia' | 'Odontológico' | 'Exame de imagem' | 'Outro';
+/** Procedimento de pessoa ou pet. `medico`: quem realizou (o veterinário, no pet); `anestesista`, se houve. */
+export interface Procedimento { id: string; pessoaId: PessoaId; data: string; tipo: TipoProcedimento; descricao?: string; clinica?: string; medico?: string; anestesista?: string; nota?: string }
 export interface Pesagem { id: string; pessoaId: PessoaId; data: string; kg: number }
 
 /**

@@ -11,7 +11,7 @@ export interface Achado { tipo: string; titulo: string; sub: string; rota: strin
 const norm = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
 
 /**
- * Procura em pessoas, remédios, consultas, exames (inclusive valores), planos e vacinas.
+ * Procura em pessoas, remédios, consultas, exames (inclusive valores), planos, vacinas e procedimentos.
  * `podeVer(pessoaId, categoria)` esconde o que a pessoa não compartilha.
  */
 export function buscar(s: State, termo: string, podeVer: (pessoaId: string, c: Categoria) => boolean, limite = 30): Achado[] {
@@ -56,6 +56,11 @@ export function buscar(s: State, termo: string, podeVer: (pessoaId: string, c: C
       out.push({ tipo: 'Vacina', titulo: v.nome, sub: `${nome(v.pessoaId)} · ${dataBR(v.data)}`, rota: `/pessoa/${v.pessoaId}`, data: v.data });
     }
   }
+  for (const p of s.procedimentos) {
+    if (podeVer(p.pessoaId, 'perfil') && casa(p.tipo, p.descricao, p.clinica, p.medico, p.anestesista, p.nota, 'procedimento', nome(p.pessoaId))) {
+      out.push({ tipo: 'Procedimento', titulo: p.descricao || p.tipo, sub: `${nome(p.pessoaId)} · ${dataBR(p.data)}`, rota: `/pessoa/${p.pessoaId}`, data: p.data });
+    }
+  }
   return out.slice(0, limite);
 }
 
@@ -84,7 +89,7 @@ export function linhaDoTempo(s: State, pessoaId: string, podeVer: (c: Categoria)
   }
   if (podeVer('perfil')) {
     for (const v of s.vacinas.filter((x) => x.pessoaId === pessoaId)) out.push({ data: v.data, tipo: 'Vacina', titulo: v.nome, sub: v.veterinario });
-    for (const p of s.procedimentos.filter((x) => x.pessoaId === pessoaId)) out.push({ data: p.data, tipo: 'Procedimento', titulo: p.descricao || p.tipo, sub: p.clinica });
+    for (const p of s.procedimentos.filter((x) => x.pessoaId === pessoaId)) out.push({ data: p.data, tipo: 'Procedimento', titulo: p.descricao || p.tipo, sub: [p.clinica, p.medico].filter(Boolean).join(' · ') || undefined });
     for (const x of s.sintomas.filter((y) => y.pessoaId === pessoaId)) out.push({ data: x.data, tipo: 'Sintoma', titulo: x.sinais.join(', '), sub: x.nota });
     // Medições: só a pressão e o peso, que contam a história (o resto fica no gráfico).
     for (const m of s.medicoes.filter((y) => y.pessoaId === pessoaId && (y.tipo === 'pressao' || y.tipo === 'peso'))) {

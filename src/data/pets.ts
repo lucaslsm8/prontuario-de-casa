@@ -1,5 +1,5 @@
 import type { State } from './store';
-import type { Consulta, Pessoa, Prevencao, Pesagem, Sintoma, Vacina } from './types';
+import type { Consulta, Pessoa, Prevencao, Pesagem, Procedimento, Sintoma, TipoProcedimento, Vacina } from './types';
 import { HOJE } from './tempo';
 import { dataBR, diaMes, diasEntre, idade, numBR, numCurto } from './format';
 import { somarDias } from './formularios-puro';
@@ -23,6 +23,25 @@ export const proximaConsultaDaFamilia = (s: State, hoje = HOJE) =>
 
 export const SINAIS = ['Vômito', 'Diarreia', 'Coceira', 'Apatia', 'Falta de apetite', 'Tosse', 'Mancando', 'Outro'];
 export const TIPOS_PROCEDIMENTO = ['Cirurgia', 'Castração', 'Limpeza de tártaro', 'Exame de imagem', 'Outro'] as const;
+export const TIPOS_PROCEDIMENTO_PESSOA = ['Cirurgia', 'Endoscopia', 'Colonoscopia', 'Biópsia', 'Odontológico', 'Exame de imagem', 'Outro'] as const;
+/** Tipos de procedimento do pet ou da pessoa (o tipo já salvo entra na lista, para a edição não perdê-lo). */
+export function tiposProcedimento(p: Pessoa, atual?: TipoProcedimento): TipoProcedimento[] {
+  const base: readonly TipoProcedimento[] = ehPet(p) ? TIPOS_PROCEDIMENTO : TIPOS_PROCEDIMENTO_PESSOA;
+  return atual && !base.includes(atual) ? [...base.slice(0, -1), atual, 'Outro'] : [...base];
+}
+/** Rótulos do formulário de procedimento: no pet, quem fez é o veterinário e o lugar é a clínica. */
+export function rotulosProcedimento(dono: Pessoa) {
+  const animal = ehPet(dono);
+  return {
+    medico: animal ? 'Veterinário' : 'Médico',
+    clinica: animal ? 'Clínica' : 'Hospital ou clínica',
+    descricao: animal ? 'Ex.: Retirada de nódulo' : 'Ex.: Retirada da vesícula',
+  };
+}
+/** "Cirurgia · Retirada de nódulo". */
+export const tituloProcedimento = (x: Procedimento) => `${x.tipo}${x.descricao ? ` · ${x.descricao}` : ''}`;
+/** "Dr. Paulo · anestesia: Dra. Lia" (quem fez e o anestesista, se houver). */
+export const equipeProcedimento = (x: Procedimento) => [x.medico, x.anestesista && `anestesia: ${x.anestesista}`].filter(Boolean).join(' · ') || undefined;
 export const SUGESTOES_VACINA = ['V8', 'V10', 'Antirrábica', 'Gripe canina', 'Giárdia', 'Leishmaniose'];
 
 /** Última pesagem (data mais recente; em empate, a registrada depois). */
@@ -212,6 +231,6 @@ export function resumoPet(s: State, p: Pessoa, hoje = HOJE): Record<Exclude<Seca
     procedimentos: s.procedimentos
       .filter((x) => x.pessoaId === p.id)
       .sort((a, b) => b.data.localeCompare(a.data))
-      .map((x) => [`${x.tipo}${x.descricao ? ` · ${x.descricao}` : ''}`, dataBR(x.data), x.clinica].filter(Boolean).join(' · ')),
+      .map((x) => [tituloProcedimento(x), dataBR(x.data), x.clinica, equipeProcedimento(x)].filter(Boolean).join(' · ')),
   };
 }

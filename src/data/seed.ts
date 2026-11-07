@@ -412,7 +412,8 @@ export const sintomas: Sintoma[] = [
 ];
 
 export const procedimentos: Procedimento[] = [
-  { id: 'proc-thor-1', pessoaId: 'thor', data: '2023-03-18', tipo: 'Castração', clinica: 'Clínica Vida Animal', nota: 'Sem intercorrências.' },
+  { id: 'proc-thor-1', pessoaId: 'thor', data: '2023-03-18', tipo: 'Castração', clinica: 'Clínica Vida Animal', medico: 'Dra. Camila Prado', anestesista: 'Dr. Felipe Nunes', nota: 'Sem intercorrências.' },
+  { id: 'proc-roberto-1', pessoaId: 'roberto', data: '2025-08-14', tipo: 'Colonoscopia', descricao: 'Rastreamento', clinica: 'Hospital Vila Serena', medico: 'Dr. Marcelo Tavares', anestesista: 'Dra. Lúcia Moreira', nota: 'Sem pólipos. Repetir em 5 anos.' },
 ];
 
 export const pesagens: Pesagem[] = [

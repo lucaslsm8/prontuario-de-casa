@@ -74,9 +74,13 @@ function RotasMobile({ frame }: { frame: boolean }) {
         <Route path="pet/:id/vacina" element={<RegistrarVacina />} />
         <Route path="pet/:id/vacina/:vid" element={<RegistrarVacina />} />
         <Route path="pet/:id/prevencao" element={<RegistrarPrevencao />} />
+        <Route path="pet/:id/prevencao/:rid" element={<RegistrarPrevencao />} />
         <Route path="pet/:id/sintoma" element={<RegistrarSintoma />} />
+        <Route path="pet/:id/sintoma/:rid" element={<RegistrarSintoma />} />
         <Route path="pet/:id/procedimento" element={<RegistrarProcedimento />} />
+        <Route path="pet/:id/procedimento/:rid" element={<RegistrarProcedimento />} />
         <Route path="pet/:id/pesagem" element={<NovaPesagem />} />
+        <Route path="pet/:id/pesagem/:rid" element={<NovaPesagem />} />
         <Route path="pessoa/:id" element={<PerfilMembro />} />
         <Route path="pessoa/:id/editar" element={<EditarPerfilMobile />} />
         <Route path="pessoa/:id/plano" element={<PlanoSaude />} />
@@ -86,6 +90,7 @@ function RotasMobile({ frame }: { frame: boolean }) {
         <Route path="pessoa/:id/historico" element={<HistoricoPessoa />} />
         <Route path="busca" element={<Busca />} />
         <Route path="pessoa/:id/medicoes/nova" element={<NovaMedicao />} />
+        <Route path="pessoa/:id/medicoes/:mid" element={<NovaMedicao />} />
         <Route path="pessoa/:id/emergencia" element={<FichaEmergencia />} />
         <Route path="emergencia-bloqueado" element={<FichaDoDono />} />
         <Route path="compartilhar/:id" element={<Compartilhar />} />

@@ -58,16 +58,22 @@ export function blocosDoPerfil(s: State, p: Pessoa, ver: (c: Categoria) => boole
     p.condicoes.filter((c) => c.tipo === 'vacina').forEach((c) => item(c.nome, c.desde));
     if (!vacinas.length && !p.condicoes.some((c) => c.tipo === 'vacina')) vazio('Nenhuma vacina registrada.');
 
+    // Pessoa: só quando houver algum (as cirurgias antigas ficam em "Condições e cirurgias").
+    const procs = dela(s.procedimentos).sort((x, y) => y.data.localeCompare(x.data));
+    if (pet || procs.length) {
+      secao('Procedimentos');
+      procs.forEach((x) => item(
+        `${x.tipo}${x.descricao ? ` · ${x.descricao}` : ''} — ${dataBR(x.data)}`,
+        juntar(x.clinica, x.medico && `realizado por ${x.medico}`, x.anestesista && `anestesista: ${x.anestesista}`, x.nota),
+      ));
+      if (!procs.length) vazio('Nenhum procedimento registrado.');
+    }
+
     if (pet) {
       const prev = dela(s.prevencoes).sort((x, y) => y.data.localeCompare(x.data));
       secao('Prevenção');
       prev.forEach((x) => item(`${x.produto.trim() || NOMES_PREVENCAO[x.tipo]} — ${dataBR(x.data)}`, juntar(NOMES_PREVENCAO[x.tipo], `a cada ${x.intervaloDias} dias`, `próxima ${dataBR(proximaPrevencao(x))}`)));
       if (!prev.length) vazio('Nenhuma prevenção registrada.');
-
-      const procs = dela(s.procedimentos).sort((x, y) => y.data.localeCompare(x.data));
-      secao('Procedimentos');
-      procs.forEach((x) => item(`${x.tipo}${x.descricao ? ` · ${x.descricao}` : ''} — ${dataBR(x.data)}`, juntar(x.clinica, x.nota)));
-      if (!procs.length) vazio('Nenhum procedimento registrado.');
 
       const sint = dela(s.sintomas).sort((x, y) => y.data.localeCompare(x.data));
       secao('Sintomas');

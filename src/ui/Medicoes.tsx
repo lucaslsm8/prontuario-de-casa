@@ -2,7 +2,8 @@
 import { useStore } from '../data/store';
 import { MEDICOES, faixaImc, fmtMedicao, imc, infoMedicao, pontosMedicao, serieMedicao, variacao, type InfoMedicao } from '../data/medicoes';
 import { dataBR, numBR } from '../data/format';
-import type { TipoMedicao } from '../data/types';
+import { useState } from 'react';
+import type { Medicao, TipoMedicao } from '../data/types';
 import { Grafico, type Faixa } from './Grafico';
 
 /** Peso e pressão aparecem sempre (com convite a registrar); os outros só depois da primeira medição. */
@@ -12,7 +13,12 @@ export function tiposVisiveis(medicoes: { pessoaId: string; tipo: TipoMedicao }[
   return MEDICOES.filter((m) => SEMPRE.includes(m.id) || medicoes.some((x) => x.pessoaId === pessoaId && x.tipo === m.id));
 }
 
-export function CartaoMedicao({ pessoaId, tipo, onNova, altura }: { pessoaId: string; tipo: TipoMedicao; onNova?: () => void; altura?: number }) {
+/**
+ * Um tipo de medição: último valor, variação e gráfico. Com `onEditar`, "Ver medições" abre a lista
+ * (a mais nova primeiro) e cada linha leva à edição.
+ */
+export function CartaoMedicao({ pessoaId, tipo, onNova, onEditar, altura }: { pessoaId: string; tipo: TipoMedicao; onNova?: () => void; onEditar?: (m: Medicao) => void; altura?: number }) {
+  const [lista, setLista] = useState(false);
   const { state } = useStore();
   const info = infoMedicao(tipo);
   const serie = serieMedicao(state.medicoes, pessoaId, tipo);
@@ -62,6 +68,24 @@ export function CartaoMedicao({ pessoaId, tipo, onNova, altura }: { pessoaId: st
         altura={altura}
         vazio={`Nenhuma medição de ${info.nome.toLowerCase()} ainda.`}
       />
+      {onEditar && serie.length > 0 && (
+        <>
+          <button type="button" className="btn btn--link" style={{ fontSize: 13, minHeight: 32, alignSelf: 'flex-start' }} aria-expanded={lista} onClick={() => setLista((x) => !x)}>
+            {lista ? 'Esconder medições' : `Ver medições (${serie.length})`}
+          </button>
+          {lista && (
+            <div className="medida__lista">
+              {[...serie].reverse().map((m) => (
+                <button type="button" key={m.id} className="row" style={{ textAlign: 'left', padding: '10px 0', gap: 12, justifyContent: 'flex-start' }} onClick={() => onEditar(m)} aria-label={`Editar ${info.nome.toLowerCase()} de ${dataBR(m.data)}`}>
+                  <span className="mono muted" style={{ fontSize: 13, width: 128, flex: 'none' }}>{dataBR(m.data)}{m.hora ? ` ${m.hora}` : ''}</span>
+                  <span style={{ fontWeight: 600, flex: 1 }}>{fmtMedicao(m)} <small className="muted" style={{ fontWeight: 400 }}>{info.unidade}</small>{m.contexto ? <span className="muted" style={{ fontWeight: 400 }}> · {m.contexto}</span> : null}</span>
+                  <span className="chev">›</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </section>
   );
 }

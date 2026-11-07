@@ -3,7 +3,7 @@ import { HOJE } from '../data/tempo';
 import { useStore } from '../data/store';
 import { novoId } from '../data/persistencia';
 import {
-  NOMES_PREVENCAO, historicoPeso, linhaPet, novaAplicacao, pesoAtual, proximaPrevencao, proximosCuidados, reforcoVencido,
+  NOMES_PREVENCAO, equipeProcedimento, historicoPeso, tituloProcedimento, linhaPet, novaAplicacao, pesoAtual, proximaPrevencao, proximosCuidados, reforcoVencido,
   rotuloCastrado, sintomasRecentes, telHref, ultimasPrevencoes, vacinasDoPet, vencidaHa,
 } from '../data/pets';
 import { dataBR, diaMes, numCurto } from '../data/format';
@@ -124,12 +124,12 @@ function IndicadoresPet({ p }: { p: Pessoa }) {
 // ── Peças das abas ──────────────────────────────────────────────────────────
 
 /** Card de aba: título à esquerda e "+ Registrar …" à direita. */
-function CardAba({ titulo, acao, onAcao, children }: { titulo: string; acao: string; onAcao: () => void; children: ReactNode }) {
+function CardAba({ titulo, acao, onAcao, children }: { titulo: string; acao?: string; onAcao: () => void; children: ReactNode }) {
   return (
     <div className="card" style={{ fontSize: 14 }}>
       <div className="card-head card-head--20">
         <Label>{titulo}</Label>
-        <button type="button" className="btn--link" style={{ fontSize: 13 }} onClick={onAcao}>{acao}</button>
+        {acao && <button type="button" className="btn--link" style={{ fontSize: 13 }} onClick={onAcao}>{acao}</button>}
       </div>
       {children}
     </div>
@@ -257,10 +257,10 @@ function AbaPrevencao({ id }: { id: string }) {
         const prox = proximaPrevencao(p);
         return (
           <div key={p.id} className="row" style={{ ...linhaTabela, gridTemplateColumns: COLS_PREVENCAO, alignItems: 'center' }}>
-            <span className="stack" style={{ gap: 2, minWidth: 0 }}>
+            <button type="button" className="stack" style={{ gap: 2, minWidth: 0, textAlign: 'left', alignItems: 'flex-start' }} onClick={() => abrir(`editar-prevencao:${p.id}`)} aria-label={`Editar ${p.produto.trim() || NOMES_PREVENCAO[p.tipo]}`}>
               <span style={{ fontSize: 15, fontWeight: 600 }}>{p.produto.trim() || NOMES_PREVENCAO[p.tipo]}</span>
               <span className="muted" style={{ fontSize: 12 }}>{NOMES_PREVENCAO[p.tipo]} · a cada {p.intervaloDias} dias</span>
-            </span>
+            </button>
             <span className="mono">{dataBR(p.data)}</span>
             <DataPrazo data={prox} vencido={prox < HOJE} />
             <span style={{ justifySelf: 'end' }}>
@@ -285,7 +285,7 @@ function AbaSintomas({ id }: { id: string }) {
   return (
     <CardAba titulo="Sintomas" acao="+ Registrar sintoma" onAcao={() => abrir(`sintoma:${id}`)}>
       {lista.map((s) => (
-        <div key={s.id} className="row" style={{ padding: '14px 20px', justifyContent: 'flex-start', alignItems: 'flex-start', gap: 16 }}>
+        <button type="button" key={s.id} className="row" style={{ padding: '14px 20px', justifyContent: 'flex-start', alignItems: 'flex-start', gap: 16, textAlign: 'left' }} onClick={() => abrir(`editar-sintoma:${s.id}`)} aria-label={`Editar sintoma de ${dataBR(s.data)}`}>
           <span className="mono" style={{ width: 90, flex: 'none', lineHeight: '22px' }}>{dataBR(s.data)}</span>
           <span className="stack" style={{ gap: 6, flex: 1, minWidth: 0 }}>
             <span className="hstack" style={{ gap: 6, flexWrap: 'wrap' }}>
@@ -293,7 +293,7 @@ function AbaSintomas({ id }: { id: string }) {
             </span>
             {s.nota && <span className="muted" style={{ fontSize: 13 }}>{s.nota}</span>}
           </span>
-        </div>
+        </button>
       ))}
       {lista.length === 0 && <Vazio>Nenhum sintoma registrado.</Vazio>}
     </CardAba>
@@ -302,22 +302,29 @@ function AbaSintomas({ id }: { id: string }) {
 
 // ── Procedimentos ───────────────────────────────────────────────────────────
 
-function AbaProcedimentos({ id }: { id: string }) {
+/** Procedimentos do pet ou da pessoa; clicar abre a edição. `podeEditar` falso (pessoa que só compartilha) só mostra. */
+export function AbaProcedimentos({ id, podeEditar = true }: { id: string; podeEditar?: boolean }) {
   const { state } = useStore();
   const abrir = useAbrir();
   const lista = state.procedimentos.filter((p) => p.pessoaId === id).sort((a, b) => b.data.localeCompare(a.data));
   return (
-    <CardAba titulo="Procedimentos" acao="+ Registrar procedimento" onAcao={() => abrir(`procedimento:${id}`)}>
-      {lista.map((p) => (
-        <div key={p.id} className="row" style={{ padding: '14px 20px', justifyContent: 'flex-start', alignItems: 'flex-start', gap: 16 }}>
-          <span className="mono" style={{ width: 90, flex: 'none', lineHeight: '22px' }}>{dataBR(p.data)}</span>
-          <span className="stack" style={{ gap: 2, flex: 1, minWidth: 0 }}>
-            <span style={{ fontSize: 15, fontWeight: 600 }}>{p.tipo}{p.descricao ? ` · ${p.descricao}` : ''}</span>
-            {p.clinica && <span className="muted" style={{ fontSize: 12 }}>{p.clinica}</span>}
-            {p.nota && <span className="muted" style={{ fontSize: 13, marginTop: 2 }}>{p.nota}</span>}
-          </span>
-        </div>
-      ))}
+    <CardAba titulo="Procedimentos" acao={podeEditar ? '+ Registrar procedimento' : undefined} onAcao={() => abrir(`procedimento:${id}`)}>
+      {lista.map((p) => {
+        const conteudo = (
+          <>
+            <span className="mono" style={{ width: 90, flex: 'none', lineHeight: '22px' }}>{dataBR(p.data)}</span>
+            <span className="stack" style={{ gap: 2, flex: 1, minWidth: 0 }}>
+              <span style={{ fontSize: 15, fontWeight: 600 }}>{tituloProcedimento(p)}</span>
+              {(p.clinica || equipeProcedimento(p)) && <span className="muted" style={{ fontSize: 12 }}>{[p.clinica, equipeProcedimento(p)].filter(Boolean).join(' · ')}</span>}
+              {p.nota && <span className="muted" style={{ fontSize: 13, marginTop: 2 }}>{p.nota}</span>}
+            </span>
+          </>
+        );
+        const estilo = { padding: '14px 20px', justifyContent: 'flex-start', alignItems: 'flex-start', gap: 16, textAlign: 'left' } as const;
+        return podeEditar
+          ? <button type="button" key={p.id} className="row" style={estilo} onClick={() => abrir(`editar-procedimento:${p.id}`)} aria-label={`Editar ${tituloProcedimento(p)} de ${dataBR(p.data)}`}>{conteudo}</button>
+          : <div key={p.id} className="row" style={estilo}>{conteudo}</div>;
+      })}
       {lista.length === 0 && <Vazio>Nenhum procedimento registrado.</Vazio>}
     </CardAba>
   );
@@ -337,11 +344,11 @@ function AbaPeso({ id }: { id: string }) {
         </div>
       )}
       {lista.map(({ pesagem: x, delta }) => (
-        <div key={x.id} className="row" style={{ padding: '14px 20px', justifyContent: 'flex-start', gap: 16 }}>
+        <button type="button" key={x.id} className="row" style={{ padding: '14px 20px', justifyContent: 'flex-start', gap: 16, textAlign: 'left' }} onClick={() => abrir(`editar-pesagem:${x.id}`)} aria-label={`Editar pesagem de ${dataBR(x.data)}`}>
           <span className="mono" style={{ width: 90, flex: 'none' }}>{dataBR(x.data)}</span>
           <span style={{ fontSize: 15, fontWeight: 600, flex: 1 }}>{numCurto(x.kg)} kg</span>
           {delta && <span className={delta.endsWith('kg') ? 'mono muted' : 'muted'} style={{ fontSize: 13 }}>{delta}</span>}
-        </div>
+        </button>
       ))}
       {lista.length === 0 && <Vazio>Nenhuma pesagem registrada.</Vazio>}
     </CardAba>
