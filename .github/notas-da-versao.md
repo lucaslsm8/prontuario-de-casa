@@ -1,3 +1,5 @@
-- Celular: o Início voltou a dizer "Bom dia" com o seu nome, na mesma linha de Buscar e Configurações
-- Celular: o botão de Configurações agora é uma engrenagem
-- Celular: saiu a faixa "Perfil de …"; para trocar de perfil ou voltar ao seu, toque na foto na última aba
+- Remédios: dosagem e "Para que serve" em campos próprios no cadastro
+- Todo registro (vacinas, prevenção, sintomas, procedimentos, pesagens e medições) pode ser editado e apagado
+- Procedimentos também para pessoas, com quem realizou e anestesista
+- Sincronização da família: pacotes que não abriam agora são recuperados
+- Desktop: abrir o app de novo traz a janela que já está aberta
