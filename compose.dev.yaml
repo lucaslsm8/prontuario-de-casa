@@ -1,0 +1,21 @@
+﻿# Ambiente de desenvolvimento em Docker (Fase 4 da formatacao, 08/11/2026).
+# O app Tauri (Windows/Android) continua sendo gerado no Windows (npm run tauri ...).
+#
+#   docker compose -f compose.dev.yaml up web                 -> Vite em http://localhost:5174
+#   docker compose -f compose.dev.yaml run --rm web npm test   -> testes (vitest)
+#   docker compose -f compose.dev.yaml run --rm web npm run build
+services:
+  web:
+    image: node:22-bookworm
+    working_dir: /app
+    command: sh -c "npm ci && npx vite --host 0.0.0.0 --port 5173"
+    ports:
+      - "5174:5173"
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+
+volumes:
+  node_modules:
