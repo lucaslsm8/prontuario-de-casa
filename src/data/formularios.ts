@@ -9,7 +9,7 @@ import type { Anexo, CategoriaExame, Resultado, Consulta, Exame, Medicao, Pesage
 import { SINAIS, ehPet, familia, pets } from './pets';
 import { diffPessoa, formDePessoa, lerNumeroBR, normalizarTexto, novaChave, pessoaDoForm, type ErrosPerfil, type FormPerfil, type FormPet, type LinhaAlergia, type LinhaCondicao } from './perfil';
 import {
-  CORES, FREQUENCIAS, brParaISO, diffRegistro, freqDoRemedio, lerHorarios, dataDoReforco, isoParaBR, juntarDataHora, lerDataHora, lerDataRegistro, lerIntervaloDias, lerNascimento,
+  CORES, FREQUENCIAS, brParaISO, diffRegistro, freqDoRemedio, lerHorarios, nomeComDosagem, partesDoRemedio, dataDoReforco, isoParaBR, juntarDataHora, lerDataHora, lerDataRegistro, lerIntervaloDias, lerNascimento,
   lerReforco, mascaraData, mascaraValidade, montarPlano, normalizarHora, somarDias, type AtalhoReforco, type ErrosPlano, type FormPlano, type Frequencia,
 } from './formularios-puro';
 import { mascararTelefone } from './format';
@@ -23,7 +23,10 @@ export * from './formularios-puro';
 /** Novo remédio, ou edição de `inicial` (salva só o que mudou). */
 export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
   const { state, api, perfil } = useStore();
-  const [nome, setNome] = useState(inicial?.nome ?? ex('Amoxicilina 500 mg', ''));
+  const [partes] = useState(() => (inicial ? partesDoRemedio(inicial) : ex<[string, string]>(['Amoxicilina', '500 mg'], ['', ''])));
+  const [nome, setNome] = useState(partes[0]);
+  const [dosagem, setDosagem] = useState(partes[1]);
+  const [indicacao, setIndicacao] = useState(inicial?.indicacao ?? ex('Infecção de garganta', ''));
   const [para, setPara] = useState(inicial?.pessoaId ?? perfil ?? eu(state).id);
   const [dose, setDose] = useState(inicial ? inicial.doseLonga ?? inicial.dose : ex('1 cápsula', '1 comprimido'));
   const [freq, setFreqBruta] = useState<Frequencia>(inicial ? freqDoRemedio(inicial) : ex(FREQUENCIAS[2], FREQUENCIAS[0]));
@@ -49,7 +52,9 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
       ...(inicial ?? { ativo: true }),
       id,
       pessoaId: para,
-      nome: nome.trim(),
+      nome: nomeComDosagem(nome, dosagem),
+      dosagem: nomeComDosagem('', dosagem) || undefined,
+      indicacao: indicacao.trim() || undefined,
       dose: dose.replace('cápsula', 'cáps.').replace('comprimido', 'comp.'),
       doseLonga: dose,
       unidade,
@@ -69,13 +74,13 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
     } else {
       api.addRemedio(remedio);
       api.addAnexos(receita);
-      api.toast({ texto: `${nome.trim()} salvo` });
+      api.toast({ texto: `${remedio.nome} salvo` });
     }
     onSalvo();
   };
 
   return {
-    nome, setNome, para, setPara, dose, setDose, freq, setFreq, duracao, setDuracao, horariosTexto, setHorariosTexto, horariosValidos: !!horarios,
+    nome, setNome, dosagem, setDosagem, indicacao, setIndicacao, para, setPara, dose, setDose, freq, setFreq, duracao, setDuracao, horariosTexto, setHorariosTexto, horariosValidos: !!horarios,
     /** Ao sair do campo: "22" → "22:00", "8h30, 21" → "08:30, 21:00". */
     completarHorarios: () => { if (lidos?.length) setHorariosTexto(lidos.join(', ')); },
     lembrete, setLembrete, estoque, setEstoque, avisar, setAvisar, observacao, setObservacao, fim, unidade, editando: !!inicial,

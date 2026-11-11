@@ -69,7 +69,8 @@ export interface Medicao { id: string; pessoaId: PessoaId; tipo: TipoMedicao; da
 export interface Remedio {
   id: string;
   pessoaId: PessoaId;
-  nome: string;           // "Levotiroxina 75 mcg"
+  nome: string;           // "Levotiroxina 75 mcg" (com a dosagem, para exibir)
+  dosagem?: string;       // "75 mcg" (o campo à parte do formulário)
   dose: string;           // "1 comp."
   doseLonga?: string;     // "1 comprimido"
   unidade: string;        // "comprimidos", "cápsulas"

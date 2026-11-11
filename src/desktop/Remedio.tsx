@@ -9,6 +9,7 @@ import { DConfirmar } from './Formulario';
 import { AdesaoSemanal } from '../ui/Adesao';
 import { GaleriaAnexos } from '../ui/Anexos';
 import { AcoesRegistro } from './Acoes';
+import { partesDoRemedio } from '../data/formularios-puro';
 
 const voltar = <Link to="/remedios" style={{ fontSize: 14, fontWeight: 600 }}>← Remédios</Link>;
 
@@ -38,7 +39,8 @@ export function DRemedio() {
   const meta = [quem(pessoa(state, r.pessoaId)), r.dose, r.seNecessario ? 'se necessário' : r.horarios.join(', ') || 'sem horário'].filter(Boolean).join(' · ');
   const detalhes: [string, string][] = [
     ['Receitado por', r.receitadoPor ?? '—'],
-    ['Indicação', r.indicacao ?? '—'],
+    ['Para que serve', r.indicacao ?? '—'],
+    ['Dosagem', partesDoRemedio(r)[1] || '—'],
     ['Desde', r.inicio ? dataBR(r.inicio) : '—'],
     ['Lembrete', r.lembrete && r.horarios.length ? 'ligado' : 'desligado'],
   ];

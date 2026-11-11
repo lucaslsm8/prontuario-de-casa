@@ -1,7 +1,7 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
-import { AVISAR, nomeAvisar, DOSES, DURACOES, FREQUENCIAS, useFormRemedio } from '../data/formularios';
+import { AVISAR, nomeAvisar, DOSES, DURACOES, FREQUENCIAS, partesDoRemedio, useFormRemedio } from '../data/formularios';
 import { editaveis, historicoAdesao, pessoa, useStore, type DiaAdesao } from '../data/store';
 import { addDias, descricaoDose, diaSemanaCurto, diasDeEstoque, estoqueBaixo, parseISO, pctEstoque, quem } from '../data/format';
 import type { Remedio } from '../data/types';
@@ -161,13 +161,19 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
   const nav = useNavigate();
   const fechar = onDone ?? (() => nav('/remedios'));
   const pessoas = editaveis(state);
-  const { nome, setNome, para, setPara, dose, setDose, freq, setFreq, duracao, setDuracao, lembrete, setLembrete, estoque, setEstoque, avisar, setAvisar, fim, unidade, id: remId, receita, setReceita, horariosTexto, setHorariosTexto, completarHorarios, horariosValidos, editando, valido, salvar } = useFormRemedio(fechar, remedio);
+  const { nome, setNome, dosagem, setDosagem, indicacao, setIndicacao, para, setPara, dose, setDose, freq, setFreq, duracao, setDuracao, lembrete, setLembrete, estoque, setEstoque, avisar, setAvisar, fim, unidade, id: remId, receita, setReceita, horariosTexto, setHorariosTexto, completarHorarios, horariosValidos, editando, valido, salvar } = useFormRemedio(fechar, remedio);
 
   return (
     <MScreen gap={12}>
       <TopNav voltar="Cancelar" titulo={editando ? 'Editar remédio' : 'Novo remédio'} acao="Salvar" onAcao={salvar} acaoDesativada={!valido} />
-      <Field label="Remédio e dosagem">
-        <input className="input" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Losartana 50 mg" autoFocus={!editando} />
+      <Field label="Remédio">
+        <input className="input" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Losartana" autoFocus={!editando} />
+      </Field>
+      <Field label="Dosagem">
+        <input className="input" value={dosagem} onChange={(e) => setDosagem(e.target.value)} placeholder="Ex.: 50 mg" />
+      </Field>
+      <Field label="Para que serve">
+        <input className="input" value={indicacao} onChange={(e) => setIndicacao(e.target.value)} placeholder="Ex.: pressão alta" />
       </Field>
       <FieldGroup label="Para quem">
         <ChipGroup largo {...opcoesPessoas(pessoas, quem)} valor={para} onChange={setPara} />
@@ -288,7 +294,8 @@ export function DetalheRemedio() {
 
       <div className="card" style={{ fontSize: 14 }}>
         {r.receitadoPor && <Row compact label="Receitado por" valor={r.receitadoPor} style={{ padding: '12px 16px' }} />}
-        {r.indicacao && <Row compact label="Para" valor={r.indicacao} style={{ padding: '12px 16px' }} />}
+        {r.indicacao && <Row compact label="Para que serve" valor={r.indicacao} style={{ padding: '12px 16px' }} />}
+        {partesDoRemedio(r)[1] && <Row compact label="Dosagem" valor={partesDoRemedio(r)[1]} style={{ padding: '12px 16px' }} />}
         <Row compact label="Lembrete" valor={r.lembrete && r.horarios.length ? `${r.horarios.join(', ')} · ativo` : 'desligado'} style={{ padding: '12px 16px' }} />
       </div>
 

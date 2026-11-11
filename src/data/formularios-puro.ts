@@ -246,3 +246,23 @@ export function freqDoRemedio(r: { frequencia?: string; horarios: string[]; seNe
     ?? FREQUENCIAS.find((f) => f.nome === r.frequencia)
     ?? { id: 'outra', nome: r.frequencia || `${r.horarios.length}x ao dia`, horarios: r.horarios };
 }
+
+/**
+ * O nome do remédio guardado continua "Losartana 50 mg" (as telas e aparelhos com versão antiga mostram `nome`);
+ * a dosagem também vai à parte, em `dosagem`. Para editar, separa de volta.
+ */
+export function partesDoRemedio(r: { nome: string; dosagem?: string }): [string, string] {
+  const d = r.dosagem?.trim();
+  if (d) {
+    const nome = r.nome.trim();
+    return [nome.toLowerCase().endsWith(` ${d.toLowerCase()}`) ? nome.slice(0, -d.length - 1).trim() : nome, d];
+  }
+  const m = r.nome.trim().match(/^(.*\S)\s+(\d[\d.,]*\s*(?:mcg|mg|g|ml|mL|UI|%)(?:\/\S+)?)$/);
+  return m ? [m[1], m[2]] : [r.nome.trim(), ''];
+}
+
+/** "Losartana" + "50mg" → "Losartana 50 mg". */
+export function nomeComDosagem(nome: string, dosagem: string) {
+  const d = dosagem.trim().replace(/^(\d[\d.,]*)\s*(mcg|mg|g|ml|mL|UI)$/i, (_, n, u) => `${n} ${u.toLowerCase() === 'ui' ? 'UI' : u.toLowerCase() === 'ml' ? 'mL' : u.toLowerCase()}`);
+  return [nome.trim(), d].filter(Boolean).join(' ');
+}

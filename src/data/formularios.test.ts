@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { brParaISO, dataDoReforco, isoParaBR, juntarDataHora, lerDataHora, lerDataRegistro, lerIntervaloDias, lerNascimento, lerReforco, mascaraData, normalizarHora, somarAnos, somarDias, somarMeses, mascaraValidade, montarPlano, type FormPlano } from './formularios-puro';
+import { brParaISO, nomeComDosagem, partesDoRemedio, dataDoReforco, isoParaBR, juntarDataHora, lerDataHora, lerDataRegistro, lerIntervaloDias, lerNascimento, lerReforco, mascaraData, normalizarHora, somarAnos, somarDias, somarMeses, mascaraValidade, montarPlano, type FormPlano } from './formularios-puro';
 
 const HOJE = '2026-10-28';
 
@@ -208,5 +208,20 @@ describe('plano de saúde', () => {
   });
   it('máscara da validade', () => {
     expect([mascaraValidade('0'), mascaraValidade('082'), mascaraValidade('082028'), mascaraValidade('08/20289')]).toEqual(['0', '08/2', '08/2028', '08/2028']);
+  });
+});
+
+describe('dosagem do remédio', () => {
+  it('separa o nome guardado', () => {
+    expect(partesDoRemedio({ nome: 'Losartana 50 mg', dosagem: '50 mg' })).toEqual(['Losartana', '50 mg']);
+    expect(partesDoRemedio({ nome: 'Levotiroxina 75 mcg' })).toEqual(['Levotiroxina', '75 mcg']);
+    expect(partesDoRemedio({ nome: 'Vitamina D' })).toEqual(['Vitamina D', '']);
+    expect(partesDoRemedio({ nome: 'Dipirona', dosagem: '20 gotas' })).toEqual(['Dipirona', '20 gotas']);
+  });
+  it('junta e arruma a unidade', () => {
+    expect(nomeComDosagem('Losartana ', '50mg')).toBe('Losartana 50 mg');
+    expect(nomeComDosagem('Amoxicilina', '250 mg/5 mL')).toBe('Amoxicilina 250 mg/5 mL');
+    expect(nomeComDosagem('Vitamina D', '')).toBe('Vitamina D');
+    expect(nomeComDosagem('Vitamina D', '2000ui')).toBe('Vitamina D 2000 UI');
   });
 });

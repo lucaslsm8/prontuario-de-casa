@@ -45,8 +45,14 @@ export function DNovoRemedio({ onClose, remedio }: Props & { remedio?: Remedio }
   return (
     <DDialogo titulo={f.editando ? 'Editar remédio' : 'Novo remédio'} onClose={onClose} rodape={<DRodape salvar={f.editando ? 'Salvar alterações' : 'Salvar remédio'} onSalvar={f.salvar} valido={f.valido} onCancelar={onClose} />}>
       <DGrade>
-        <DCampo label="Remédio e dosagem" span2>
-          <input className="input input--desk" value={f.nome} onChange={(e) => f.setNome(e.target.value)} placeholder="Ex.: Losartana 50 mg" />
+        <DCampo label="Remédio">
+          <input className="input input--desk" value={f.nome} onChange={(e) => f.setNome(e.target.value)} placeholder="Ex.: Losartana" />
+        </DCampo>
+        <DCampo label="Dosagem">
+          <input className="input input--desk" value={f.dosagem} onChange={(e) => f.setDosagem(e.target.value)} placeholder="Ex.: 50 mg" />
+        </DCampo>
+        <DCampo label="Para que serve" span2>
+          <input className="input input--desk" value={f.indicacao} onChange={(e) => f.setIndicacao(e.target.value)} placeholder="Ex.: pressão alta" />
         </DCampo>
         <DCampo label="Para quem" span2 grupo>
           <DChips opcoes={pessoas.opcoes} separarAntes={pessoas.separarAntes} valor={f.para} onChange={f.setPara} />
