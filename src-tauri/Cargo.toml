@@ -52,6 +52,8 @@ windows-registry = "0.6"
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-process = "2"
 tauri-plugin-updater = "2"
+# Uma instância só: abrir de novo traz a janela que já está aberta (duas instâncias no mesmo banco duplicam lembretes e sincronização).
+tauri-plugin-single-instance = "2"
 
 # Biometria (digital/rosto) para abrir o app no celular; leitor de QR para o convite da família.
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]

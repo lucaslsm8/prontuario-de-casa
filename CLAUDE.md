@@ -43,6 +43,8 @@ Stack: Tauri 2 (Rust) + React 18 + TypeScript + Vite. Leia também `README.md` e
   - `lib.rs`: comandos Tauri.
   - Android: plugins Kotlin em `src-tauri/gen/android/app/src/main/java/br/familia/arquivosaude/` (`CofrePlugin`, `RedePlugin`, `InstaladorPlugin`, `LembretePlugin`, `QrPlugin` com ZXing para o QR do convite), cada um com um `*_android.rs`. `LembretePlugin.acaoPendente` entrega uma vez a ação da notificação (Tomei / 15 min / Pular) que abriu o app fechado: o `tauri-plugin-notification` dispara `actionPerformed` no `load`, antes do listener do JS, e a ação se perderia. `useLembretes` consulta na montagem e põe na mesma fila das outras ações.
   - Aparelhos (`store.tsx`, `case 'aparelho'` e `acaoDoEvento`): o evento `aparelho` só vale assinado pelo próprio aparelho, e a primeira `chavePublica` fica (TOFU). "Remover aparelho" exige token novo do GitHub.
+  - Download de pacote (`remoto.rs`, `baixar`): o `sha` pela Contents API e os bytes pela API de blobs (`/git/blobs/<sha>`, base64). A Contents API, raw ou base64, devolve alguns pacotes cifrados pequenos convertidos como se fossem texto (UTF-16 → UTF-8) e eles não decifravam. Cada aparelho relê todos os pacotes uma vez (kv `sync_relido_blobs:<fid>`) para recuperar o que tinha sido pulado como ilegível.
+  - Desktop abre uma instância só (`tauri-plugin-single-instance`): abrir de novo foca a janela.
   - Comandos `async` (não travam a janela). Argumentos em uma palavra, respostas em camelCase.
 
 ## Regras

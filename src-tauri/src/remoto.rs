@@ -37,6 +37,13 @@ impl GitHub {
     }
 }
 
+/// Corpo JSON de uma resposta, lendo no máximo `limite` bytes.
+fn json_de(r: ureq::Response, limite: u64) -> R<serde_json::Value> {
+    let mut b = Vec::new();
+    r.into_reader().take(limite).read_to_end(&mut b).map_err(|_| "download interrompido".to_string())?;
+    serde_json::from_slice(&b).map_err(|_| "download interrompido".to_string())
+}
+
 /// Erro HTTP → texto. 401/403 viram "TOKEN: …" (o app mostra o aviso de token).
 fn erro(e: ureq::Error) -> String {
     match e {
@@ -57,16 +64,29 @@ impl Remoto for GitHub {
             Err(e) => Err(erro(e)),
         }
     }
+    /// O `sha` pela Contents API e os bytes pela API de blobs do Git. A Contents API (raw ou base64) devolve
+    /// alguns pacotes cifrados pequenos convertidos, como se fossem texto UTF-16 virando UTF-8 (299 bytes viram 444),
+    /// e eles não decifravam; o blob vem sempre com os bytes gravados.
     fn baixar(&self, caminho: &str) -> R<Option<Vec<u8>>> {
-        match self.req("GET", &self.url(&format!("/contents/{caminho}"))).set("Accept", "application/vnd.github.raw+json").call() {
-            Ok(r) => {
-                let mut b = Vec::new();
-                r.into_reader().take(110 * 1024 * 1024).read_to_end(&mut b).map_err(|_| "download interrompido".to_string())?;
-                Ok(Some(b))
-            }
-            Err(ureq::Error::Status(404, _)) => Ok(None),
-            Err(e) => Err(erro(e)),
+        let meta = match self.req("GET", &self.url(&format!("/contents/{caminho}"))).set("Accept", "application/vnd.github.object+json").call() {
+            // Até 1 MB de arquivo a resposta ainda traz o conteúdo em base64 (que aqui não é usado).
+            Ok(r) => json_de(r, 2 * 1024 * 1024)?,
+            Err(ureq::Error::Status(404, _)) => return Ok(None),
+            Err(e) => return Err(erro(e)),
+        };
+        let sha = meta.get("sha").and_then(|s| s.as_str()).ok_or("resposta inválida do GitHub")?;
+        // Até 110 MB de arquivo: em base64, um terço a mais.
+        let blob = json_de(self.req("GET", &self.url(&format!("/git/blobs/{sha}"))).set("Accept", "application/vnd.github+json").call().map_err(erro)?, 150 * 1024 * 1024)?;
+        if blob.get("encoding").and_then(|e| e.as_str()) != Some("base64") {
+            return Err("resposta inválida do GitHub".into());
         }
+        let texto: String = blob.get("content").and_then(|c| c.as_str()).unwrap_or("").chars().filter(|c| !c.is_whitespace()).collect();
+        let bytes = base64::engine::general_purpose::STANDARD.decode(texto).map_err(|_| "download interrompido".to_string())?;
+        // Tamanho diferente do declarado = resposta incompleta: erro de rede (tenta de novo), não "ilegível".
+        if blob.get("size").and_then(|s| s.as_u64()).is_some_and(|s| s != bytes.len() as u64) {
+            return Err("download interrompido".into());
+        }
+        Ok(Some(bytes))
     }
     fn gravar(&self, caminho: &str, bytes: &[u8]) -> R<()> {
         let corpo = serde_json::json!({

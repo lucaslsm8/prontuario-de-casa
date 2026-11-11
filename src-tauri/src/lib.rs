@@ -351,9 +351,27 @@ async fn sync_receber(st: State<'_, Estado>, aparelho: String) -> R<usize> {
     let Ok(_vez) = st.sync.try_lock() else { return Ok(0) };
     let f = atualizar_epoca(&st, &aparelho, false).await?;
     let fid = f.familia_id.clone();
-    let (mut lidos, chaves) = com_banco(&st, |b| Ok((ler_lidos(b, &fid)?, epoca::chaves(&f, &ler_kv(b, &kv_antigas(&fid))?)?)))?;
     // Aparelhos vistos em eventos aceitos (inclusive de fora da família): os eventos deles não sobem daqui de novo.
     let chave_vistos = format!("sync_vistos:{}", f.familia_id);
+    // Uma vez por aparelho: antes do download pela API de blobs (`remoto.rs`), alguns pacotes chegavam convertidos,
+    // não decifravam e eram pulados depois de `TENTATIVAS_ILEGIVEL` rodadas. Relê tudo para recuperar o que foi pulado
+    // (o que já está no banco é ignorado). A marca vai por último: se cair no meio, recomeça igual.
+    let chave_relido = format!("sync_relido_blobs:{fid}");
+    com_banco(&st, |b| {
+        if b.kv_get(&chave_relido)?.is_some() {
+            return Ok(());
+        }
+        let mut lidos = ler_lidos(b, &fid)?;
+        let mut vistos: std::collections::BTreeSet<String> = ler_kv(b, &chave_vistos)?;
+        sincronia::reler(&mut lidos, &mut vistos);
+        // Vistos primeiro (como no sync_reler): nenhum evento de outro aparelho passa a subir daqui.
+        b.kv_set(&chave_vistos, &serde_json::to_value(&vistos).map_err(|e| e.to_string())?)?;
+        b.kv_set(&format!("sync_lidos:{fid}"), &Value::Null)?;
+        b.kv_set(&format!("sync_lidos_epocas:{fid}"), &Value::Null)?;
+        b.kv_set(&format!("sync_ilegiveis:{fid}"), &Value::Null)?;
+        b.kv_set(&chave_relido, &json!(true))
+    })?;
+    let (mut lidos, chaves) = com_banco(&st, |b| Ok((ler_lidos(b, &fid)?, epoca::chaves(&f, &ler_kv(b, &kv_antigas(&fid))?)?)))?;
     let mut vistos: std::collections::BTreeSet<String> = com_banco(&st, |b| ler_kv(b, &chave_vistos))?;
     let (f2, ap) = (f.clone(), aparelho.clone());
     let donos = rede(move || sincronia::donos(&remoto::GitHub::new(&f2.repo, &f2.token), &ap)).await?;
@@ -997,7 +1015,18 @@ async fn qr_ler(app: tauri::AppHandle) -> R<Option<String>> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = tauri::Builder::default().plugin(tauri_plugin_dialog::init());
+    let builder = tauri::Builder::default();
+    // Uma instância só (tem de ser o primeiro plugin): abrir o app de novo traz a janela aberta para a frente,
+    // em vez de um segundo processo no mesmo banco (lembretes e sincronização em dobro).
+    #[cfg(desktop)]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+        if let Some(janela) = app.get_webview_window("main") {
+            let _ = janela.unminimize();
+            let _ = janela.show();
+            let _ = janela.set_focus();
+        }
+    }));
+    let builder = builder.plugin(tauri_plugin_dialog::init());
     // Atualizações: o app consulta o latest.json do GitHub Releases e só instala com assinatura válida.
     #[cfg(desktop)]
     let builder = builder.plugin(tauri_plugin_updater::Builder::new().build()).plugin(tauri_plugin_process::init());
