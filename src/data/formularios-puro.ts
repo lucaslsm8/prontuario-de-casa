@@ -266,3 +266,54 @@ export function nomeComDosagem(nome: string, dosagem: string) {
   const d = dosagem.trim().replace(/^(\d[\d.,]*)\s*(mcg|mg|g|ml|mL|UI)$/i, (_, n, u) => `${n} ${u.toLowerCase() === 'ui' ? 'UI' : u.toLowerCase() === 'ml' ? 'mL' : u.toLowerCase()}`);
   return [nome.trim(), d].filter(Boolean).join(' ');
 }
+
+// ── Forma e dose do remédio ─────────────────────────────────────────────────
+
+/** Forma do remédio: como a dose e o estoque são contados. `curto`: o texto curto das listas. */
+export interface FormaRemedio { id: string; um: string; varios: string; curto?: string; cartela?: boolean }
+export const FORMAS_REMEDIO: FormaRemedio[] = [
+  { id: 'comprimido', um: 'comprimido', varios: 'comprimidos', curto: 'comp.', cartela: true },
+  { id: 'capsula', um: 'cápsula', varios: 'cápsulas', curto: 'cáps.', cartela: true },
+  { id: 'gota', um: 'gota', varios: 'gotas' },
+  { id: 'ml', um: 'mL', varios: 'mL' },
+  { id: 'sache', um: 'sachê', varios: 'sachês' },
+  { id: 'jato', um: 'jato', varios: 'jatos' },
+  { id: 'aplicacao', um: 'aplicação', varios: 'aplicações', curto: 'aplic.' },
+  { id: 'adesivo', um: 'adesivo', varios: 'adesivos' },
+  { id: 'ampola', um: 'ampola', varios: 'ampolas' },
+];
+const semAc = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+
+/** "½", "1/2", "1,5", "20" → número; inválido → undefined. */
+export function lerQuantidade(t: string): number | undefined {
+  const s = t.trim().replace(/\s+/g, '');
+  if (!s) return undefined;
+  if (s === '½') return 0.5;
+  const misto = s.match(/^(\d+)½$/);
+  if (misto) return Number(misto[1]) + 0.5;
+  const fr = s.match(/^(\d+)\/(\d+)$/);
+  if (fr) return Number(fr[2]) ? Number(fr[1]) / Number(fr[2]) : undefined;
+  const n = Number(s.replace(',', '.'));
+  return Number.isFinite(n) && n > 0 && n <= 1000 ? n : undefined;
+}
+
+/** "1,5" · "½" · "20" (como escrever a quantidade de volta). */
+export const textoQuantidade = (n: number) => (n === 0.5 ? '½' : Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100).replace('.', ','));
+
+/** Monta a dose: 2 + comprimido → "2 comprimidos" / "2 comp." / unidade "comprimidos". Abaixo de 2 é singular. */
+export function montarDose(qtd: number, formaId: string): { dose: string; doseLonga: string; unidade: string } {
+  const f = FORMAS_REMEDIO.find((x) => x.id === formaId) ?? FORMAS_REMEDIO[0];
+  const q = textoQuantidade(qtd);
+  const nome = qtd < 2 ? f.um : f.varios;
+  return { doseLonga: `${q} ${nome}`, dose: `${q} ${f.curto ?? nome}`, unidade: f.varios };
+}
+
+/** Separa uma dose salva ("2 comprimidos", "½ comprimido", "20 gotas") em quantidade e forma. */
+export function lerDose(doseLonga: string): { qtd: string; forma: string } {
+  const t = doseLonga.trim();
+  const m = t.match(/^([\d.,/½]+)\s*(.*)$/);
+  const qtd = m ? m[1] : '1';
+  const resto = semAc(m ? m[2] : t);
+  const f = FORMAS_REMEDIO.find((x) => [x.um, x.varios, x.curto ?? ''].filter(Boolean).some((n) => resto.startsWith(semAc(n).replace(/\.$/, ''))));
+  return { qtd, forma: f?.id ?? 'comprimido' };
+}

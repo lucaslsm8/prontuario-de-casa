@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { brParaISO, nomeComDosagem, partesDoRemedio, dataDoReforco, isoParaBR, juntarDataHora, lerDataHora, lerDataRegistro, lerIntervaloDias, lerNascimento, lerReforco, mascaraData, normalizarHora, somarAnos, somarDias, somarMeses, mascaraValidade, montarPlano, type FormPlano } from './formularios-puro';
+import { brParaISO, lerDose, lerQuantidade, montarDose, nomeComDosagem, partesDoRemedio, dataDoReforco, isoParaBR, juntarDataHora, lerDataHora, lerDataRegistro, lerIntervaloDias, lerNascimento, lerReforco, mascaraData, normalizarHora, somarAnos, somarDias, somarMeses, mascaraValidade, montarPlano, type FormPlano } from './formularios-puro';
 
 const HOJE = '2026-10-28';
 
@@ -223,5 +223,33 @@ describe('dosagem do remédio', () => {
     expect(nomeComDosagem('Amoxicilina', '250 mg/5 mL')).toBe('Amoxicilina 250 mg/5 mL');
     expect(nomeComDosagem('Vitamina D', '')).toBe('Vitamina D');
     expect(nomeComDosagem('Vitamina D', '2000ui')).toBe('Vitamina D 2000 UI');
+  });
+});
+
+describe('forma e dose do remédio', () => {
+  it('lê a quantidade', () => {
+    expect(lerQuantidade('½')).toBe(0.5);
+    expect(lerQuantidade('1/2')).toBe(0.5);
+    expect(lerQuantidade('1½')).toBe(1.5);
+    expect(lerQuantidade('1,5')).toBe(1.5);
+    expect(lerQuantidade('20')).toBe(20);
+    expect(lerQuantidade('0')).toBeUndefined();
+    expect(lerQuantidade('muito')).toBeUndefined();
+  });
+  it('monta a dose no singular e no plural', () => {
+    expect(montarDose(1, 'comprimido')).toEqual({ doseLonga: '1 comprimido', dose: '1 comp.', unidade: 'comprimidos' });
+    expect(montarDose(2, 'capsula')).toEqual({ doseLonga: '2 cápsulas', dose: '2 cáps.', unidade: 'cápsulas' });
+    expect(montarDose(0.5, 'comprimido').doseLonga).toBe('½ comprimido');
+    expect(montarDose(20, 'gota')).toEqual({ doseLonga: '20 gotas', dose: '20 gotas', unidade: 'gotas' });
+    expect(montarDose(7.5, 'ml')).toEqual({ doseLonga: '7,5 mL', dose: '7,5 mL', unidade: 'mL' });
+  });
+  it('separa uma dose salva', () => {
+    expect(lerDose('2 comprimidos')).toEqual({ qtd: '2', forma: 'comprimido' });
+    expect(lerDose('½ comprimido')).toEqual({ qtd: '½', forma: 'comprimido' });
+    expect(lerDose('1 cápsula')).toEqual({ qtd: '1', forma: 'capsula' });
+    expect(lerDose('1 cáps.')).toEqual({ qtd: '1', forma: 'capsula' });
+    expect(lerDose('20 gotas')).toEqual({ qtd: '20', forma: 'gota' });
+    expect(lerDose('5 mL')).toEqual({ qtd: '5', forma: 'ml' });
+    expect(lerDose('1 sachê')).toEqual({ qtd: '1', forma: 'sache' });
   });
 });

@@ -11,7 +11,7 @@ import type { Anexo, Aparencia, CategoriaExame, Resultado, Consulta, Exame, Medi
 import { SINAIS, ehPet, familia, pets } from './pets';
 import { diffPessoa, formDePessoa, lerNumeroBR, normalizarTexto, novaChave, pessoaDoForm, type ErrosPerfil, type FormPerfil, type FormPet, type LinhaAlergia, type LinhaCondicao } from './perfil';
 import {
-  CORES, FREQUENCIAS, brParaISO, diffRegistro, freqDoRemedio, lerHorarios, nomeComDosagem, partesDoRemedio, dataDoReforco, isoParaBR, juntarDataHora, lerDataHora, lerDataRegistro, lerIntervaloDias, lerNascimento,
+  CORES, FORMAS_REMEDIO, FREQUENCIAS, brParaISO, lerDose, lerQuantidade, montarDose, diffRegistro, freqDoRemedio, lerHorarios, nomeComDosagem, partesDoRemedio, dataDoReforco, isoParaBR, juntarDataHora, lerDataHora, lerDataRegistro, lerIntervaloDias, lerNascimento,
   lerReforco, mascaraData, mascaraValidade, montarPlano, normalizarHora, somarDias, type AtalhoReforco, type ErrosPlano, type FormPlano, type Frequencia,
 } from './formularios-puro';
 import { mascararTelefone } from './format';
@@ -30,7 +30,15 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
   const [dosagem, setDosagem] = useState(partes[1]);
   const [indicacao, setIndicacao] = useState(inicial?.indicacao ?? ex('Infecção de garganta', ''));
   const [para, setPara] = useState(inicial?.pessoaId ?? perfil ?? eu(state).id);
-  const [dose, setDose] = useState(inicial ? inicial.doseLonga ?? inicial.dose : ex('1 cápsula', '1 comprimido'));
+  // Dose = quantidade + forma ("2" + comprimido, "20" + gota). A forma define a unidade do estoque.
+  const [doseIni] = useState(() => lerDose(inicial ? inicial.doseLonga ?? inicial.dose : ex('1 cápsula', '1 comprimido')));
+  const [qtdDose, setQtdDose] = useState(doseIni.qtd);
+  const [forma, setForma] = useState(doseIni.forma);
+  const qtdNum = lerQuantidade(qtdDose);
+  const montada = montarDose(qtdNum ?? 1, forma);
+  const dose = montada.doseLonga;
+  /** Compatível com a lista antiga de doses ("2 comprimidos"). */
+  const setDose = (v: string) => { const d = lerDose(v); setQtdDose(d.qtd); setForma(d.forma); };
   const [freq, setFreqBruta] = useState<Frequencia>(inicial ? freqDoRemedio(inicial) : ex(FREQUENCIAS[2], FREQUENCIAS[0]));
   const [horariosTexto, setHorariosTexto] = useState((inicial?.horarios ?? freq.horarios).join(', '));
   const inicio = inicial?.inicio ?? HOJE;
@@ -41,7 +49,8 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
   const [observacao, setObservacao] = useState(inicial?.observacao ?? '');
   const [receitadoPor, setReceitadoPor] = useState(inicial?.receitadoPor ?? '');
   const fim = addDias(inicio, duracao);
-  const unidade = /c[áa]ps/.test(dose) ? 'cápsulas' : inicial && !/comp/.test(dose) ? inicial.unidade : 'comprimidos';
+  const unidade = montada.unidade;
+  const comCartela = !!FORMAS_REMEDIO.find((x) => x.id === forma)?.cartela;
   const [id] = useState(() => inicial?.id ?? `rem-${novoId()}`);
   const [receita, setReceita] = useState<Anexo[]>([]);
   // "Como ele é": desenho do comprimido, tamanho da cartela e fotos.
@@ -70,8 +79,8 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
       nome: nomeComDosagem(nome, dosagem),
       dosagem: nomeComDosagem('', dosagem) || undefined,
       indicacao: indicacao.trim() || undefined,
-      dose: dose.replace('cápsula', 'cáps.').replace('comprimido', 'comp.'),
-      doseLonga: dose,
+      dose: montada.dose,
+      doseLonga: montada.doseLonga,
       unidade,
       frequencia: freq.nome,
       horarios,
@@ -84,8 +93,9 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
       lembrete,
       observacao: observacao.trim() || undefined,
       receitadoPor: receitadoPor.trim() || undefined,
-      aparencia: aparencia && (aparencia.forma === 'capsula' ? { ...aparencia, sulco: undefined } : { ...aparencia, cor2: undefined }),
-      cartela,
+      // Gotas, mL etc. não têm cartela nem desenho de comprimido.
+      aparencia: comCartela && aparencia ? (aparencia.forma === 'capsula' ? { ...aparencia, sulco: undefined } : { ...aparencia, cor2: undefined }) : undefined,
+      cartela: comCartela ? cartela : undefined,
     } as Remedio;
     if (inicial) {
       api.editar('remedios', id, diffRegistro(inicial, remedio), `${remedio.nome} atualizado`);
@@ -107,7 +117,8 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
     /** Ao sair do campo: "22" → "22:00", "8h30, 21" → "08:30, 21:00". */
     completarHorarios: () => { if (lidos?.length) setHorariosTexto(lidos.join(', ')); },
     lembrete, setLembrete, estoque, setEstoque, avisar, setAvisar, observacao, setObservacao, receitadoPor, setReceitadoPor, fim, unidade, editando: !!inicial,
-    id, receita, setReceita, valido: !!nome.trim() && !!horarios && cartelaValida, salvar,
+    id, receita, setReceita, valido: !!nome.trim() && !!horarios && cartelaValida && qtdNum != null, salvar,
+    qtdDose, setQtdDose, forma, setForma, qtdValida: qtdNum != null, comCartela,
     aparencia, setAparencia, porCartela, setPorCartela, fileiras, setFileiras, cartelaValida,
     fotoComprimido, setFotoComprimido, fotosCartela, setFotosCartela,
   };

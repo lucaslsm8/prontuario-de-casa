@@ -3,7 +3,7 @@ import { editaveis, eu, paraConsultas, pessoa, useStore } from '../data/store';
 import { HOJE } from '../data/tempo';
 import { addDias, dataBR, diaMes, idade, mascararTelefone, quem, linhaRemedioEmergencia } from '../data/format';
 import {
-  ATALHOS_INTERVALO, ATALHOS_REFORCO, AVISAR, nomeAvisar, CATEGORIAS_EXAME, DOSES, DURACOES, FREQUENCIAS, LEMBRAR, PARENTESCO,
+  ATALHOS_INTERVALO, ATALHOS_REFORCO, AVISAR, nomeAvisar, CATEGORIAS_EXAME, DURACOES, FORMAS_REMEDIO, FREQUENCIAS, lerQuantidade, LEMBRAR, PARENTESCO,
   ABRANGENCIAS, ACOMODACOES, SEGMENTACOES, SEXOS_PET, SEXO_DO_PET, TIPOS_PREVENCAO, sexoPetDoForm, normalizarHora, useFormConsulta, useFormExame, useFormPerfil, useFormPesagem, useFormPessoa, useFormPet,
   useFormPrevencao, useFormMedicao, useFormProcedimento, useFormPlano, useFormRemedio, useFormSintoma, useFormVacina, type AtalhoReforco, type TipoPrevencao,
 } from '../data/formularios';
@@ -43,7 +43,6 @@ export function DNovoRemedio({ onClose, remedio }: Props & { remedio?: Remedio }
   const f = useFormRemedio(onClose, remedio);
   const inicio = remedio?.inicio ?? HOJE;
   const duracoes = [...new Set([...DURACOES, f.duracao])].map((v) => ({ id: v, nome: v ? `${v} dias · até ${diaMes(addDias(inicio, v))}` : 'Uso contínuo' }));
-  const doses = DOSES.includes(f.dose) ? DOSES : [f.dose, ...DOSES];
   const freqs = FREQUENCIAS.some((x) => x.nome === f.freq.nome) ? FREQUENCIAS : [f.freq, ...FREQUENCIAS];
 
   return (
@@ -62,8 +61,11 @@ export function DNovoRemedio({ onClose, remedio }: Props & { remedio?: Remedio }
           <DChips opcoes={pessoas.opcoes} separarAntes={pessoas.separarAntes} valor={f.para} onChange={f.setPara} />
         </DCampo>
         <div className="dfield dfield--span2"><AvisoAlergia nome={f.nome} pessoaId={f.para} /></div>
-        <DCampo label="Dose">
-          <DSelect opcoes={doses.map((d) => ({ id: d, nome: d }))} valor={f.dose} onChange={f.setDose} />
+        <DCampo label="Dose" grupo erro={f.qtdValida ? undefined : 'Quantidade como 1, ½ ou 20.'}>
+          <span className="hstack" style={{ gap: 8 }}>
+            <input className="input input--desk input--mono" style={{ width: 80 }} inputMode="decimal" value={f.qtdDose} onChange={(e) => f.setQtdDose(e.target.value.replace(/[^0-9,./½]/g, ''))} aria-label="Quantidade por dose" />
+            <span style={{ flex: 1 }}><DSelect opcoes={FORMAS_REMEDIO.map((x) => ({ id: x.id, nome: (lerQuantidade(f.qtdDose) ?? 1) < 2 ? x.um : x.varios }))} valor={f.forma} onChange={f.setForma} /></span>
+          </span>
         </DCampo>
         <DCampo label="Frequência">
           <DSelect opcoes={freqs.map((x) => ({ id: x, nome: x.nome }))} valor={freqs.find((x) => x.nome === f.freq.nome)!} onChange={f.setFreq} />
@@ -100,10 +102,14 @@ export function DNovoRemedio({ onClose, remedio }: Props & { remedio?: Remedio }
         <div className="dfield dfield--span2">
           <DToggle texto="Lembrete no horário" on={f.lembrete} onChange={f.setLembrete} />
         </div>
-        <div className="dfield dfield--span2" style={{ borderTop: '1px solid var(--divider)', paddingTop: 14 }}>
-          <span className="label">Como ele é</span>
-        </div>
-        <CamposAparencia f={f} desktop />
+        {f.comCartela && (
+          <>
+            <div className="dfield dfield--span2" style={{ borderTop: '1px solid var(--divider)', paddingTop: 14 }}>
+              <span className="label">Como ele é</span>
+            </div>
+            <CamposAparencia f={f} desktop />
+          </>
+        )}
         {!f.editando && (
           <DCampo label="Receita (opcional)" span2 grupo>
             <AnexosPendentes donoId={f.id} tipo="receita" lista={f.receita} onChange={f.setReceita} />

@@ -1,7 +1,7 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
-import { AVISAR, nomeAvisar, DOSES, DURACOES, FREQUENCIAS, lerHorarios, partesDoRemedio, useFormRemedio } from '../data/formularios';
+import { AVISAR, nomeAvisar, DURACOES, FORMAS_REMEDIO, FREQUENCIAS, lerHorarios, lerQuantidade, partesDoRemedio, useFormRemedio } from '../data/formularios';
 import { editaveis, historicoAdesao, marcaDose, pessoa, useStore, type DiaAdesao } from '../data/store';
 import { addDias, descricaoDose, diaSemanaCurto, diasDeEstoque, estoqueBaixo, parseISO, pctEstoque, quem, textoEstoque } from '../data/format';
 import type { Remedio } from '../data/types';
@@ -167,7 +167,7 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
   const fechar = onDone ?? (() => nav('/remedios'));
   const pessoas = editaveis(state);
   const form = useFormRemedio(fechar, remedio);
-  const { nome, setNome, dosagem, setDosagem, indicacao, setIndicacao, para, setPara, dose, setDose, freq, setFreq, duracao, setDuracao, lembrete, setLembrete, estoque, setEstoque, avisar, setAvisar, fim, unidade, id: remId, receita, setReceita, horariosTexto, setHorariosTexto, completarHorarios, horariosValidos, editando, valido, salvar } = form;
+  const { nome, setNome, dosagem, setDosagem, indicacao, setIndicacao, para, setPara, freq, setFreq, duracao, setDuracao, lembrete, setLembrete, estoque, setEstoque, avisar, setAvisar, fim, unidade, id: remId, receita, setReceita, horariosTexto, setHorariosTexto, completarHorarios, horariosValidos, editando, valido, salvar } = form;
 
   return (
     <MScreen gap={12}>
@@ -186,7 +186,16 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
       </FieldGroup>
       <AvisoAlergia nome={nome} pessoaId={para} />
       <div className="card" style={{ fontSize: 15 }}>
-        <Row tight label="Dose" valor={<Ciclo valores={DOSES} valor={dose} onChange={setDose} render={(v) => v} />} />
+        <Row
+          tight
+          label="Dose"
+          valor={
+            <span className="hstack" style={{ gap: 6, alignItems: 'center', fontWeight: 500 }}>
+              <InlineInput inputMode="decimal" value={form.qtdDose} onChange={(e) => form.setQtdDose(e.target.value.replace(/[^0-9,./½]/g, ''))} aria-label="Quantidade por dose" style={{ color: form.qtdValida ? undefined : 'var(--danger)' }} />
+              <Ciclo valores={FORMAS_REMEDIO.map((x) => x.id)} valor={form.forma} onChange={form.setForma} render={(id) => { const x = FORMAS_REMEDIO.find((y) => y.id === id)!; return (lerQuantidade(form.qtdDose) ?? 1) < 2 ? x.um : x.varios; }} />
+            </span>
+          }
+        />
         <Row tight label="Frequência" valor={<Ciclo valores={FREQUENCIAS} valor={freq} onChange={setFreq} render={(v) => v.nome} />} />
         {/* Os horários de verdade (o campo de baixo), não os padrões da frequência. */}
         {(lerHorarios(horariosTexto)?.length ?? 0) > 0 && (
@@ -230,8 +239,12 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
           {!horariosValidos && <span style={{ fontSize: 13, color: 'var(--danger)' }}>Use HH:MM separados por vírgula.</span>}
         </Field>
       )}
-      <Label style={{ marginTop: 8 }}>Como ele é</Label>
-      <CamposAparencia f={form} />
+      {form.comCartela && (
+        <>
+          <Label style={{ marginTop: 8 }}>Como ele é</Label>
+          <CamposAparencia f={form} />
+        </>
+      )}
       {!editando && (
         <FieldGroup label="Receita (opcional)">
           <AnexosPendentes donoId={remId} tipo="receita" lista={receita} onChange={setReceita} />
