@@ -33,6 +33,8 @@ export interface Pessoa {
   souEu?: boolean;
   foto?: string;         // data URL JPEG 384×384
   tipo?: 'pessoa' | 'pet'; // ausente = pessoa
+  /** Responsável direto (pai, mãe, quem cuida do dependente). Em branco = ninguém. Edita tudo e decide os pedidos por ela. */
+  responsavelId?: PessoaId;
   pet?: DadosPet;
 }
 

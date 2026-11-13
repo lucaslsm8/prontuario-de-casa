@@ -14,6 +14,8 @@ import { useAbrirNoPerfil } from './Perfil';
 import { MScreen, TabHeader } from './Shell';
 import { GaleriaAnexos } from '../ui/Anexos';
 import { ConfirmarSheet, RemoverPessoaMobile } from '../ui/Confirmar';
+import { PapeisDaPessoa, SeloNivel } from '../ui/Papeis';
+import { podeDecidir } from '../data/papeis';
 
 const NOMES_CAT: Record<Categoria, string> = { perfil: 'Perfil clínico', remedios: 'Remédios', consultas: 'Consultas', exames: 'Exames', plano: 'Plano' };
 
@@ -54,6 +56,7 @@ export function Familia() {
   const listaPets = pets(state);
   const compartilhamComigo = outros.filter((p) => compartilhado(state, p.id, me.id).length > 0);
   const meus = state.compartilhamentos.filter((c) => c.de === me.id);
+  const semCompartilhar = outros.filter((p) => !compartilhamComigo.includes(p));
 
   return (
     <MScreen tabs>
@@ -77,7 +80,7 @@ export function Familia() {
                 <button type="button" key={p.id} className="row" style={{ padding: '14px 16px', gap: 14, justifyContent: 'flex-start' }} onClick={() => nav(`/pessoa/${p.id}`)}>
                   <Avatar pessoa={p} size={44} font={16} />
                   <div className="stack" style={{ flex: 1, gap: 4 }}>
-                    <span style={{ fontSize: 16, fontWeight: 600 }}>{p.curto}</span>
+                    <span className="hstack" style={{ gap: 8, alignItems: 'center' }}><span style={{ fontSize: 16, fontWeight: 600 }}>{p.curto}</span><SeloNivel p={p} /></span>
                     <div className="hstack" style={{ gap: 4 }}>
                       {cats.length === 5 ? (
                         <Pill pequeno>Perfil completo</Pill>
@@ -100,6 +103,24 @@ export function Familia() {
           <div className="card" style={{ fontSize: 15 }}>
             {meus.map((c) => (
               <Row key={c.para} mutedLabel={false} label={pessoa(state, c.para)?.curto} valor={<span className="muted">{resumoCompartilhado(c.categorias, 'curto')} ›</span>} onClick={() => nav(`/compartilhar/${c.para}`)} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {semCompartilhar.length > 0 && (
+        <>
+          <Label>Na família</Label>
+          <div className="card">
+            {semCompartilhar.map((p) => (
+              <button type="button" key={p.id} className="row" style={{ padding: '14px 16px', gap: 14, justifyContent: 'flex-start' }} onClick={() => nav(`/pessoa/${p.id}`)}>
+                <Avatar pessoa={p} size={44} font={16} />
+                <div className="stack" style={{ flex: 1, gap: 4 }}>
+                  <span className="hstack" style={{ gap: 8, alignItems: 'center' }}><span style={{ fontSize: 16, fontWeight: 600 }}>{p.curto}</span><SeloNivel p={p} /></span>
+                  <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Não compartilha nada com você</span>
+                </div>
+                <span className="chev">›</span>
+              </button>
             ))}
           </div>
         </>
@@ -170,6 +191,7 @@ export function PerfilMembro() {
   const alergia = p.alergias[0];
   const historico = p.condicoes.filter((c) => c.tipo !== 'vacina');
   const podeEditar = editaveis(state).some((x) => x.id === p.id);
+  const me = eu(state);
   const nasc = linhaIdade(p);
 
   return (
@@ -249,7 +271,9 @@ export function PerfilMembro() {
       {ver('perfil') && (
         <button type="button" className="btn btn--outline-ink btn--h50" onClick={() => nav(`/pessoa/${p.id}/emergencia`)}>Ficha de emergência</button>
       )}
-      {podeEditar && <RemoverPessoaMobile p={p} />}
+      <Label>Quem cuida</Label>
+      <PapeisDaPessoa p={p} />
+      {podeDecidir(state, me?.id, p.id) && <RemoverPessoaMobile p={p} />}
     </MScreen>
   );
 }

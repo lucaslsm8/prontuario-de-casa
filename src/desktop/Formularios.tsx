@@ -14,6 +14,7 @@ import { LISTA_POR_TIPO } from '../data/sugestoes';
 import { Sugestoes, SugestoesConsulta } from '../ui/Sugestoes';
 import { AnexosPendentes } from '../ui/Anexos';
 import { CamposAparencia } from '../ui/Aparencia';
+import { CampoResponsavel } from '../ui/Papeis';
 import type { Consulta, Exame, Medicao, Pesagem, Pessoa, Plano, Prevencao, Procedimento, Remedio, Sintoma, TipoMedicao, TipoProcedimento, Vacina } from '../data/types';
 import { CONTEXTOS_GLICEMIA, MEDICOES, infoMedicao } from '../data/medicoes';
 import { Chip } from '../ui';
@@ -987,6 +988,9 @@ function EditarPerfil({ p, onClose }: Props & { p: Pessoa }) {
             <input className="input input--desk" placeholder="Relação" aria-label="Relação" value={f.contato.relacao} onChange={(e) => f.setContato({ relacao: e.target.value })} />
             <input className="input input--desk input--mono" inputMode="tel" placeholder="(11) 90000-0000" aria-label="Telefone" value={f.contato.telefone} onChange={(e) => f.setContato({ telefone: mascararTelefone(e.target.value) })} />
           </div>
+        </DCampo>
+        <DCampo label="Responsável" span2 grupo>
+          <CampoResponsavel p={p} valor={f.responsavel} onChange={f.setResponsavel} desktop />
         </DCampo>
       </DGrade>
     </DDialogo>

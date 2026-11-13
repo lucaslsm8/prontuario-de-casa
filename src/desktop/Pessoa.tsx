@@ -12,12 +12,14 @@ import { AbaConsultas, AbaExames, AbaRemedios, CardRemediosEmUso, ListaCard, Sta
 import { AbaProcedimentos, DPet } from './Pet';
 import { CartaoMedicao, tiposVisiveis } from '../ui/Medicoes';
 import { RemoverPessoaDesktop } from './Acoes';
+import { PapeisDaPessoa, SeloNivel } from '../ui/Papeis';
+import { podeDecidir } from '../data/papeis';
 import { CartaoMarcador } from '../ui/Resultados';
 import { marcadoresDaPessoa } from '../data/resultados';
 import { LinhaDoTempo } from '../ui/Busca';
 import { linhaDoTempo } from '../data/busca';
 
-type Aba = Categoria | 'medicoes' | 'vacinas' | 'procedimentos' | 'historico';
+type Aba = Categoria | 'medicoes' | 'vacinas' | 'procedimentos' | 'historico' | 'cuidado';
 /** Medições seguem a permissão do perfil. */
 const ABAS: { id: Aba; nome: string; cat: Categoria }[] = [
   { id: 'perfil', nome: 'Perfil clínico', cat: 'perfil' },
@@ -45,7 +47,8 @@ function DMembro({ id }: { id: string }) {
   const { state } = useStore();
   const abrir = useAbrir();
   const p = pessoa(state, id);
-  const abas = ABAS.filter((a) => p && podeVer(state, p.id, a.cat));
+  // "Quem cuida" aparece sempre: é por ali que se pede para ser cuidador ou administrador.
+  const abas: { id: Aba; nome: string }[] = [...ABAS.filter((a) => p && podeVer(state, p.id, a.cat)), { id: 'cuidado', nome: 'Quem cuida' }];
   const [aba, setAba] = useState<Aba>(abas[0]?.id ?? 'perfil');
   if (!p) return <div className="desk__page"><span className="muted">Pessoa não encontrada.</span></div>;
   const ativa = abas.some((a) => a.id === aba) ? aba : abas[0]?.id;
@@ -66,13 +69,16 @@ function DMembro({ id }: { id: string }) {
         <div className="hstack" style={{ gap: 16 }}>
           <FotoDoPerfil pessoa={p} tamanho={88} podeEditar={podeEditar} />
           <div className="stack" style={{ gap: 4 }}>
-            <h1 style={{ margin: 0, fontSize: 30, fontWeight: 600, letterSpacing: '-.02em' }}>{p.nome}</h1>
+            <span className="hstack" style={{ gap: 10, alignItems: 'center' }}>
+              <h1 style={{ margin: 0, fontSize: 30, fontWeight: 600, letterSpacing: '-.02em' }}>{p.nome}</h1>
+              <SeloNivel p={p} />
+            </span>
             <span style={{ fontSize: 14, color: 'var(--text-2)' }}>{sub}</span>
           </div>
         </div>
         <div className="hstack" style={{ gap: 8 }}>
           {podeVer(state, p.id, 'perfil') && <button type="button" className="btn btn--outline btn--h40d" onClick={() => abrir(`emergencia:${p.id}`)}>Ficha de emergência</button>}
-          {podeEditar && <RemoverPessoaDesktop p={p} />}
+          {podeDecidir(state, eu(state)?.id, p.id) && <RemoverPessoaDesktop p={p} />}
           {podeEditar && <button type="button" className="btn btn--teal btn--h40d" onClick={() => abrir(`perfil:${p.id}`)}>Editar perfil</button>}
         </div>
       </div>
@@ -107,6 +113,7 @@ function DMembro({ id }: { id: string }) {
       {ativa === 'consultas' && <AbaConsultas id={p.id} />}
       {ativa === 'exames' && <AbaExames id={p.id} />}
       {ativa === 'plano' && <AbaPlano id={p.id} />}
+      {ativa === 'cuidado' && <div style={{ maxWidth: 640 }}><PapeisDaPessoa p={p} desktop /></div>}
     </div>
   );
 }

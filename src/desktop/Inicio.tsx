@@ -1,6 +1,7 @@
+import { PedidosPendentes } from '../ui/Papeis';
 import { Link } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
-import { eu, pessoa, proximos, useStore } from '../data/store';
+import { doMeuCuidado, eu, pessoa, proximos, useStore } from '../data/store';
 import { dataLonga, diasEntre, estoqueBaixo, mesSigla, quem } from '../data/format';
 import { estadoDose, saudacao, separarConcentracao } from '../data/inicio';
 import { ehPet, proximaConsultaDaFamilia } from '../data/pets';
@@ -19,10 +20,12 @@ export function DInicio() {
   const { doses, agora } = dv;
   const tomadas = doses.filter((d) => d.dose?.status === 'tomada').length;
   const atrasadas = doses.filter((d) => estadoDose(d, agora) === 'atrasada').length;
-  const proxConsulta = proximaConsultaDaFamilia(state);
-  const baixos = state.remedios.filter((r) => r.ativo && estoqueBaixo(r));
-  const acabando = useRemedioAcabando(state.remedios);
-  const prox = proximos(state).slice(0, 3);
+  // Painel de quem está sob o seu cuidado: você, os pets e quem te aceitou como cuidador ou administrador.
+  const meus = (pessoaId: string) => doMeuCuidado(state, pessoaId);
+  const proxConsulta = proximaConsultaDaFamilia({ ...state, consultas: state.consultas.filter((c) => meus(c.pessoaId)) });
+  const baixos = state.remedios.filter((r) => r.ativo && estoqueBaixo(r) && meus(r.pessoaId));
+  const acabando = useRemedioAcabando(state.remedios.filter((r) => meus(r.pessoaId)));
+  const prox = proximos(state).filter((c) => meus(c.pessoaId)).slice(0, 3);
 
   return (
     <div className="desk__page desk__page--home">
@@ -39,6 +42,7 @@ export function DInicio() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 280px', gap: 18, alignItems: 'start' }}>
         <div className="stack" style={{ gap: 18, minWidth: 0 }}>
+          <PedidosPendentes />
           <CartaoDose dv={dv} onCadastrar={() => abrir('remedio')} />
           {doses.length > 0 && (
             <section className="card" style={{ padding: '18px 22px', gap: 10 }}>

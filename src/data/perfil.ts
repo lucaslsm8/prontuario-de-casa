@@ -134,6 +134,8 @@ export interface FormPerfil {
   alergias: LinhaAlergia[];
   condicoes: LinhaCondicao[];
   contato: { nome: string; relacao: string; telefone: string };
+  /** Responsável direto: id da pessoa, ou '' (ninguém). */
+  responsavel: string;
   foto?: string;
   /** Só nos pets: campos no lugar de sangue, altura, pressão e contato (o peso vem das pesagens). */
   pet?: FormPet;
@@ -168,6 +170,7 @@ export function formDePessoa(p: Pessoa): FormPerfil {
     alergias: p.alergias.map((a) => ({ chave: novaChave(), substancia: a.substancia, reacao: a.reacao ?? '', orig: a })),
     condicoes: p.condicoes.map((c) => ({ chave: novaChave(), nome: c.nome, tipo: c.tipo, desde: c.desde ?? '', orig: c })),
     contato: { nome: p.contatoEmergencia?.nome ?? '', relacao: p.contatoEmergencia?.relacao ?? '', telefone: p.contatoEmergencia?.telefone ?? '' },
+    responsavel: p.responsavelId ?? '',
     foto: p.foto,
     pet: p.tipo === 'pet' ? formDoPet(p.pet) : undefined,
   };
@@ -241,6 +244,7 @@ export function pessoaDoForm(p: Pessoa, f: FormPerfil, hoje: string): { pessoa?:
         return limpar({ ...x.orig, nome: t(x.nome), desde: ou(x.desde), tipo: x.tipo, nomeClinico }) as Condicao;
       }),
     contatoEmergencia: temContato ? limpar({ ...p.contatoEmergencia, ...c }) : undefined,
+    responsavelId: f.responsavel && f.responsavel !== p.id ? f.responsavel : undefined,
     foto: f.foto,
   });
   return { pessoa, erros };

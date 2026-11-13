@@ -1,6 +1,6 @@
 // Peças do Início (redesign "cartão escuro"), usadas no desktop (D01) e no celular (M03).
 import { useRef, useState } from 'react';
-import { dosesHoje, useStore, type DoseHoje } from '../data/store';
+import { doMeuCuidado, dosesHoje, marcaDose, useStore, type DoseHoje } from '../data/store';
 import { addDias, dataBR, diasDeEstoque, estoqueBaixo, pctEstoque, quem, textoEstoque } from '../data/format';
 import { HOJE } from '../data/tempo';
 import { useAgora } from '../data/useAgora';
@@ -14,12 +14,14 @@ import { Pilula, PilulaDoRemedio, useFotoComprimido } from './Pilula';
 
 /** Estado do Início: doses de hoje, a da vez e as ações do cartão. */
 export function useDoseDaVez() {
-  const { state, api } = useStore();
+  const { state, api, perfil } = useStore();
   const agora = useAgora();
   // "Lembrar em 15 min" vale só nesta tela; o lembrete do sistema tem o seu próprio "15 min".
   const [adiadas, setAdiadas] = useState<Adiadas>({});
-  const doses = dosesHoje(state);
-  const foco = doseEmFoco(doses, agora, adiadas);
+  // Início da família toda: você, os pets e de quem você cuida. No perfil de alguém (celular), o recorte já é dele.
+  const doses = dosesHoje(state).filter((d) => perfil || doMeuCuidado(state, d.pessoa.id));
+  // O cartão grande só oferece doses que você pode marcar (cuidador inclui).
+  const foco = doseEmFoco(doses.filter((d) => marcaDose(state, d.pessoa.id)), agora, adiadas);
   const adiar = () => {
     if (!foco) return;
     const k = chaveDose(foco.dose);
@@ -151,12 +153,16 @@ export function ListaDoses({ doses, agora, compacto }: { doses: DoseHoje[]; agor
             <span className={cx('pill pill--lg', d.dose.status === 'tomada' ? 'pill--teal' : 'pill--neutral')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: 'none' }}>
               {d.dose.status !== 'tomada' ? 'Pulada' : compacto ? <><IcCheck size={12} />{d.dose.registradoEm}</> : `Tomada às ${d.dose.registradoEm}`}
             </span>
-            <button type="button" className="dose-linha__desfazer" aria-label={`Desfazer ${nome} das ${d.horario}`} onClick={() => api.desfazerDose(d.remedio.id, d.horario)}>
-              <IcDesfazer />
-            </button>
+            {marcaDose(state, d.pessoa.id) && (
+              <button type="button" className="dose-linha__desfazer" aria-label={`Desfazer ${nome} das ${d.horario}`} onClick={() => api.desfazerDose(d.remedio.id, d.horario)}>
+                <IcDesfazer />
+              </button>
+            )}
           </>
-        ) : (
+        ) : marcaDose(state, d.pessoa.id) ? (
           <button type="button" className="btn btn--teal dose-linha__tomei" onClick={() => api.marcarDose(d.remedio.id, d.horario)}>Tomei</button>
+        ) : (
+          <span className="pill pill--neutral" style={{ flex: 'none' }}>pendente</span>
         )}
       </div>
     );

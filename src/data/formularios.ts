@@ -700,6 +700,7 @@ export function useFormPerfil(p: Pessoa, onSalvo: () => void) {
     setPressao: (v: string) => set('pressao', v, undefined),
     setContato: (m: Partial<FormPerfil['contato']>) => set('contato', { ...f.contato, ...m }, 'contato'),
     setFoto: (v: string | undefined) => set('foto', v, undefined),
+    setResponsavel: (v: string) => set('responsavel', v, undefined),
     /** Campos do pet (só existem quando `p` é pet). */
     setPet: (m: Partial<Omit<FormPet, 'veterinario' | 'clinica24h'>>) => f.pet && set('pet', { ...f.pet, ...m }, undefined),
     setVeterinario: (m: Partial<FormPet['veterinario']>) => f.pet && set('pet', { ...f.pet, veterinario: { ...f.pet.veterinario, ...m } }, 'veterinario'),

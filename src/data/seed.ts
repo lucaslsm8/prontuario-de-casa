@@ -1,3 +1,4 @@
+import type { Papel } from './papeis';
 import type { Compartilhamento, Config, Consulta, Dose, Exame, Medicao, Pesagem, Pessoa, Plano, Prevencao, Procedimento, Remedio, Sintoma, Vacina } from './types';
 import { HOJE } from './tempo';
 
@@ -45,6 +46,7 @@ export const pessoas: Pessoa[] = [
     nome: 'Pedro Almeida',
     curto: 'Pedro',
     parentesco: 'filho',
+    responsavelId: 'roberto',
     cor: '#EEE7D6',
     alergias: [],
     condicoes: [],
@@ -370,6 +372,13 @@ export const compartilhamentos: Compartilhamento[] = [
   { de: 'helena', para: 'pedro', categorias: ['plano'] },
   { de: 'roberto', para: 'helena', categorias: ['perfil', 'remedios', 'consultas', 'exames', 'plano'] },
   { de: 'pedro', para: 'helena', categorias: ['remedios', 'plano'] },
+];
+
+/** Helena administra o Roberto e cuida do Pedro (o Roberto é o responsável dele). O Roberto pediu para ser cuidador da Helena. */
+export const papeis: Papel[] = [
+  { de: 'roberto', para: 'helena', aceito: 'administrador' },
+  { de: 'pedro', para: 'helena', aceito: 'cuidador' },
+  { de: 'helena', para: 'roberto', pedido: 'cuidador' },
 ];
 
 export const config: Config = {

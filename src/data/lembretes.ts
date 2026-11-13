@@ -5,6 +5,7 @@
 import type { State } from './store';
 import type { Pessoa } from './types';
 import { NOMES_PREVENCAO, proximaPrevencao, ultimasPrevencoes, ultimasVacinas } from './pets';
+import { noMeuCuidado } from './papeis';
 
 export interface Lembrete {
   id: string;      // "dose|<remedioId>|<previstoPara>", "consulta|<id>|<antecedência>", "vacina|<id>" ou "prevencao|<id>"
@@ -45,7 +46,11 @@ export function proximosLembretes(s: State, agora: Date, horas = 24): Lembrete[]
     dias.push(texto(d).slice(0, 10));
   }
 
+  // Só de quem está sob o seu cuidado: você, os pets e quem te aceitou como cuidador ou administrador.
+  const meuId = s.pessoas.find((p) => p.souEu)?.id;
+  const meu = (pessoaId: string) => !meuId || noMeuCuidado(s, meuId, pessoaId);
   for (const r of s.remedios) {
+    if (!meu(r.pessoaId)) continue;
     if (!r.ativo || !r.lembrete || r.seNecessario) continue;
     const p = s.pessoas.find((x) => x.id === r.pessoaId);
     const nome = p?.curto ?? '';
@@ -68,6 +73,7 @@ export function proximosLembretes(s: State, agora: Date, horas = 24): Lembrete[]
 
   const agoraTxt = texto(agora);
   for (const c of s.consultas) {
+    if (!meu(c.pessoaId)) continue;
     const hora = `${c.data}T${c.hora}`;
     if (hora <= agoraTxt) continue;
     for (const rotulo of c.lembretes) {

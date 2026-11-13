@@ -1,6 +1,7 @@
+import { PedidosPendentes } from '../ui/Papeis';
 import { useNavigate } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
-import { eu, pessoa, proximos, useStore } from '../data/store';
+import { doMeuCuidado, eu, pessoa, proximos, useStore } from '../data/store';
 import { dataLonga, diaMes, estoqueBaixo, mesSigla, quem } from '../data/format';
 import { Bar, Check, Circle, Label, SecaoLista } from '../ui';
 import { CartaoDose, LinhaDia, ListaDoses, RemedioAcabando, useDoseDaVez, useRemedioAcabando } from '../ui/Inicio';
@@ -44,13 +45,14 @@ function Topo() {
 }
 
 function InicioCheio() {
-  const { state } = useStore();
+  const { state, perfil } = useStore();
   const nav = useNavigate();
   const dv = useDoseDaVez();
+  const meus = (pessoaId: string) => !!perfil || doMeuCuidado(state, pessoaId);
   const { doses, agora } = dv;
   const tomadas = doses.filter((d) => d.dose?.status === 'tomada').length;
-  const acabando = useRemedioAcabando(state.remedios);
-  const prox = proximos(state).slice(0, 2);
+  const acabando = useRemedioAcabando(state.remedios.filter((r) => meus(r.pessoaId)));
+  const prox = proximos(state).filter((c) => meus(c.pessoaId)).slice(0, 2);
   const proxG = agruparFamiliaPets(prox, state);
   const divisoria = <SecaoLista rotulo="Pets" style={{ padding: '12px 14px 4px' }} />;
 
@@ -73,6 +75,7 @@ function InicioCheio() {
     <MScreen tabs gap={14}>
       <Topo />
 
+      <PedidosPendentes />
       <CartaoDose dv={dv} compacto onCadastrar={() => nav('/remedios/novo')} />
 
       <Numeros />

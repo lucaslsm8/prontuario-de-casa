@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
-import { editaveis, historicoAdesao, pessoa, useStore } from '../data/store';
+import { editaveis, historicoAdesao, marcaDose, pessoa, useStore } from '../data/store';
 import { addDias, dataBR, diaMes, diasDeEstoque, estoqueBaixo, pctEstoque, quem, textoEstoque } from '../data/format';
 import { Bar, Label } from '../ui';
 import { GradeAdesao, somaAdesao } from '../mobile/Remedios';
@@ -142,7 +142,7 @@ export function DRemedio() {
         </div>
       )}
 
-      {r.seNecessario && <DosesSeNecessario r={r} podeEditar={podeEditar} botao="btn btn--teal btn--h40d" />}
+      {r.seNecessario && <DosesSeNecessario r={r} podeEditar={marcaDose(state, r.pessoaId)} botao="btn btn--teal btn--h40d" />}
 
       <div className="card" style={{ fontSize: 14 }}>
         <div className="card-head"><Label>Receita</Label></div>

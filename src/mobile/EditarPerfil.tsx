@@ -1,3 +1,4 @@
+import { CampoResponsavel } from '../ui/Papeis';
 import { useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
@@ -191,6 +192,10 @@ function FormEditarPerfil({ p }: { p: Pessoa }) {
               <LinhaCampo rotulo="Telefone" className="mono" inputMode="tel" placeholder="(11) 90000-0000" value={f.contato.telefone} onChange={(e) => f.setContato({ telefone: mascararTelefone(e.target.value) })} aria-label="Telefone" />
             </div>
             {erroTexto(f.erros.contato)}
+          </FieldGroup>
+
+          <FieldGroup label="Responsável">
+            <CampoResponsavel p={p} valor={f.responsavel} onChange={f.setResponsavel} />
           </FieldGroup>
         </>
       )}

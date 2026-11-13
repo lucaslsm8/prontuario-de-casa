@@ -2,7 +2,7 @@ import { useMemo, useState, type CSSProperties } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
 import { AVISAR, nomeAvisar, DOSES, DURACOES, FREQUENCIAS, partesDoRemedio, useFormRemedio } from '../data/formularios';
-import { editaveis, historicoAdesao, pessoa, useStore, type DiaAdesao } from '../data/store';
+import { editaveis, historicoAdesao, marcaDose, pessoa, useStore, type DiaAdesao } from '../data/store';
 import { addDias, descricaoDose, diaSemanaCurto, diasDeEstoque, estoqueBaixo, parseISO, pctEstoque, quem, textoEstoque } from '../data/format';
 import type { Remedio } from '../data/types';
 import { Bar, ChipGroup, Field, FieldGroup, Label, Pill, Row, SecaoLista, Segmented, Toggle, TopNav, InlineInput } from '../ui';
@@ -307,7 +307,7 @@ export function DetalheRemedio() {
         </div>
       )}
 
-      {r.seNecessario && <DosesSeNecessario r={r} podeEditar={podeEditar} botao="btn btn--soft btn--h36" />}
+      {r.seNecessario && <DosesSeNecessario r={r} podeEditar={marcaDose(state, r.pessoaId)} botao="btn btn--soft btn--h36" />}
 
       <div id="receita" className="stack" style={{ gap: 8 }}>
         <Label>Receita</Label>

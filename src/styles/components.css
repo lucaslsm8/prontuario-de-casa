@@ -71,6 +71,7 @@ button.row:hover { background: #F8FAFA; }
 .pill--teal { background: var(--teal-light); color: var(--teal); }
 .pill--warn { background: var(--warn-bg); color: var(--warn-text); }
 .pill--neutral { background: var(--chip-neutral); color: var(--text-2); }
+.pill--sol { background: var(--sol-light); color: var(--sol-dark); }
 .pill--lg { height: 26px; padding: 0 10px; font-size: 12px; }
 .pill--sm { height: 22px; }
 

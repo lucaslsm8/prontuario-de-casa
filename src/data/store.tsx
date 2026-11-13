@@ -12,6 +12,7 @@ import { eventosParaEnviar, migrarLog, novoAparelhoId, ordenarLog, resolverEu, u
 import type { PatchPessoa } from './perfil';
 import { medicoesDoPatch, perfilDasMedicoes } from './medicoes';
 import { qtdPorDose, somarEstoque } from './format';
+import { noMeuCuidado, pedirPapel, podeEditar, podeMarcarDose, podeMudarResponsavel, removerPapel, responderPapel, veTudo, type NivelPapel, type Papel } from './papeis';
 import type { Categoria, Config, Consulta, Dose, Exame, Pessoa, Plano, Remedio, Compartilhamento, Vacina, Prevencao, Sintoma, Procedimento, Pesagem, Medicao, Anexo, Aparelho } from './types';
 import { vistoPorAparelho, nomePadraoAparelho, plataformaDoId } from './aparelhos';
 
@@ -34,6 +35,8 @@ export interface State {
   medicoes: Medicao[];
   anexos: Anexo[];
   compartilhamentos: Compartilhamento[];
+  /** Cuidador e administrador (pedido e aceito). O responsável fica na pessoa (`responsavelId`). */
+  papeis: Papel[];
   aparelhos: Aparelho[];
   config: Config;
   bloqueado: boolean;
@@ -55,7 +58,7 @@ const CONFIG_PADRAO: Config = {
 };
 
 function estadoBase(): State {
-  return { pessoas: [], remedios: [], doses: [], consultas: [], exames: [], planos: [], vacinas: [], prevencoes: [], sintomas: [], procedimentos: [], pesagens: [], medicoes: [], anexos: [], compartilhamentos: [], aparelhos: [], config: clone(CONFIG_PADRAO), bloqueado: false, temSenha: false };
+  return { pessoas: [], remedios: [], doses: [], consultas: [], exames: [], planos: [], vacinas: [], prevencoes: [], sintomas: [], procedimentos: [], pesagens: [], medicoes: [], anexos: [], compartilhamentos: [], papeis: [], aparelhos: [], config: clone(CONFIG_PADRAO), bloqueado: false, temSenha: false };
 }
 
 export function estadoExemplo(): State {
@@ -74,6 +77,7 @@ export function estadoExemplo(): State {
     medicoes: clone(seed.medicoes),
     anexos: [],
     compartilhamentos: clone(seed.compartilhamentos),
+    papeis: clone(seed.papeis),
     aparelhos: [],
     config: clone(seed.config),
     bloqueado: false,
@@ -85,7 +89,7 @@ export function estadoExemplo(): State {
 export function estadoVazio(): State {
   const eu = clone(seed.pessoas.find((p) => p.souEu)!);
   eu.condicoes = [];
-  return { ...estadoExemplo(), pessoas: [eu], remedios: [], doses: [], consultas: [], exames: [], planos: [], vacinas: [], prevencoes: [], sintomas: [], procedimentos: [], pesagens: [], medicoes: [], anexos: [], compartilhamentos: [] };
+  return { ...estadoExemplo(), pessoas: [eu], remedios: [], doses: [], consultas: [], exames: [], planos: [], vacinas: [], prevencoes: [], sintomas: [], procedimentos: [], pesagens: [], medicoes: [], anexos: [], compartilhamentos: [], papeis: [] };
 }
 
 /** Coleções com edição/remoção genérica (registros com `id`). */
@@ -117,7 +121,10 @@ type Mudanca =
   | { type: 'restaurarRegistro'; colecao: Colecao; item: Item }
   | { type: 'removerPessoa'; id: string }
   | { type: 'removerAnexo'; id: string }
-  | { type: 'editarPessoa'; pessoaId: string; patch: PatchPessoa }
+  | { type: 'editarPessoa'; pessoaId: string; patch: PatchPessoa; por?: string }
+  | { type: 'pedirPapel'; de: string; para: string; papel: NivelPapel; por?: string }
+  | { type: 'responderPapel'; de: string; para: string; aceitar: boolean; por?: string }
+  | { type: 'removerPapel'; de: string; para: string; por?: string }
   | { type: 'levar'; consultaId: string; idx: number }
   | { type: 'lembrete'; consultaId: string; lembrete: string }
   | { type: 'config'; patch: Partial<Config> }
@@ -240,6 +247,7 @@ function reducer(s: State, a: Action): State {
         procedimentos: dela(s.procedimentos), pesagens: dela(s.pesagens), medicoes: dela(s.medicoes),
         anexos: s.anexos.filter((x) => donos.has(x.donoId)),
         compartilhamentos: s.compartilhamentos.filter((c) => c.de !== a.id && c.para !== a.id),
+        papeis: s.papeis.filter((c) => c.de !== a.id && c.para !== a.id),
       };
     }
     case 'addAnexo':
@@ -261,6 +269,8 @@ function reducer(s: State, a: Action): State {
           const novo: Record<string, unknown> = { ...p };
           for (const [k, v] of Object.entries(a.patch)) {
             if (k === 'id' || k === 'souEu' || k === 'tipo' || v === undefined) continue;
+            // Responsável: só a própria pessoa, o responsável atual, ou qualquer um quando está em branco.
+            if (k === 'responsavelId' && (v === p.id || !podeMudarResponsavel(s, a.por, p.id))) continue;
             if (v === null) {
               // Obrigatórios não se removem; listas vazias voltam a [].
               if (k === 'nome' || k === 'curto' || k === 'cor') continue;
@@ -272,6 +282,12 @@ function reducer(s: State, a: Action): State {
           return novo as unknown as Pessoa;
         }),
       };
+    case 'pedirPapel':
+      return { ...s, papeis: pedirPapel(s, a) };
+    case 'responderPapel':
+      return { ...s, papeis: responderPapel(s, a) };
+    case 'removerPapel':
+      return { ...s, papeis: removerPapel(s, a) };
     case 'levar':
       return {
         ...s,
@@ -321,6 +337,8 @@ const CONFIG_DA_FAMILIA: readonly string[] = ['agenda'];
 function acaoDoEvento(ev: Evento, aparelhoId?: string): Mudanca | null {
   const a = paraAcao(ev);
   if (a.type === 'aparelho' && ev.aparelho !== a.aparelhoId) return null;
+  // Papéis e responsável: quem fez é o autor do evento, nunca o que veio nos dados.
+  if (a.type === 'pedirPapel' || a.type === 'responderPapel' || a.type === 'removerPapel' || a.type === 'editarPessoa') return { ...a, por: ev.autor };
   if (a.type !== 'config' || !aparelhoId || !ev.aparelho || ev.aparelho === aparelhoId) return a;
   return { ...a, patch: Object.fromEntries(Object.entries(a.patch).filter(([k]) => CONFIG_DA_FAMILIA.includes(k))) as Partial<Config> };
 }
@@ -497,7 +515,7 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
       addProcedimento: (procedimento: Procedimento) => emitir({ type: 'addProcedimento', procedimento }),
       addPesagem: (pesagem: Pesagem) => emitir({ type: 'addPesagem', pesagem }),
       editarPessoa: (pessoaId: string, patch: PatchPessoa) => {
-        emitir({ type: 'editarPessoa', pessoaId, patch });
+        emitir({ type: 'editarPessoa', pessoaId, patch, por: autor() });
         // Peso, altura e pressão do perfil também entram no histórico (gráficos de progresso).
         for (const m of medicoesDoPatch(pessoaId, patch, HOJE)) emitir({ type: 'addMedicao', medicao: { id: `med-${novoId()}`, ...m } });
       },
@@ -538,6 +556,19 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
         dispatch({ type: 'sistema', patch });
       },
       /** Pets não entram em compartilhamento: nunca se emite `compartilhar` para um pet. */
+      /** Eu peço para ser cuidador ou administrador de `de`; `de` (ou o responsável dele) aceita. */
+      pedirPapel: (de: string, papel: NivelPapel) => {
+        const eu = autor();
+        if (!eu) return;
+        emitir({ type: 'pedirPapel', de, para: eu, papel, por: eu });
+        mostrarToast({ texto: 'Pedido enviado' });
+      },
+      responderPapel: (de: string, para: string, aceitar: boolean) => {
+        emitir({ type: 'responderPapel', de, para, aceitar, por: autor() });
+        mostrarToast({ texto: aceitar ? 'Pedido aceito' : 'Pedido recusado' });
+      },
+      /** Tira o papel de `para` sobre `de` (ou cancela o pedido / deixa de cuidar). */
+      removerPapel: (de: string, para: string) => emitir({ type: 'removerPapel', de, para, por: autor() }),
       compartilhar: (para: string, categorias: Categoria[]) => {
         if (ref.current.pessoas.find((p) => p.id === para)?.tipo === 'pet') return;
         emitir({ type: 'compartilhar', de: autor() ?? '', para, categorias });
@@ -811,6 +842,8 @@ export function compartilhado(s: State, de: string, para: string): Categoria[] {
   const tudo: Categoria[] = ['perfil', 'remedios', 'consultas', 'exames', 'plano'];
   const dono = s.pessoas.find((p) => p.id === de);
   if (de === para || dono?.tipo === 'pet') return tudo;
+  // Responsável, administrador e cuidador veem tudo da pessoa.
+  if (veTudo(s, para, de)) return tudo;
   // Dependente (cadastrado por alguém, sem aparelho próprio): nunca definiu compartilhamento, então a família vê tudo.
   if (dono && !dono.souEu && !s.compartilhamentos.some((c) => c.de === de)) return tudo;
   return s.compartilhamentos.find((c) => c.de === de && c.para === para)?.categorias ?? [];
@@ -819,15 +852,16 @@ export function podeVer(s: State, pessoaId: string, cat: Categoria) {
   return compartilhado(s, pessoaId, eu(s).id).includes(cat);
 }
 
-/** Consultas: qualquer pessoa da família marca, edita e apaga consulta de qualquer outra (e dos pets). */
-export const paraConsultas = (s: State) => s.pessoas;
-export const editaConsulta = (s: State, pessoaId: string) => s.pessoas.some((p) => p.id === pessoaId);
+/** Consultas seguem a regra dos outros registros (desde 13/11/2026): só a pessoa, o responsável e administradores. */
+export const paraConsultas = (s: State) => editaveis(s);
+export const editaConsulta = (s: State, pessoaId: string) => podeEditar(s, eu(s)?.id, pessoaId);
 
-/** Pessoas para quem você pode cadastrar coisas: você, quem compartilha o perfil
- *  completo com você e dependentes que você cadastrou (sem aparelho próprio). */
+/** Pessoas para quem você pode cadastrar e editar coisas: você, os pets, quem você é responsável e quem te aceitou como administrador. */
 export function editaveis(s: State) {
-  const meuId = eu(s).id;
-  return s.pessoas.filter(
-    (p) => p.souEu || compartilhado(s, p.id, meuId).includes('perfil') || !s.compartilhamentos.some((c) => c.de === p.id),
-  );
+  const meuId = eu(s)?.id;
+  return s.pessoas.filter((p) => podeEditar(s, meuId, p.id));
 }
+/** Pode marcar Tomei/Pular nas doses da pessoa (inclui o cuidador). */
+export const marcaDose = (s: State, pessoaId: string) => podeMarcarDose(s, eu(s)?.id, pessoaId);
+/** Pessoas que aparecem no Início: você, os pets e de quem você cuida. */
+export const doMeuCuidado = (s: State, pessoaId: string) => noMeuCuidado(s, eu(s)?.id, pessoaId);
