@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useStore } from '../data/store';
 import { cx } from '../ui';
 import { IcAgenda, IcExame, IcInicio, IcRemedio } from '../ui/Icones';
@@ -16,10 +16,13 @@ const TABS = [
 export function TabBar() {
   const { state } = useStore();
   const icones = !!state.config.menuIcones;
+  const loc = useLocation();
+  // A barra fica nas telas de leitura: a ficha de uma consulta (/consulta/…) pertence à aba Agenda.
+  const naAgenda = loc.pathname.startsWith('/consulta/');
   return (
     <nav className={cx('tabbar', icones && 'tabbar--icones')} aria-label="Navegação principal">
       {TABS.map(({ to, nome, end, Icone }) => (
-        <NavLink key={to} to={to} end={end} className={({ isActive }) => cx(isActive && 'active')} aria-label={icones ? nome : undefined} title={icones ? nome : undefined}>
+        <NavLink key={to} to={to} end={end} className={({ isActive }) => cx((isActive || (naAgenda && to === '/agenda')) && 'active')} aria-label={icones ? nome : undefined} title={icones ? nome : undefined}>
           {icones ? <Icone size={22} /> : nome}
         </NavLink>
       ))}

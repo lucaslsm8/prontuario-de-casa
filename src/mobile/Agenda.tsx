@@ -34,7 +34,7 @@ export function Agenda() {
   return (
     <MScreen tabs>
       <TopoPerfil />
-      <TabHeader titulo="Agenda"onAdd={() => nav('/agenda/nova')} />
+      <TabHeader titulo="Agenda" onAdd={() => nav('/agenda/nova')} />
       <Segmented opcoes={[{ id: 'agenda', nome: 'Agenda' }, { id: 'consultas', nome: 'Consultas' }]} valor={vista} onChange={setVista} />
       {vista === 'agenda' ? <Calendario /> : <ListaConsultas />}
     </MScreen>
@@ -405,21 +405,21 @@ export function ResumoConsulta() {
   const [escolher, setEscolher] = useState(false);
   const [tela, setTela] = useState(false);
 
-  if (!c || !p) return <MScreen><TopNav voltar="Agenda" voltarPara="/agenda" /><span className="muted">Consulta não encontrada.</span></MScreen>;
+  if (!c || !p) return <MScreen tabs><TopNav voltar="Agenda" voltarPara="/agenda" /><span className="muted">Consulta não encontrada.</span></MScreen>;
 
   const documento = <DocumentoResumo consulta={c} incluir={incluir} grande={tela} />;
 
   if (tela) {
     return (
       <MScreen gap={16} bg="#fff">
-        <TopNav voltar="Resumo" extra={<button type="button" style={{ color: 'var(--teal)', fontWeight: 500 }} onClick={() => setTela(false)}>Fechar</button>} />
+        <TopNav voltar="Resumo" onVoltar={() => setTela(false)} extra={<button type="button" style={{ color: 'var(--teal)', fontWeight: 500 }} onClick={() => setTela(false)}>Fechar</button>} />
         {documento}
       </MScreen>
     );
   }
 
   return (
-    <MScreen gap={14}>
+    <MScreen gap={14} tabs>
       <TopNav voltar="Agenda" voltarPara="/agenda" acao={editaConsulta(state, c.pessoaId) ? 'Editar' : undefined} onAcao={() => nav(`/consulta/${c.id}/editar`)} />
       <h1 className="title title--26" style={{ margin: 0 }}>{c.titulo}</h1>
       <PosConsulta key={c.id} consulta={c} podeEditar={editaConsulta(state, c.pessoaId)} />
@@ -443,7 +443,7 @@ export function ResumoConsulta() {
           titulo={`Apagar ${c.titulo} de ${diaMes(c.data)}?`}
           texto="A consulta sai da agenda e os lembretes dela param."
           confirmar="Apagar consulta"
-          onConfirm={() => { api.remover('consultas', c, `${c.titulo} apagado`); nav('/agenda'); }}
+          onConfirm={() => { api.remover('consultas', c, `${c.titulo} apagado`); nav('/agenda', { replace: true }); }}
           onClose={() => setApagar(false)}
         />
       )}

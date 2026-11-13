@@ -9,7 +9,7 @@ import { MScreen } from './Shell';
 /** /busca — busca em tudo (celular). */
 export function Busca() {
   return (
-    <MScreen gap={14}>
+    <MScreen gap={14} tabs>
       <TopNav voltar="Início" voltarPara="/" />
       <h1 className="title" style={{ margin: 0 }}>Buscar</h1>
       <BuscaMobile />
@@ -24,7 +24,7 @@ export function HistoricoPessoa() {
   const p = pessoa(state, id);
   if (!p) return null;
   return (
-    <MScreen gap={14}>
+    <MScreen gap={14} tabs>
       <TopNav voltar={p.souEu ? 'Perfil' : p.curto} />
       <h1 className="title" style={{ margin: 0 }}>Histórico</h1>
       <LinhaDoTempo eventos={linhaDoTempo(state, id, (c) => podeVer(state, id, c), HOJE)} />

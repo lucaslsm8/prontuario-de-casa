@@ -61,9 +61,9 @@ export function Familia() {
 
   return (
     <MScreen tabs>
-      {/* Em "Família toda", esta tela é a aba "Perfil": ganha o topo das abas (que já tem a engrenagem). */}
-      {todos && <TopoPerfil />}
-      <TabHeader titulo="Família" direita={todos ? <span /> : <button type="button" style={{ fontSize: 15, fontWeight: 500, color: 'var(--teal)' }} onClick={() => nav('/configuracoes')}>Configurações</button>} />
+      {/* Em "Família toda", esta tela é a aba "Perfil": ganha o topo das abas. Fora disso, chega-se por Configurações. */}
+      {todos ? <TopoPerfil /> : <TopNav voltar="Voltar" voltarPara="/configuracoes" />}
+      <TabHeader titulo="Família" direita={<span />} />
       <button type="button" className="card hstack" style={{ flexDirection: 'row', padding: 16, gap: 14, textAlign: 'left' }} onClick={() => nav(`/pessoa/${me.id}`)}>
         <Avatar pessoa={me} size={52} font={19} />
         <div className="stack" style={{ flex: 1, gap: 2 }}>
@@ -184,7 +184,7 @@ export function PerfilMembro() {
   const abrirNoPerfil = useAbrirNoPerfil();
   const { id: aberto } = usePerfil();
   const p = pessoa(state, id ?? '');
-  if (!p) return <MScreen><TopNav voltar="Família" voltarPara="/familia" /><span className="muted">Pessoa não encontrada.</span></MScreen>;
+  if (!p) return <MScreen tabs><TopNav voltar="Família" voltarPara="/familia" /><span className="muted">Pessoa não encontrada.</span></MScreen>;
   if (ehPet(p)) return <PetPerfil key={p.id} pet={p} />;
 
   const ver = (c: Categoria) => podeVer(state, p.id, c);
@@ -202,7 +202,7 @@ export function PerfilMembro() {
   const editar = () => nav(`/pessoa/${p.id}/editar`);
 
   return (
-    <MScreen gap={18} tabs={naAba}>
+    <MScreen gap={18} tabs>
       {naAba ? <TopoPerfil /> : <TopNav voltar="Família" voltarPara="/familia" acao={podeEditar ? 'Editar' : undefined} onAcao={editar} />}
       <div className="hstack" style={{ gap: 14 }}>
         <FotoDoPerfil pessoa={p} tamanho={72} podeEditar={podeEditar} />
@@ -423,7 +423,7 @@ export function PlanoSaude() {
   if (!p) return null;
   if (!plano) {
     return (
-      <MScreen gap={18}>
+      <MScreen gap={18} tabs>
         <TopNav voltar={quem(p) === 'Você' ? 'Perfil' : p.curto} />
         <h1 className="title" style={{ margin: 0 }}>Plano de saúde</h1>
         <div className="card card--dashed" style={{ padding: 18, gap: 6, alignItems: 'flex-start' }}>
@@ -442,7 +442,7 @@ export function PlanoSaude() {
   const mini = { fontSize: 11, color: 'var(--tab-inactive)' };
 
   return (
-    <MScreen gap={18}>
+    <MScreen gap={18} tabs>
       <TopNav voltar={p.souEu ? 'Perfil' : p.curto} acao={podeEditarPlano ? 'Editar' : undefined} onAcao={() => nav(`/pessoa/${p.id}/plano/editar`)} />
       <h1 className="title" style={{ margin: 0 }}>Plano de saúde</h1>
       <div className="stack" style={{ borderRadius: 12, background: 'var(--ink)', color: '#fff', padding: 20, gap: 22, boxShadow: 'var(--shadow-plan)' }}>

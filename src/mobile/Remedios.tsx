@@ -63,7 +63,7 @@ export function Remedios() {
   return (
     <MScreen tabs>
       <TopoPerfil />
-      <TabHeader titulo="Remédios"onAdd={() => nav('/remedios/novo')} />
+      <TabHeader titulo="Remédios" onAdd={() => nav('/remedios/novo')} />
       <Segmented
         opcoes={[{ id: 'uso', nome: `Em uso · ${emUso.length}` }, { id: 'enc', nome: 'Encerrados' }]}
         valor={aba}
@@ -282,7 +282,7 @@ export function DetalheRemedio() {
 
   const grade = useMemo(() => historicoAdesao(state, id ?? '', 14), [state, id]);
 
-  if (!r) return <MScreen><TopNav voltar="Remédios" voltarPara="/remedios" /><span className="muted">Remédio não encontrado.</span></MScreen>;
+  if (!r) return <MScreen tabs><TopNav voltar="Remédios" voltarPara="/remedios" /><span className="muted">Remédio não encontrado.</span></MScreen>;
   const p = pessoa(state, r.pessoaId);
   const temReceita = anexosDe(state.anexos, r.id, 'receita').length > 0;
   const temFotoCartela = anexosDe(state.anexos, r.id, 'cartela').length > 0;
@@ -294,7 +294,7 @@ export function DetalheRemedio() {
   const desde = r.inicio ? parseISO(r.inicio).getFullYear() : undefined;
 
   return (
-    <MScreen gap={16}>
+    <MScreen gap={16} tabs>
       <TopNav voltar="Remédios" voltarPara="/remedios" acao={podeEditar ? 'Editar' : undefined} onAcao={() => nav(`/remedios/${r.id}/editar`)} />
       <div className="stack" style={{ gap: 4 }}>
         <span style={{ fontSize: 13, color: 'var(--text-2)' }}>
@@ -389,7 +389,7 @@ export function DetalheRemedio() {
           titulo={`Apagar ${r.nome}?`}
           texto="O remédio sai da lista e os lembretes param. Para guardar o histórico, prefira “Encerrar tratamento”."
           confirmar="Apagar remédio"
-          onConfirm={() => { api.remover('remedios', r, `${r.nome} apagado`); nav('/remedios'); }}
+          onConfirm={() => { api.remover('remedios', r, `${r.nome} apagado`); nav('/remedios', { replace: true }); }}
           onClose={() => setApagar(false)}
         />
       )}
@@ -399,7 +399,7 @@ export function DetalheRemedio() {
           <div className="sheet" role="dialog" aria-label="Encerrar tratamento">
             <span style={{ fontSize: 18, fontWeight: 600 }}>Encerrar {r.nome}?</span>
             <span style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.45 }}>Os lembretes param. O histórico de doses continua guardado em Encerrados.</span>
-            <button type="button" className="btn btn--h50" style={{ background: 'var(--danger)', color: '#fff' }} onClick={() => { api.encerrar(r.id); nav('/remedios'); }}>
+            <button type="button" className="btn btn--h50" style={{ background: 'var(--danger)', color: '#fff' }} onClick={() => { api.encerrar(r.id); nav('/remedios', { replace: true }); }}>
               Encerrar tratamento
             </button>
             <button type="button" className="btn btn--outline btn--h50" onClick={() => setConfirmar(false)}>Cancelar</button>

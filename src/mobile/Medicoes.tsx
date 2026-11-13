@@ -25,7 +25,7 @@ export function MedicoesPessoa() {
   const podeEditar = editaveis(state).some((x) => x.id === id);
   const nova = (t?: TipoMedicao) => nav(`/pessoa/${id}/medicoes/nova${t ? `?tipo=${t}` : ''}`);
   return (
-    <MScreen gap={14}>
+    <MScreen gap={14} tabs>
       <TopNav voltar={p.souEu ? 'Perfil' : p.curto} acao={podeEditar ? 'Registrar' : undefined} onAcao={() => nova()} />
       <h1 className="title" style={{ margin: 0 }}>Medições</h1>
       {tiposVisiveis(state.medicoes, id).map((t) => (

@@ -50,7 +50,7 @@ export function Exames() {
   return (
     <MScreen tabs>
       <TopoPerfil />
-      <TabHeader titulo="Exames"onAdd={() => nav('/exames/novo')} />
+      <TabHeader titulo="Exames" onAdd={() => nav('/exames/novo')} />
       <input className="input input--search" placeholder="Buscar por nome, laboratório…" value={busca} onChange={(e) => setBusca(e.target.value)} aria-label="Buscar exames" />
       <ChipGroup gap6 tamanho="sm" opcoes={['todos', ...CATEGORIAS_EXAME.filter((c) => state.exames.some((e) => e.categoria === c))].map((c) => ({ id: c, nome: c === 'todos' ? 'Todos' : c }))} valor={filtro} onChange={setFiltro} />
       {(() => {
@@ -96,11 +96,11 @@ export function DetalheExame() {
   const nav = useNavigate();
   const [apagar, setApagar] = useState(false);
   const e = state.exames.find((x) => x.id === id);
-  if (!e) return <MScreen><TopNav voltar="Exames" voltarPara="/exames" /><span className="muted">Exame não encontrado.</span></MScreen>;
+  if (!e) return <MScreen tabs><TopNav voltar="Exames" voltarPara="/exames" /><span className="muted">Exame não encontrado.</span></MScreen>;
   const c = e.consultaId ? state.consultas.find((x) => x.id === e.consultaId) : undefined;
   const pode = editaveis(state).some((p) => p.id === e.pessoaId);
   return (
-    <MScreen gap={16}>
+    <MScreen gap={16} tabs>
       <TopNav voltar="Exames" voltarPara="/exames" acao={pode ? 'Editar' : undefined} onAcao={() => nav(`/exames/${e.id}/editar`)} />
       <div className="stack" style={{ gap: 4 }}>
         <h1 className="title title--26" style={{ margin: 0 }}>{e.nome}</h1>
@@ -126,7 +126,7 @@ export function DetalheExame() {
           titulo={`Apagar ${e.nome}?`}
           texto="O exame e os arquivos dele saem do arquivo."
           confirmar="Apagar exame"
-          onConfirm={() => { api.remover('exames', e, `${e.nome} apagado`); nav('/exames'); }}
+          onConfirm={() => { api.remover('exames', e, `${e.nome} apagado`); nav('/exames', { replace: true }); }}
           onClose={() => setApagar(false)}
         />
       )}

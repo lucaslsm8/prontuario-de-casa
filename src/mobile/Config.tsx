@@ -27,7 +27,7 @@ export function Configuracoes() {
   // Aberta direto (sem histórico no app), "Voltar" leva ao Início.
   const voltar = () => ((window.history.state?.idx ?? 0) > 0 ? nav(-1) : nav('/', { replace: true }));
   return (
-    <MScreen gap={16}>
+    <MScreen gap={16} tabs>
       <TopNav voltar="Voltar" onVoltar={voltar} />
       <h1 className="title" style={{ margin: 0 }}>Configurações</h1>
       <div className="card" style={{ fontSize: 15 }}>
@@ -117,7 +117,7 @@ export function Privacidade() {
   const backupAgora = () => (b.temSenha ? api.backupAgora() : setFolha('senha'));
 
   return (
-    <MScreen gap={16}>
+    <MScreen gap={16} tabs>
       <TopNav voltar="Configurações" voltarPara="/configuracoes" />
       <div className="stack" style={{ gap: 6 }}>
         <h1 className="title" style={{ margin: 0 }}>Privacidade</h1>
@@ -357,7 +357,7 @@ export function Atualizacoes() {
   const set = (patch: Partial<typeof u>) => api.setConfig({ update: { ...u, ...patch } });
 
   return (
-    <MScreen gap={16}>
+    <MScreen gap={16} tabs>
       <TopNav voltar="Configurações" voltarPara="/configuracoes" />
       <div className="stack" style={{ gap: 4 }}>
         <h1 className="title" style={{ margin: 0 }}>Atualizações</h1>

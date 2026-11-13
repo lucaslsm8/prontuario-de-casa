@@ -161,20 +161,24 @@ export function FieldGroup({ label, children }: Kids & { label: string }) {
   );
 }
 
-/** Barra de navegação de topo das telas internas: "‹ Voltar" · título · ação. */
+/**
+ * Barra de navegação de topo das telas internas: "‹ Voltar" · título · ação.
+ * Voltar sempre volta para a tela de onde a pessoa veio (histórico). O botão diz "Voltar", ou "Cancelar" nos formulários
+ * (`voltar="Cancelar"`). `voltarPara` só vale quando não há tela anterior (app aberto direto nesta, por uma notificação ou link).
+ */
 export function TopNav({
   voltar, voltarPara, onVoltar, titulo, acao, onAcao, acaoDesativada, extra,
 }: {
-  /** `onVoltar` substitui a navegação padrão (`voltarPara` ou histórico). */
-  voltar?: string; voltarPara?: string | number; onVoltar?: () => void; titulo?: string; acao?: string; onAcao?: () => void; acaoDesativada?: boolean; extra?: ReactNode;
+  /** `onVoltar` substitui a navegação padrão (histórico; sem histórico, `voltarPara` ou o Início). */
+  voltar?: string; voltarPara?: string; onVoltar?: () => void; titulo?: string; acao?: string; onAcao?: () => void; acaoDesativada?: boolean; extra?: ReactNode;
 }) {
   const nav = useNavigate();
-  const back = onVoltar ?? (() => (typeof voltarPara === 'string' ? nav(voltarPara) : nav(-1)));
+  const back = onVoltar ?? (() => ((window.history.state?.idx ?? 0) > 0 ? nav(-1) : nav(voltarPara ?? '/', { replace: true })));
   const cancelar = voltar === 'Cancelar';
   return (
     <div className="hstack" style={{ justifyContent: 'space-between', fontSize: 15, minHeight: 22 }}>
       <button type="button" onClick={back} style={{ color: 'var(--teal)', fontWeight: 500, minHeight: 44, margin: '-11px 0' }}>
-        {cancelar ? voltar : `‹ ${voltar}`}
+        {cancelar ? 'Cancelar' : '‹ Voltar'}
       </button>
       {titulo && <span style={{ fontWeight: 600 }}>{titulo}</span>}
       {extra ??

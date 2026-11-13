@@ -34,7 +34,7 @@ export function PetPerfil({ pet: p, inicio }: { pet: Pessoa; inicio?: boolean })
   const naAba = inicio || aberto === p.id;
   const editar = () => nav(`/pessoa/${p.id}/editar`);
   return (
-    <MScreen gap={18} tabs={naAba}>
+    <MScreen gap={18} tabs>
       {naAba ? <TopoPerfil /> : <TopNav voltar="Família" voltarPara="/familia" acao="Editar" onAcao={editar} />}
       <div className="hstack" style={{ gap: 14 }}>
         <FotoDoPerfil pessoa={p} tamanho={72} podeEditar />
