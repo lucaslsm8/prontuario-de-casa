@@ -11,7 +11,8 @@ import { GaleriaAnexos } from '../ui/Anexos';
 import { AcoesRegistro } from './Acoes';
 import { partesDoRemedio } from '../data/formularios-puro';
 import { CompreiMais, DosesSeNecessario } from '../ui/Estoque';
-import { Cartela, PilulaDoRemedio, contaCartela } from '../ui/Pilula';
+import { Cartela, DefinirTamanho, Frasco, PilulaDoRemedio, contaCartela } from '../ui/Pilula';
+import { ehLiquido } from '../data/cartela';
 import { anexosDe } from '../data/anexos';
 import { AvisoAlergia } from '../ui/AvisoAlergia';
 
@@ -100,8 +101,13 @@ export function DRemedio() {
                     <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Cartela aberta · {contaCartela(r)}</span>
                     <Cartela r={r} />
                   </>
+                ) : r.frasco && ehLiquido(r) ? (
+                  <Frasco r={r} />
                 ) : (
-                  <Bar pct={pctEstoque(r)} baixo={baixo} trilhoAlerta={baixo} grossa />
+                  <>
+                    <Bar pct={pctEstoque(r)} baixo={baixo} trilhoAlerta={baixo} grossa />
+                    {podeEditar && <DefinirTamanho r={r} />}
+                  </>
                 )}
                 {r.ativo && podeEditar && (
                   <CompreiMais

@@ -17,7 +17,8 @@ import { CompreiMais, DosesSeNecessario } from '../ui/Estoque';
 import { CamposAparencia } from '../ui/Aparencia';
 import { SugestoesConsulta } from '../ui/Sugestoes';
 import { AvisoAlergia } from '../ui/AvisoAlergia';
-import { Cartela, PilulaDoRemedio, contaCartela } from '../ui/Pilula';
+import { Cartela, DefinirTamanho, Frasco, PilulaDoRemedio, contaCartela } from '../ui/Pilula';
+import { ehLiquido } from '../data/cartela';
 
 /** Doses tomadas e previstas na grade (o que ainda vai ser tomado hoje não conta). */
 export function somaAdesao(grade: DiaAdesao[]) {
@@ -224,6 +225,17 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
             </span>
           }
         />
+        {form.liquido && (
+          <Row
+            tight
+            label="Frasco"
+            valor={
+              <span style={{ fontWeight: 500 }}>
+                <InlineInput inputMode="decimal" value={form.frascoMl} onChange={(e) => form.setFrascoMl(e.target.value.replace(/[^0-9,.]/g, ''))} placeholder="20" aria-label="Tamanho do frasco em mL" style={{ color: form.frascoValido ? undefined : 'var(--danger)' }} /> mL
+              </span>
+            }
+          />
+        )}
         <Row tight label="Avisar para repor" valor={<Ciclo valores={AVISAR} valor={avisar} onChange={setAvisar} render={nomeAvisar} />} />
       </div>
       <Field label="Observação (opcional)">
@@ -312,8 +324,13 @@ export function DetalheRemedio() {
               </div>
               <Cartela r={r} />
             </>
+          ) : r.frasco && ehLiquido(r) ? (
+            <Frasco r={r} />
           ) : (
-            <Bar pct={pctEstoque(r)} baixo={baixo} trilhoAlerta={baixo} grossa />
+            <>
+              <Bar pct={pctEstoque(r)} baixo={baixo} trilhoAlerta={baixo} grossa />
+              {podeEditar && <DefinirTamanho r={r} />}
+            </>
           )}
           <div className="hstack" style={{ gap: 8, fontSize: 13, fontWeight: 600, color: baixo ? 'var(--warn-strong)' : 'var(--teal)' }}>
             {podeEditar && r.ativo && <CompreiMais r={r} className="btn btn--h36" style={{ background: baixo ? '#fff' : 'var(--teal-light)' }} />}

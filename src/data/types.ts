@@ -95,6 +95,8 @@ export interface Remedio {
   aparencia?: Aparencia;
   /** Tamanho da cartela: a cartela aberta sai do estoque (resto por `porCartela`). */
   cartela?: { porCartela: number; fileiras: number };
+  /** Capacidade do frasco (gotas e mL), na unidade do estoque: 20 mL de gotas = 400. */
+  frasco?: number;
   avisarDias: number;
   receitadoPor?: string;
   indicacao?: string;

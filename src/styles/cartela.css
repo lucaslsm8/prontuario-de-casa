@@ -3,18 +3,26 @@
 .pilula__corpo { transition: opacity var(--t) var(--ease); }
 
 .cartela {
-  display: grid; gap: 8px; padding: 12px; border-radius: var(--r-card);
-  background: linear-gradient(135deg, #E8EDEF 0%, #D5DDE0 45%, #EEF2F3 60%, #D9E0E3 100%);
-  border: 1px solid #C8D1D5; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6);
+  display: grid; gap: 6px; padding: 12px 14px; border-radius: 12px; width: 100%;
+  /* Alumínio da cartela: brilho diagonal suave. */
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, .55) 0%, rgba(255, 255, 255, 0) 38%, rgba(255, 255, 255, .35) 52%, rgba(255, 255, 255, 0) 70%),
+    linear-gradient(180deg, #E4E9EB, #D3DADD);
+  border: 1px solid #C5CED2; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8), 0 1px 2px rgba(20, 32, 42, .08);
 }
+/* Bolha de plástico: redonda, com brilho e um pouco de volume. */
 .cartela__bolha {
-  aspect-ratio: 1; border-radius: 12px; display: grid; place-items: center; min-width: 0;
-  background: rgba(255, 255, 255, .55); box-shadow: inset 0 0 0 1px rgba(20, 32, 42, .08), 0 1px 2px rgba(20, 32, 42, .08);
+  aspect-ratio: 1; border-radius: 42%; display: grid; place-items: center; min-width: 0;
+  background: radial-gradient(circle at 34% 28%, rgba(255, 255, 255, .95) 0, rgba(255, 255, 255, .55) 38%, rgba(240, 244, 245, .35) 70%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .7), inset 0 -3px 5px rgba(20, 32, 42, .07), 0 2px 3px rgba(20, 32, 42, .14);
   transition: background var(--t) var(--ease), box-shadow var(--t) var(--ease);
 }
-.cartela__bolha .pilula { width: 86%; height: 86%; }
-.cartela__bolha.is-vazia { background: #CDD5D9; box-shadow: inset 0 2px 4px rgba(20, 32, 42, .18); }
-/* A bolha que acabou de esvaziar: o contorno aparece suave. */
+.cartela__bolha .pilula { width: 84%; height: 84%; }
+/* Tomado: a bolha afunda e o alumínio fica à mostra. */
+.cartela__bolha.is-vazia {
+  background: radial-gradient(circle at 50% 60%, #C3CBCF 0, #CFD6D9 60%, #D7DDE0 100%);
+  box-shadow: inset 0 2px 4px rgba(20, 32, 42, .22), inset 0 -1px 0 rgba(255, 255, 255, .6);
+}
 .cartela__bolha.is-vazia .pilula { animation: pilula-sai var(--t) var(--ease); }
 @keyframes pilula-sai { from { opacity: 0; transform: scale(.85); } }
 
@@ -35,3 +43,8 @@
 .aparencia__cor[aria-pressed='true'] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--teal); }
 .aparencia__foto { width: 64px; height: 64px; border-radius: 50%; overflow: hidden; flex: none; border: 1px solid var(--border-card); }
 .aparencia__foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Frasco de gotas e xarope. */
+.frasco { display: flex; gap: 18px; align-items: flex-end; }
+.frasco__svg { width: 76px; height: 126px; flex: none; }
+.frasco__liquido { transition: y var(--t) var(--ease); }

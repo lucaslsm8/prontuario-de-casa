@@ -63,3 +63,28 @@ export function lerCartela(porCartela: string, fileiras: string): Remedio['carte
   if (!Number.isInteger(f) || f < 1 || f > p) return undefined;
   return { porCartela: p, fileiras: f };
 }
+
+// ── Frasco (gotas e mL) ─────────────────────────────────────────────────────
+
+/** Gotas por mL (padrão da farmacopeia; o conta-gotas do remédio pode variar). */
+export const GOTAS_POR_ML = 20;
+/** Remédio contado em gotas ou mL: mostra frasco no lugar da cartela. */
+export const ehLiquido = (r: Pick<Remedio, 'unidade'>) => r.unidade === 'gotas' || r.unidade === 'mL';
+/** Estoque em mL (gotas ÷ 20). */
+export const emMl = (r: Pick<Remedio, 'unidade'>, qtd: number) => (r.unidade === 'gotas' ? qtd / GOTAS_POR_ML : qtd);
+
+/**
+ * O frasco aberto: como a cartela, o resto do estoque pela capacidade (`frasco`, na unidade do estoque).
+ * `pct` de 0 a 1; `fechados` = frascos ainda lacrados.
+ */
+export function nivelFrasco(estoque: number, capacidade: number) {
+  const cap = Math.max(1, capacidade);
+  const e = Math.max(0, estoque);
+  const r = Math.round((e % cap) * 100) / 100;
+  const resto = e <= 0 ? 0 : r === 0 ? cap : r;
+  return { resto, pct: Math.min(1, resto / cap), fechados: Math.max(0, Math.round((e - resto) / cap)) };
+}
+
+/** Tamanhos comuns para os atalhos da tela do remédio. */
+export const CARTELAS_COMUNS = [10, 14, 15, 20, 28, 30];
+export const FRASCOS_COMUNS_ML = [10, 15, 20, 30, 100, 120];

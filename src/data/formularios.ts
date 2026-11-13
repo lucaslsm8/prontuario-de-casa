@@ -4,14 +4,14 @@ import { eu, useStore } from './store';
 import { addDias, dataBR, diasEntre } from './format';
 import { novoId } from './persistencia';
 import { anexosDe, ehPdf, tamanhoDataUrl } from './anexos';
-import { lerCartela } from './cartela';
+import { GOTAS_POR_ML, lerCartela } from './cartela';
 import { lerTrajeto } from './consultas';
 import { lerDosPdfs } from './pdf';
 import type { Anexo, Aparencia, CategoriaExame, Resultado, Consulta, Exame, Medicao, Pesagem, Pessoa, Plano, Prevencao, Procedimento, Remedio, Sintoma, TipoMedicao, TipoProcedimento, Vacina } from './types';
 import { SINAIS, ehPet, familia, pets } from './pets';
 import { diffPessoa, formDePessoa, lerNumeroBR, normalizarTexto, novaChave, pessoaDoForm, type ErrosPerfil, type FormPerfil, type FormPet, type LinhaAlergia, type LinhaCondicao } from './perfil';
 import {
-  CORES, FORMAS_REMEDIO, FREQUENCIAS, brParaISO, lerDose, lerQuantidade, montarDose, diffRegistro, freqDoRemedio, lerHorarios, nomeComDosagem, partesDoRemedio, dataDoReforco, isoParaBR, juntarDataHora, lerDataHora, lerDataRegistro, lerIntervaloDias, lerNascimento,
+  CORES, FORMAS_REMEDIO, FREQUENCIAS, brParaISO, lerDose, lerQuantidade, montarDose, textoQuantidade, diffRegistro, freqDoRemedio, lerHorarios, nomeComDosagem, partesDoRemedio, dataDoReforco, isoParaBR, juntarDataHora, lerDataHora, lerDataRegistro, lerIntervaloDias, lerNascimento,
   lerReforco, mascaraData, mascaraValidade, montarPlano, normalizarHora, somarDias, type AtalhoReforco, type ErrosPlano, type FormPlano, type Frequencia,
 } from './formularios-puro';
 import { mascararTelefone } from './format';
@@ -51,6 +51,11 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
   const fim = addDias(inicio, duracao);
   const unidade = montada.unidade;
   const comCartela = !!FORMAS_REMEDIO.find((x) => x.id === forma)?.cartela;
+  // Gotas e mL: tamanho do frasco em mL (guardado na unidade do estoque: gotas = mL × 20).
+  const liquido = unidade === 'gotas' || unidade === 'mL';
+  const [frascoMl, setFrascoMl] = useState(inicial?.frasco ? textoQuantidade(inicial.unidade === 'gotas' ? inicial.frasco / GOTAS_POR_ML : inicial.frasco) : '');
+  const frascoNum = lerQuantidade(frascoMl);
+  const frascoValido = !liquido || !frascoMl.trim() || frascoNum != null;
   const [id] = useState(() => inicial?.id ?? `rem-${novoId()}`);
   const [receita, setReceita] = useState<Anexo[]>([]);
   // "Como ele é": desenho do comprimido, tamanho da cartela e fotos.
@@ -96,6 +101,7 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
       // Gotas, mL etc. não têm cartela nem desenho de comprimido.
       aparencia: comCartela && aparencia ? (aparencia.forma === 'capsula' ? { ...aparencia, sulco: undefined } : { ...aparencia, cor2: undefined }) : undefined,
       cartela: comCartela ? cartela : undefined,
+      frasco: liquido && frascoNum ? Math.round(frascoNum * (unidade === 'gotas' ? GOTAS_POR_ML : 1)) : undefined,
     } as Remedio;
     if (inicial) {
       api.editar('remedios', id, diffRegistro(inicial, remedio), `${remedio.nome} atualizado`);
@@ -117,7 +123,8 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
     /** Ao sair do campo: "22" → "22:00", "8h30, 21" → "08:30, 21:00". */
     completarHorarios: () => { if (lidos?.length) setHorariosTexto(lidos.join(', ')); },
     lembrete, setLembrete, estoque, setEstoque, avisar, setAvisar, observacao, setObservacao, receitadoPor, setReceitadoPor, fim, unidade, editando: !!inicial,
-    id, receita, setReceita, valido: !!nome.trim() && !!horarios && cartelaValida && qtdNum != null, salvar,
+    id, receita, setReceita, valido: !!nome.trim() && !!horarios && cartelaValida && qtdNum != null && frascoValido, salvar,
+    liquido, frascoMl, setFrascoMl, frascoValido,
     qtdDose, setQtdDose, forma, setForma, qtdValida: qtdNum != null, comCartela,
     aparencia, setAparencia, porCartela, setPorCartela, fileiras, setFileiras, cartelaValida,
     fotoComprimido, setFotoComprimido, fotosCartela, setFotosCartela,

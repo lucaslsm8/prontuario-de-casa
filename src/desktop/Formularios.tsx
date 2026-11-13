@@ -85,6 +85,11 @@ export function DNovoRemedio({ onClose, remedio }: Props & { remedio?: Remedio }
         <DCampo label="Duração">
           <DSelect opcoes={duracoes} valor={f.duracao} onChange={f.setDuracao} />
         </DCampo>
+        {f.liquido && (
+          <DCampo label="Frasco (mL)" erro={f.frascoValido ? undefined : 'Em mL, como 20 ou 120.'}>
+            <input className="input input--desk input--mono" inputMode="decimal" value={f.frascoMl} onChange={(e) => f.setFrascoMl(e.target.value.replace(/[^0-9,.]/g, ''))} placeholder="20" />
+          </DCampo>
+        )}
         <DCampo label="Avisar para repor">
           <DSelect opcoes={(AVISAR.includes(f.avisar) ? AVISAR : [f.avisar, ...AVISAR]).map((v) => ({ id: v, nome: nomeAvisar(v) }))} valor={f.avisar} onChange={f.setAvisar} />
         </DCampo>

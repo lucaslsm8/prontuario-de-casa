@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { colunasCartela, descricaoAparencia, estadosCartela, lerCartela } from './cartela';
+import { colunasCartela, descricaoAparencia, ehLiquido, emMl, estadosCartela, lerCartela, nivelFrasco } from './cartela';
 
 const conta = (e: ReturnType<typeof estadosCartela>) => ({
   cheio: e.estados.filter((x) => x === 'cheio').length,
@@ -42,5 +42,20 @@ describe('cartela no formulário', () => {
     expect(colunasCartela({ porCartela: 10, fileiras: 3 })).toBe(4);
     expect(descricaoAparencia({ forma: 'redondo', cor: 'branco', sulco: true })).toBe('Redondo, branco, com sulco');
     expect(descricaoAparencia({ forma: 'capsula', cor: 'azul', cor2: 'branco', sulco: true })).toBe('Cápsula, azul e branco');
+  });
+});
+
+describe('frasco', () => {
+  it('nível do frasco aberto e frascos fechados', () => {
+    expect(nivelFrasco(240, 400)).toEqual({ resto: 240, pct: 0.6, fechados: 0 });
+    expect(nivelFrasco(640, 400)).toEqual({ resto: 240, pct: 0.6, fechados: 1 });
+    expect(nivelFrasco(800, 400)).toEqual({ resto: 400, pct: 1, fechados: 1 });
+    expect(nivelFrasco(0, 400).pct).toBe(0);
+  });
+  it('líquido e mL', () => {
+    expect(ehLiquido({ unidade: 'gotas' })).toBe(true);
+    expect(ehLiquido({ unidade: 'comprimidos' })).toBe(false);
+    expect(emMl({ unidade: 'gotas' }, 240)).toBe(12);
+    expect(emMl({ unidade: 'mL' }, 7.5)).toBe(7.5);
   });
 });
