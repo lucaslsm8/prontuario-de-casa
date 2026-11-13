@@ -107,3 +107,24 @@ A cartela (ou os comprimidos) desenhada na tela. Cada dose tomada deixa só o co
 ### Futuro
 - **Foto vira ilustração:** o app lê a foto da cartela e do comprimido e monta sozinho o desenho, com forma, cor, sulco, quantidade e disposição dos comprimidos na cartela. Tudo no aparelho, sem servidor. Primeiro passo: contorno e cor média da foto, sem IA, com a pessoa confirmando.
 - **Conferir com a câmera:** apontar para o comprimido na mão e o app dizer se bate com o cadastrado.
+
+## Review de 13/11/2026
+
+Feito (0.5.13–0.5.15 e sessão noturna de 13–14/11):
+- Estoque pela quantidade da dose; "Comprei mais" com quantidade; "Tomei agora" no "se necessário".
+- Cartela visual e desenho do comprimido; hierarquia da família; ficha completa da consulta.
+- Forma do remédio e dose livre (gotas, mL, sachê…); observação no celular; "Receitado por".
+- Aviso de alergia × remédio (nome ou família).
+- Ficha de emergência com dose, horários e para que serve.
+- Exames: selo "N valores fora da faixa" na lista.
+- Celular: horários reais no formulário do remédio; Google Agenda e .ics recolhidos na Agenda.
+
+Pendente:
+- Assinar eventos por aparelho (papéis e edições não forjáveis).
+- Frequências: dias da semana, dia sim dia não, semanal, desmame. Validade da receita.
+- Exame agendado como tipo próprio; pedido médico; comparar com o anterior.
+- Condições como registros; alergia com gravidade; histórico familiar; crianças (curva, vacinas do SUS).
+- Gatos; remédio por peso; ração.
+- Reembolso, despesas para o IR.
+- Visual V1 nas telas que faltam; teclado no desktop.
+- Cartela: foto vira ilustração; conferir com a câmera; frasco com nível.
