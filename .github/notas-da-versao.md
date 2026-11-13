@@ -1,3 +1,4 @@
-- Remédios: o estoque desconta a dose de verdade (2 comprimidos tiram 2, meio comprimido tira meio), e a previsão de quando acaba também
-- "Comprei mais" pergunta quantas unidades entraram, já sugerindo a última compra
-- Remédio "se necessário": botão "Tomei agora", com o motivo (dor, febre…) e a lista de quando tomou
+- Remédios: cartela desenhada na tela, igual à que você tem na mão. Cada dose tomada deixa só o contorno do comprimido; meia dose deixa metade
+- No cadastro do remédio, a nova seção "Como ele é": forma, cor, sulco e quantos comprimidos vêm na cartela
+- Fotografe o comprimido e a foto aparece na cartela; a foto da cartela fica guardada para comparar
+- O comprimido aparece ao lado do nome no cartão da dose e na lista de doses do Início
