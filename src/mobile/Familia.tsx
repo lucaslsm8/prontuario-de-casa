@@ -10,7 +10,7 @@ import { Avatar, FieldGroup, Label, Pill, Row, SecaoLista, Toggle, TopNav } from
 import { descricaoPet, ehPet, equipeProcedimento, familia, pesoAtual, pets, telHref, tituloProcedimento } from '../data/pets';
 import { FotoDoPerfil } from '../ui/Foto';
 import { PetPerfil } from './Pet';
-import { useAbrirNoPerfil } from './Perfil';
+import { TopoPerfil, useAbrirNoPerfil, usePerfil } from './Perfil';
 import { MScreen, TabHeader } from './Shell';
 import { GaleriaAnexos } from '../ui/Anexos';
 import { ConfirmarSheet, RemoverPessoaMobile } from '../ui/Confirmar';
@@ -51,6 +51,7 @@ function subtitulo(s: State, p: Pessoa) {
 export function Familia() {
   const { state } = useStore();
   const nav = useNavigate();
+  const { todos } = usePerfil();
   const me = eu(state);
   const outros = familia(state).filter((p) => !p.souEu);
   const listaPets = pets(state);
@@ -60,7 +61,9 @@ export function Familia() {
 
   return (
     <MScreen tabs>
-      <TabHeader titulo="Família" direita={<button type="button" style={{ fontSize: 15, fontWeight: 500, color: 'var(--teal)' }} onClick={() => nav('/configuracoes')}>Configurações</button>} />
+      {/* Em "Família toda", esta tela é a aba "Perfil": ganha o topo das abas (que já tem a engrenagem). */}
+      {todos && <TopoPerfil />}
+      <TabHeader titulo="Família" direita={todos ? <span /> : <button type="button" style={{ fontSize: 15, fontWeight: 500, color: 'var(--teal)' }} onClick={() => nav('/configuracoes')}>Configurações</button>} />
       <button type="button" className="card hstack" style={{ flexDirection: 'row', padding: 16, gap: 14, textAlign: 'left' }} onClick={() => nav(`/pessoa/${me.id}`)}>
         <Avatar pessoa={me} size={52} font={19} />
         <div className="stack" style={{ flex: 1, gap: 2 }}>
@@ -179,6 +182,7 @@ export function PerfilMembro() {
   const { state } = useStore();
   const nav = useNavigate();
   const abrirNoPerfil = useAbrirNoPerfil();
+  const { id: aberto } = usePerfil();
   const p = pessoa(state, id ?? '');
   if (!p) return <MScreen><TopNav voltar="Família" voltarPara="/familia" /><span className="muted">Pessoa não encontrada.</span></MScreen>;
   if (ehPet(p)) return <PetPerfil key={p.id} pet={p} />;
@@ -193,18 +197,29 @@ export function PerfilMembro() {
   const podeEditar = editaveis(state).some((x) => x.id === p.id);
   const me = eu(state);
   const nasc = linhaIdade(p);
+  // Aba "Perfil": a página do perfil aberto fica com a barra de baixo e o topo das abas, sem "voltar".
+  const naAba = aberto === p.id;
+  const editar = () => nav(`/pessoa/${p.id}/editar`);
 
   return (
-    <MScreen gap={18}>
-      <TopNav voltar="Família" voltarPara="/familia" acao={podeEditar ? 'Editar' : undefined} onAcao={() => nav(`/pessoa/${p.id}/editar`)} />
+    <MScreen gap={18} tabs={naAba}>
+      {naAba ? <TopoPerfil /> : <TopNav voltar="Família" voltarPara="/familia" acao={podeEditar ? 'Editar' : undefined} onAcao={editar} />}
       <div className="hstack" style={{ gap: 14 }}>
         <FotoDoPerfil pessoa={p} tamanho={72} podeEditar={podeEditar} />
-        <div className="stack" style={{ gap: 4 }}>
+        <div className="stack" style={{ gap: 4, flex: 1, minWidth: 0 }}>
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600, letterSpacing: '-.01em' }}>{p.nome.split(' ').filter((_, i, a) => i === 0 || i === a.length - 1).join(' ')}</h1>
           {nasc && <span style={{ fontSize: 13, color: 'var(--text-2)' }}>{nasc}</span>}
           <span style={{ fontSize: 13, color: 'var(--text-2)' }}>{subtitulo(state, p)}</span>
         </div>
+        {naAba && podeEditar && <button type="button" className="btn btn--outline btn--h40" style={{ flexShrink: 0, alignSelf: 'flex-start' }} onClick={editar}>Editar</button>}
       </div>
+
+      {(ver('plano') || ver('perfil')) && (
+        <div className="hstack" style={{ gap: 8 }}>
+          {ver('plano') && <button type="button" className="btn btn--outline btn--h50 btn--grow" onClick={() => nav(`/pessoa/${p.id}/plano`)}>{plano ? 'Carteirinha' : 'Adicionar plano'}</button>}
+          {ver('perfil') && <button type="button" className="btn btn--outline-ink btn--h50 btn--grow" onClick={() => nav(`/pessoa/${p.id}/emergencia`)}>Emergência</button>}
+        </div>
+      )}
 
       {ver('perfil') && (
         <>
@@ -265,12 +280,8 @@ export function PerfilMembro() {
         {ver('remedios') && <Row mutedLabel={false} label="Remédios" valor={<span className="muted">{remedios.length} em uso ›</span>} onClick={() => abrirNoPerfil(p.id, '/remedios')} />}
         {ver('consultas') && <Row mutedLabel={false} label="Consultas" valor={<span className="muted">{prox ? `próxima ${diaMes(prox.data)}` : 'nenhuma marcada'} ›</span>} onClick={() => abrirNoPerfil(p.id, '/agenda')} />}
         {ver('exames') && <Row mutedLabel={false} label="Exames" valor={<span className="muted">{exames.length} arquivados ›</span>} onClick={() => abrirNoPerfil(p.id, '/exames')} />}
-        {ver('plano') && <Row mutedLabel={false} label="Plano" valor={<span className="muted">{plano ? plano.operadora.split(' ')[0] : 'adicionar'} ›</span>} onClick={() => nav(`/pessoa/${p.id}/plano`)} />}
       </div>
 
-      {ver('perfil') && (
-        <button type="button" className="btn btn--outline-ink btn--h50" onClick={() => nav(`/pessoa/${p.id}/emergencia`)}>Ficha de emergência</button>
-      )}
       <Label>Quem cuida</Label>
       <PapeisDaPessoa p={p} />
       {podeDecidir(state, me?.id, p.id) && <RemoverPessoaMobile p={p} />}

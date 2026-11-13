@@ -10,7 +10,7 @@ import { estadoDose, saudacao } from '../data/inicio';
 import { useAgora } from '../data/useAgora';
 import type { Consulta } from '../data/types';
 import { MScreen } from './Shell';
-import { BotaoConfig } from './Perfil';
+import { TopoPerfil } from './Perfil';
 import { PetPerfil } from './Pet';
 
 /** M03 Início · M20 quando ainda não há nada cadastrado. No perfil de um pet, o perfil dele. */
@@ -22,25 +22,21 @@ export function Inicio() {
   return vazio ? <InicioVazio /> : <InicioCheio />;
 }
 
-/** Topo do Início: "Bom dia, Helena" e a data à esquerda, Buscar e Configurações na mesma linha. O perfil fica na última aba. */
+/** Topo do Início: o perfil aberto, Buscar e Configurações (como nas outras abas) e, embaixo, "Bom dia, Helena" e a data. */
 function Topo() {
   const { state } = useStore();
-  const nav = useNavigate();
   const agora = useAgora();
   const me = state.pessoas.find((p) => p.souEu);
   return (
-    <div className="hstack" style={{ gap: 8 }}>
-      <div className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
-        <span style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+    <>
+      <TopoPerfil />
+      <div className="stack" style={{ minWidth: 0, gap: 1 }}>
+        <span style={{ fontSize: 22, fontWeight: 600, letterSpacing: '-.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {saudacao(agora)}{me ? `, ${me.curto}` : ''}
         </span>
-        <span style={{ fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{dataLonga(HOJE)}</span>
+        <span style={{ fontSize: 13, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{dataLonga(HOJE)}</span>
       </div>
-      <div className="hstack" style={{ flex: 'none' }}>
-        <button type="button" className="btn btn--outline btn--h40" style={{ marginRight: 8, minWidth: 44, flexShrink: 0 }} onClick={() => nav('/busca')} aria-label="Buscar">Buscar</button>
-        <BotaoConfig />
-      </div>
-    </div>
+    </>
   );
 }
 

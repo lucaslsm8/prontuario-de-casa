@@ -13,7 +13,7 @@ import { Label, Pill, Row, TopNav, reticencias } from '../ui';
 import { FotoDoPerfil } from '../ui/Foto';
 import { AdicionarItem } from './EditarPerfil';
 import { MScreen, TabHeader } from './Shell';
-import { BotaoConfig, useAbrirNoPerfil } from './Perfil';
+import { TopoPerfil, useAbrirNoPerfil, usePerfil } from './Perfil';
 import { Grafico } from '../ui/Grafico';
 import { pontosPesagem } from '../data/medicoes';
 import { RemoverPessoaMobile } from '../ui/Confirmar';
@@ -29,23 +29,22 @@ const sub = { fontSize: 13, color: 'var(--text-2)' } as const;
 export function PetPerfil({ pet: p, inicio }: { pet: Pessoa; inicio?: boolean }) {
   const nav = useNavigate();
   const alergia = p.alergias[0];
+  const { id: aberto } = usePerfil();
+  // No perfil do próprio pet (Início ou aba "Perfil"): barra de baixo e o topo das abas, sem "voltar".
+  const naAba = inicio || aberto === p.id;
+  const editar = () => nav(`/pessoa/${p.id}/editar`);
   return (
-    <MScreen gap={18} tabs={inicio}>
-      {inicio ? (
-        <div className="hstack" style={{ justifyContent: 'flex-end' }}>
-          <button type="button" className="btn btn--outline btn--h40" style={{ marginRight: 'auto', padding: '0 14px' }} onClick={() => nav(`/pessoa/${p.id}/editar`)}>Editar</button>
-          <BotaoConfig />
-        </div>
-      ) : (
-        <TopNav voltar="Família" voltarPara="/familia" acao="Editar" onAcao={() => nav(`/pessoa/${p.id}/editar`)} />
-      )}
+    <MScreen gap={18} tabs={naAba}>
+      {naAba ? <TopoPerfil /> : <TopNav voltar="Família" voltarPara="/familia" acao="Editar" onAcao={editar} />}
       <div className="hstack" style={{ gap: 14 }}>
         <FotoDoPerfil pessoa={p} tamanho={72} podeEditar />
-        <div className="stack" style={{ gap: 4, minWidth: 0 }}>
+        <div className="stack" style={{ gap: 4, minWidth: 0, flex: 1 }}>
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600, letterSpacing: '-.01em' }}>{p.nome}</h1>
           <span style={sub}>{linhaPet(p)}</span>
         </div>
+        {naAba && <button type="button" className="btn btn--outline btn--h40" style={{ flexShrink: 0, alignSelf: 'flex-start' }} onClick={editar}>Editar</button>}
       </div>
+      <button type="button" className="btn btn--outline-ink btn--h50" onClick={() => nav(`/pessoa/${p.id}/emergencia`)}>Emergência</button>
 
       <Indicadores p={p} />
       {alergia && (
@@ -66,7 +65,6 @@ export function PetPerfil({ pet: p, inicio }: { pet: Pessoa; inicio?: boolean })
       <Peso id={p.id} />
       <RemediosEmUso id={p.id} />
       <ConsultasExames id={p.id} />
-      <button type="button" className="btn btn--outline-ink btn--h50" onClick={() => nav(`/pessoa/${p.id}/emergencia`)}>Ficha de emergência</button>
       {!inicio && <RemoverPessoaMobile p={p} />}
     </MScreen>
   );

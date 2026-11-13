@@ -1,7 +1,7 @@
 // Celular: o app funciona no perfil de uma pessoa (ou pet) da família, ou em "Família toda". Sempre abre
-// no de quem usa o aparelho; trocar vale até fechar o app. A foto do perfil aberto é a última aba (TabBar):
-// um toque abre o seletor, segurar abre a página da pessoa. Início, Agenda, Remédios e Exames mostram só o perfil.
-import { createContext, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
+// no de quem usa o aparelho; trocar vale até fechar o app. O perfil aberto fica escrito no topo de cada aba
+// (`TopoPerfil`, toque troca) e a última aba, "Perfil", abre a página dele. Início, Agenda, Remédios e Exames mostram só o perfil.
+import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { dosesHoje, EscopoPerfil, pessoa, podeVer, temEu, useStore, type State } from '../data/store';
 import { ehPet, familia, pets } from '../data/pets';
@@ -37,6 +37,7 @@ export function useAbrirNoPerfil() {
 export function PerfilProvider({ children }: { children: ReactNode }) {
   const { state } = useStore();
   const loc = useLocation();
+  const nav = useNavigate();
   const [escolhido, setEscolhido] = useState<string>();
   const [seletor, setSeletor] = useState(false);
   const meu = state.pessoas.find((p) => p.souEu)?.id;
@@ -47,10 +48,17 @@ export function PerfilProvider({ children }: { children: ReactNode }) {
     id, todos, trocar: setEscolhido, abrirSeletor: () => setSeletor(true),
   }), [id, todos]);
   const recorte = temEu(state) && !SEM_RECORTE.test(loc.pathname) ? id : undefined;
+  // Trocar de perfil estando na aba "Perfil" leva à página do novo perfil (a aba continua a mesma).
+  const escolher = (novo: string) => {
+    const naAbaPerfil = loc.pathname === (id ? `/pessoa/${id}` : '/familia');
+    setEscolhido(novo);
+    setSeletor(false);
+    if (naAbaPerfil) nav(novo === TODOS ? '/familia' : `/pessoa/${novo}`, { replace: true });
+  };
   return (
     <PerfilCtx.Provider value={valor}>
       <EscopoPerfil pessoaId={recorte}>{children}</EscopoPerfil>
-      {seletor && <SeletorPerfil atual={id} todos={todos} onEscolher={(p) => { setEscolhido(p); setSeletor(false); }} onClose={() => setSeletor(false)} />}
+      {seletor && <SeletorPerfil atual={id} todos={todos} onEscolher={escolher} onClose={() => setSeletor(false)} />}
     </PerfilCtx.Provider>
   );
 }
@@ -66,9 +74,7 @@ function pendencia(state: State, p: Pessoa, agora: number) {
 
 function SeletorPerfil({ atual, todos, onEscolher, onClose }: { atual?: string; todos: boolean; onEscolher: (id: string) => void; onClose: () => void }) {
   const { state } = useStore();
-  const nav = useNavigate();
   const agora = useAgora();
-  const ir = (to: string) => { onClose(); nav(to); };
   const vendo = <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--teal)' }}>Vendo</span>;
   const linha = (p: Pessoa) => {
     const pend = pendencia(state, p, agora);
@@ -85,7 +91,6 @@ function SeletorPerfil({ atual, todos, onEscolher, onClose }: { atual?: string; 
     );
   };
   const pessoas = familia(state).sort((a, b) => Number(!!b.souEu) - Number(!!a.souEu));
-  const aberto = !todos && atual ? pessoa(state, atual) : undefined;
   return (
     <Folha titulo="Ver o perfil de" onClose={onClose}>
       <div className="stack" style={{ maxHeight: '52vh', overflowY: 'auto' }}>
@@ -100,18 +105,6 @@ function SeletorPerfil({ atual, todos, onEscolher, onClose }: { atual?: string; 
           </span>
           {todos && vendo}
         </button>
-      </div>
-      {aberto && (
-        <button type="button" className="btn btn--ink btn--h50" onClick={() => ir(`/pessoa/${aberto.id}`)}>
-          {aberto.souEu ? 'Abrir o seu perfil' : `Abrir o perfil de ${aberto.curto}`}
-        </button>
-      )}
-      <div className="hstack" style={{ gap: 8 }}>
-        {aberto && !ehPet(aberto) && (aberto.souEu || podeVer(state, aberto.id, 'perfil')) && (
-          <button type="button" className="btn btn--outline btn--h50 btn--grow" onClick={() => ir(`/pessoa/${aberto.id}/emergencia`)}>Emergência</button>
-        )}
-        <button type="button" className="btn btn--outline btn--h50 btn--grow" onClick={() => ir('/familia')}>Família</button>
-        <button type="button" className="btn btn--outline btn--h50 btn--grow" onClick={() => ir('/planos')}>Carteirinhas</button>
       </div>
     </Folha>
   );
@@ -130,38 +123,52 @@ export function AvatarTodos({ pessoas, size }: { pessoas: Pessoa[]; size: number
 }
 
 /**
- * Última aba: a foto do perfil aberto (o nome fica no seletor e no `title`; na barra não cabe).
- * Toque abre o seletor; segurar abre a página da pessoa.
+ * Última aba, "Perfil": a foto do perfil aberto. Um toque abre a página dessa pessoa (em "Família toda", a família).
+ * Trocar de perfil é no topo das abas (`TopoPerfil`).
  */
 export function AbaPerfil() {
   const { state } = useStore();
-  const { id, todos, abrirSeletor } = usePerfil();
+  const { id, todos } = usePerfil();
   const nav = useNavigate();
   const loc = useLocation();
-  const timer = useRef<number>();
-  const segurou = useRef(false);
   const p = id ? pessoa(state, id) : undefined;
   if (!p && !todos) return null;
-  const nome = todos ? 'Todos' : p!.souEu ? 'Você' : p!.curto;
-  const soltar = () => window.clearTimeout(timer.current);
+  const destino = p ? `/pessoa/${p.id}` : '/familia';
   return (
     <button
       type="button"
-      className={cx('tabbar__perfil', !!id && loc.pathname === `/pessoa/${id}` && 'active')}
-      aria-label={`Perfil: ${todos ? 'Família toda' : quem(p)}. Toque para trocar, segure para abrir`}
-      title={nome}
-      onPointerDown={() => {
-        segurou.current = false;
-        if (!p) return;
-        timer.current = window.setTimeout(() => { segurou.current = true; nav(`/pessoa/${p.id}`); }, 500);
-      }}
-      onPointerUp={soltar}
-      onPointerLeave={soltar}
-      onContextMenu={(e) => e.preventDefault()}
-      onClick={() => { if (!segurou.current) abrirSeletor(); }}
+      className={cx('tabbar__perfil', loc.pathname === destino && 'active')}
+      aria-label={p ? `Perfil de ${quem(p)}` : 'Família'}
+      title={p ? 'Perfil' : 'Família'}
+      onClick={() => nav(destino)}
     >
-      {todos ? <AvatarTodos pessoas={familia(state)} size={30} /> : <Avatar pessoa={p!} size={30} font={12} />}
+      {p ? <Avatar pessoa={p} size={30} font={12} /> : <AvatarTodos pessoas={familia(state)} size={30} />}
     </button>
+  );
+}
+
+/**
+ * Topo de toda aba: de quem é o que está na tela (toque troca de perfil), Buscar e Configurações.
+ */
+export function TopoPerfil() {
+  const { state } = useStore();
+  const { id, todos, abrirSeletor } = usePerfil();
+  const nav = useNavigate();
+  const p = id ? pessoa(state, id) : undefined;
+  const nome = p ? (p.souEu ? `${p.curto} (você)` : p.curto) : 'Família toda';
+  return (
+    <div className="hstack" style={{ gap: 8 }}>
+      {(p || todos) && (
+        <button type="button" className="topo-perfil" onClick={abrirSeletor} aria-label={`Vendo: ${nome}. Trocar de perfil`}>
+          {p ? <Avatar pessoa={p} size={32} font={13} /> : <AvatarTodos pessoas={familia(state)} size={32} />}
+          <span className="topo-perfil__nome">{nome}</span>
+          <span className="topo-perfil__seta" aria-hidden>▾</span>
+        </button>
+      )}
+      <span style={{ flex: 1 }} />
+      <button type="button" className="btn btn--outline btn--h40" style={{ minWidth: 44, flexShrink: 0 }} onClick={() => nav('/busca')}>Buscar</button>
+      <BotaoConfig />
+    </div>
   );
 }
 

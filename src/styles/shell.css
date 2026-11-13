@@ -261,6 +261,16 @@ button.consultas__linha:hover { background: #F8FAFA; }
 .tabbar__perfil:hover:not(.active) { color: #fff; }
 .tabbar--icones .tabbar__perfil { width: 52px; padding: 0; }
 
+/* Perfil aberto, no topo de cada aba: toque troca. */
+.topo-perfil {
+  display: flex; align-items: center; gap: 8px; min-height: 44px; min-width: 0; padding: 5px 12px 5px 6px;
+  border: 1px solid var(--border-card); border-radius: var(--r-card); background: var(--surface);
+  font-size: 15px; font-weight: 600; transition: border-color var(--t) var(--ease);
+}
+.topo-perfil:hover { border-color: var(--border-input); }
+.topo-perfil__nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topo-perfil__seta { color: var(--text-3); font-size: 12px; }
+
 .seletor__linha {
   display: flex; align-items: center; gap: 12px; padding: 10px 8px; min-height: 60px; width: 100%; text-align: left;
   border-radius: var(--r-card); transition: background var(--t) var(--ease);

@@ -8,7 +8,7 @@ import type { Exame } from '../data/types';
 import { ChipGroup, Field, FieldGroup, Label, Row, SecaoLista, Thumb, TopNav, InlineInput } from '../ui';
 import { agruparFamiliaPets, opcoesPessoas } from '../data/pets';
 import { MScreen, TabHeader } from './Shell';
-import { textoSalvar } from './Perfil';
+import { TopoPerfil, textoSalvar } from './Perfil';
 import { AnexosPendentes, GaleriaAnexos } from '../ui/Anexos';
 import { anexosDe, ehPdf } from '../data/anexos';
 import { ConfirmarSheet } from '../ui/Confirmar';
@@ -49,7 +49,8 @@ export function Exames() {
 
   return (
     <MScreen tabs>
-      <TabHeader titulo="Exames" onAdd={() => nav('/exames/novo')} />
+      <TopoPerfil />
+      <TabHeader titulo="Exames"onAdd={() => nav('/exames/novo')} />
       <input className="input input--search" placeholder="Buscar por nome, laboratório…" value={busca} onChange={(e) => setBusca(e.target.value)} aria-label="Buscar exames" />
       <ChipGroup gap6 tamanho="sm" opcoes={['todos', ...CATEGORIAS_EXAME.filter((c) => state.exames.some((e) => e.categoria === c))].map((c) => ({ id: c, nome: c === 'todos' ? 'Todos' : c }))} valor={filtro} onChange={setFiltro} />
       {(() => {

@@ -9,7 +9,7 @@ import { ChipGroup, Field, FieldGroup, Label, Row, SecaoLista, Segmented, Toggle
 import { distancia, filtrarConsultas, porMesConsultas, type Quando, type TipoFiltro } from '../data/consultas';
 import { SECOES_PET, agruparFamiliaPets, ehPet, linhaAlergia, opcoesPessoas, resumoPet, type SecaoPet } from '../data/pets';
 import { MScreen, TabHeader } from './Shell';
-import { textoSalvar } from './Perfil';
+import { TopoPerfil, textoSalvar } from './Perfil';
 import { ConfirmarSheet } from '../ui/Confirmar';
 import { PosConsulta } from '../ui/PosConsulta';
 import { FichaConsulta } from '../ui/FichaConsulta';
@@ -33,7 +33,8 @@ export function Agenda() {
   const setVista = (v: Vista) => { setVistaBruta(v); try { localStorage.setItem(CHAVE_VISTA, v); } catch { /* só a preferência */ } };
   return (
     <MScreen tabs>
-      <TabHeader titulo="Agenda" onAdd={() => nav('/agenda/nova')} />
+      <TopoPerfil />
+      <TabHeader titulo="Agenda"onAdd={() => nav('/agenda/nova')} />
       <Segmented opcoes={[{ id: 'agenda', nome: 'Agenda' }, { id: 'consultas', nome: 'Consultas' }]} valor={vista} onChange={setVista} />
       {vista === 'agenda' ? <Calendario /> : <ListaConsultas />}
     </MScreen>

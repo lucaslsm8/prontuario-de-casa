@@ -8,7 +8,7 @@ import type { Remedio } from '../data/types';
 import { Bar, ChipGroup, Field, FieldGroup, Label, Pill, Row, SecaoLista, Segmented, Toggle, TopNav, InlineInput } from '../ui';
 import { agruparFamiliaPets, opcoesPessoas } from '../data/pets';
 import { MScreen, TabHeader } from './Shell';
-import { textoSalvar } from './Perfil';
+import { TopoPerfil, textoSalvar } from './Perfil';
 import { AdesaoSemanal } from '../ui/Adesao';
 import { AnexosPendentes, GaleriaAnexos } from '../ui/Anexos';
 import { anexosDe } from '../data/anexos';
@@ -62,7 +62,8 @@ export function Remedios() {
 
   return (
     <MScreen tabs>
-      <TabHeader titulo="Remédios" onAdd={() => nav('/remedios/novo')} />
+      <TopoPerfil />
+      <TabHeader titulo="Remédios"onAdd={() => nav('/remedios/novo')} />
       <Segmented
         opcoes={[{ id: 'uso', nome: `Em uso · ${emUso.length}` }, { id: 'enc', nome: 'Encerrados' }]}
         valor={aba}
