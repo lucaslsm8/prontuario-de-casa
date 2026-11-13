@@ -13,7 +13,8 @@
 /* Bolha de plástico: redonda, com brilho e um pouco de volume. */
 .cartela__bolha {
   aspect-ratio: 1; border-radius: 42%; display: grid; place-items: center; min-width: 0;
-  background: radial-gradient(circle at 34% 28%, rgba(255, 255, 255, .95) 0, rgba(255, 255, 255, .55) 38%, rgba(240, 244, 245, .35) 70%);
+  /* Levemente azulada: o comprimido branco se destaca do plástico. */
+  background: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, .9) 0, rgba(226, 236, 240, .75) 34%, rgba(196, 211, 218, .7) 78%);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .7), inset 0 -3px 5px rgba(20, 32, 42, .07), 0 2px 3px rgba(20, 32, 42, .14);
   transition: background var(--t) var(--ease), box-shadow var(--t) var(--ease);
 }

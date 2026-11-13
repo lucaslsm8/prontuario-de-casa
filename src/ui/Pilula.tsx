@@ -29,7 +29,7 @@ export function Pilula({ aparencia, estado = 'cheio', foto, tamanho, className, 
   const a = aparencia ?? PADRAO;
   const id = `p${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const contorno = (
-    <g fill="none" stroke="rgba(20,32,42,.32)" strokeWidth={1.3} strokeDasharray="2.4 2.2"><Forma forma={a.forma} /></g>
+    <g fill="none" stroke="rgba(20,32,42,.42)" strokeWidth={1.6} strokeDasharray="2.6 2.2"><Forma forma={a.forma} /></g>
   );
   const sulco = a.forma !== 'capsula' && a.sulco ? SULCO[a.forma] : null;
   return (
@@ -90,7 +90,7 @@ export function Cartela({ r }: { r: Remedio }) {
   const { estados } = estadosCartela(r.estoque, r.cartela.porCartela);
   const rotulo = { cheio: 'na cartela', metade: 'meio comprimido', contorno: 'tomado' } as const;
   return (
-    <div className="cartela" style={{ gridTemplateColumns: `repeat(${colunasCartela(r.cartela)}, minmax(0, 1fr))`, maxWidth: colunasCartela(r.cartela) * 58 + 28 }} role="img" aria-label={`Cartela aberta: ${textoEstoque(r)} no total`}>
+    <div className="cartela" style={{ gridTemplateColumns: `repeat(${colunasCartela(r.cartela)}, minmax(0, 1fr))`, maxWidth: colunasCartela(r.cartela) * 72 + 28 }} role="img" aria-label={`Cartela aberta: ${textoEstoque(r)} no total`}>
       {estados.map((e, i) => (
         <span key={i} className={cx('cartela__bolha', e === 'contorno' && 'is-vazia')} title={rotulo[e]}>
           <Pilula aparencia={r.aparencia} foto={foto} estado={e} />
