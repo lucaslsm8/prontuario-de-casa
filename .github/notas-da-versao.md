@@ -1,4 +1,6 @@
-- Família: cada pessoa pode ter um responsável (campo novo na ficha). Peça para ser cuidador (vê tudo e marca as doses) ou administrador (também cadastra e edita); a pessoa ou o responsável aceita
-- Quem não tem papel só vê o que a pessoa compartilha e não edita mais. Cada membro mostra o seu nível na lista da família
-- O Início e os lembretes mostram você, os pets e de quem você cuida; pedidos esperando resposta aparecem no topo
-- Consultas: ficha completa, com foto e telefone do médico, local com "Como chegar", hora de sair pelo tempo de trajeto, preparo, o que levar, perguntas para o médico e a carteirinha do plano
+- Remédios em gotas, mL, sachê, jato e outros: a dose é quantidade + forma, e o estoque é contado nessa unidade
+- Aviso de alergia ao cadastrar um remédio (pelo nome ou pela família, como amoxicilina e penicilina)
+- "Observação" e "Receitado por" no cadastro do remédio
+- Ficha de emergência mostra a dose, os horários e para que serve cada remédio
+- Exames com valores fora da faixa aparecem marcados na lista
+- Agenda: dá para marcar um exame (não só consulta); Google Agenda e .ics ficam num botão
