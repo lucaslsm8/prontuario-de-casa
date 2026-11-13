@@ -12,7 +12,8 @@
     "app:dev": "tauri dev",
     "app:build": "node scripts/app-build.mjs",
     "app:teste": "node scripts/app-teste.mjs",
-    "android:chave": "node scripts/android-chave.mjs"
+    "android:chave": "node scripts/android-chave.mjs",
+    "releases": "node scripts/baixar-releases.mjs"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "5.1.0",

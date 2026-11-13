@@ -10,6 +10,7 @@ Stack: Tauri 2 (Rust) + React 18 + TypeScript + Vite. Leia também `README.md` e
 - `npm run build` — `tsc -b` + build do Vite. Rode sempre depois de mudar TypeScript.
 - `npm run app:dev` / `npm run app:build` — app nativo / instaladores `.exe` e `.msi` em `src-tauri/target/release/bundle/`.
 - `cd src-tauri && cargo test` — testes de criptografia, banco e backup.
+- `npm run releases` — baixa os instaladores de todas as versões publicadas (APK, `.exe`, `.msi`) para `release/<versão>/` (fora do git). Rodar depois de publicar uma versão; `npm run releases -- v0.5.18` baixa só uma.
 
 ## Design (fidelidade hi-fi)
 
