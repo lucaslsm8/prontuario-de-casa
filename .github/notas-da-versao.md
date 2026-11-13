@@ -1,4 +1,4 @@
-- Remédios: cartela desenhada na tela, igual à que você tem na mão. Cada dose tomada deixa só o contorno do comprimido; meia dose deixa metade
-- No cadastro do remédio, a nova seção "Como ele é": forma, cor, sulco e quantos comprimidos vêm na cartela
-- Fotografe o comprimido e a foto aparece na cartela; a foto da cartela fica guardada para comparar
-- O comprimido aparece ao lado do nome no cartão da dose e na lista de doses do Início
+- Família: cada pessoa pode ter um responsável (campo novo na ficha). Peça para ser cuidador (vê tudo e marca as doses) ou administrador (também cadastra e edita); a pessoa ou o responsável aceita
+- Quem não tem papel só vê o que a pessoa compartilha e não edita mais. Cada membro mostra o seu nível na lista da família
+- O Início e os lembretes mostram você, os pets e de quem você cuida; pedidos esperando resposta aparecem no topo
+- Consultas: ficha completa, com foto e telefone do médico, local com "Como chegar", hora de sair pelo tempo de trajeto, preparo, o que levar, perguntas para o médico e a carteirinha do plano
