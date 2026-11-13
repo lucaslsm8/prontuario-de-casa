@@ -23,7 +23,7 @@ import { REGISTROS_PET, type RegistroPet } from './desktop/Formularios';
 import { DInicio } from './desktop/Inicio';
 import { DPessoa } from './desktop/Pessoa';
 import { DExames } from './desktop/Exames';
-import { DAgenda, DPlanos, DPrivacidade, DRemedios } from './desktop/Paginas';
+import { DAgenda, DConfiguracoes, DPlanos, DRemedios } from './desktop/Paginas';
 import { DPrimeiroUso } from './desktop/PrimeiroUso';
 import { DRemedio } from './desktop/Remedio';
 import { DResumo } from './desktop/Resumo';
@@ -96,6 +96,8 @@ function RotasMobile({ frame }: { frame: boolean }) {
         <Route path="compartilhar/:id" element={<Compartilhar />} />
         <Route path="configuracoes" element={<Configuracoes />} />
         <Route path="privacidade" element={<Privacidade />} />
+        <Route path="configuracoes/backup" element={<Privacidade secao="backup" />} />
+        <Route path="configuracoes/aparelhos" element={<Privacidade secao="aparelhos" />} />
         <Route path="desbloqueio" element={<DesbloqueioDemo />} />
         <Route path="lembrete" element={<LembreteDose />} />
         <Route path="atualizacoes" element={<Atualizacoes />} />
@@ -214,7 +216,8 @@ function RotasDesktop() {
         <Route path="pet/novo" element={<Navigate to="/?abrir=pet" replace />} />
         <Route path="pet/:id/:registro" element={<RegistroNoDesktop />} />
         <Route path="pet/:id/vacina/:vid" element={<VacinaNoDesktop />} />
-        <Route path="privacidade" element={<DPrivacidade />} />
+        <Route path="configuracoes" element={<DConfiguracoes />} />
+        <Route path="privacidade" element={<Navigate to="/configuracoes?secao=privacidade" replace />} />
         <Route path="*" element={<NaoDesenhadaNoDesktop />} />
       </Route>
     </Routes>

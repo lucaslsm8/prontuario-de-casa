@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { HOJE, MODO_EXEMPLO } from '../data/tempo';
 import { autenticarBiometria, biometriaDisponivel } from '../data/biometria';
 import { instalarAtualizacao, noCelular, useInfoAtualizacao, verificarAtualizacao } from '../data/atualizacao';
-import { compartilhado, eu, podeVer, useStore } from '../data/store';
+import { eu, podeVer, useStore } from '../data/store';
 import { familia, pets } from '../data/pets';
 import { exportarAnexo } from '../data/anexos';
 import { nomeDoPdf, pdfDoPerfil } from '../data/relatorio';
@@ -14,12 +14,14 @@ import { Folha, RestaurarBackup, SenhaApp, SenhaBackup } from '../ui/Backup';
 import { CardFamilia } from '../ui/Familia';
 import { RedesCasa } from '../ui/RedesCasa';
 import { Avatar, Check, Label, Lock, Pill, Row, Segmented, Toggle, TopNav } from '../ui';
-import { resumoCompartilhado } from './Familia';
 import { MScreen } from './Shell';
 
 const BLOQUEIO = ['30 segundos', '1 minuto', '5 minutos', '15 minutos'];
 
-/** Hub de configurações (não desenhado; segue o padrão de lista das outras telas). */
+/**
+ * Hub de configurações: as mesmas seções do computador (`DConfiguracoes`).
+ * Carteirinha e ficha de emergência ficam na página do perfil, não aqui.
+ */
 export function Configuracoes() {
   const { state, api } = useStore();
   const nav = useNavigate();
@@ -32,9 +34,10 @@ export function Configuracoes() {
       <h1 className="title" style={{ margin: 0 }}>Configurações</h1>
       <div className="card" style={{ fontSize: 15 }}>
         <Row mutedLabel={false} label="Família e compartilhamento" valor={<span className="faint">›</span>} onClick={() => nav('/familia')} />
-        <Row mutedLabel={false} label="Privacidade e backup" valor={<span className="faint">›</span>} onClick={() => nav('/privacidade')} />
+        <Row mutedLabel={false} label="Privacidade e bloqueio" valor={<span className="faint">›</span>} onClick={() => nav('/privacidade')} />
+        <Row mutedLabel={false} label="Backup" valor={<span className="muted">{state.config.backup.ultimo ? `${quando(state.config.backup.ultimo)} ›` : 'nenhum ainda ›'}</span>} onClick={() => nav('/configuracoes/backup')} />
+        <Row mutedLabel={false} label="Aparelhos e sincronização" valor={<span className="faint">›</span>} onClick={() => nav('/configuracoes/aparelhos')} />
         <Row mutedLabel={false} label="Atualizações" valor={<span className="muted">{state.config.update.disponivel ? 'nova versão ›' : `${state.config.update.instalada} ›`}</span>} onClick={() => nav('/atualizacoes')} />
-        <Row mutedLabel={false} label="Ficha de emergência" valor={<span className="faint">›</span>} onClick={() => nav(`/pessoa/${eu(state).id}/emergencia`)} />
         <Row
           mutedLabel={false}
           label={
@@ -96,12 +99,18 @@ export function ExportarPdf({ onClose, desktop }: { onClose: () => void; desktop
   );
 }
 
-/** M10 — Privacidade, backup e compartilhamento. */
-export function Privacidade() {
+const TITULO_SECAO = { privacidade: 'Privacidade e bloqueio', backup: 'Backup', aparelhos: 'Aparelhos e sincronização' };
+const TEXTO_SECAO = {
+  privacidade: 'Seus dados ficam só neste aparelho. Nada é enviado para servidores.',
+  backup: 'O backup é um arquivo criptografado que fica com você. Para não perder nada, faça backups.',
+  aparelhos: '',
+};
+
+/** M10 — dividida em três seções de Configurações: privacidade e bloqueio, backup, aparelhos e sincronização. */
+export function Privacidade({ secao = 'privacidade' }: { secao?: 'privacidade' | 'backup' | 'aparelhos' }) {
   const { state, api } = useStore();
   const nav = useNavigate();
   const c = state.config;
-  const me = eu(state);
   const [params] = useSearchParams();
   const [apagar, setApagar] = useState(false);
   const [bioOk, setBioOk] = useState<boolean | null>(null);
@@ -110,8 +119,6 @@ export function Privacidade() {
   }, []);
   const [palavra, setPalavra] = useState('');
   const [folha, setFolha] = useState<null | 'senha' | 'restaurar' | 'pin'>(params.get('restaurar') ? 'restaurar' : null);
-  // Pets ficam fora do compartilhamento.
-  const outros = familia(state).filter((p) => !p.souEu && compartilhado(state, p.id, me.id).length > 0);
   const b = c.backup;
 
   const backupAgora = () => (b.temSenha ? api.backupAgora() : setFolha('senha'));
@@ -120,10 +127,10 @@ export function Privacidade() {
     <MScreen gap={16} tabs>
       <TopNav voltar="Configurações" voltarPara="/configuracoes" />
       <div className="stack" style={{ gap: 6 }}>
-        <h1 className="title" style={{ margin: 0 }}>Privacidade</h1>
-        <span style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--text-2)' }}>Seus dados ficam só neste aparelho. Nada é enviado para servidores. Para não perder nada, faça backups.</span>
+        <h1 className="title" style={{ margin: 0 }}>{TITULO_SECAO[secao]}</h1>
+        {TEXTO_SECAO[secao] && <span style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--text-2)' }}>{TEXTO_SECAO[secao]}</span>}
       </div>
-      <div className="card" style={{ fontSize: 15 }}>
+      {secao === 'privacidade' && <div className="card" style={{ fontSize: 15 }}>
         {MODO_EXEMPLO ? (
           <Row mutedLabel={false} label="Abrir com biometria" valor={<Toggle on={c.biometria} onChange={(v) => api.setConfig({ biometria: v })} label="Abrir com biometria" />} />
         ) : (
@@ -154,10 +161,9 @@ export function Privacidade() {
           }
           valor={<Toggle on={c.esconderNomeNotif} onChange={(v) => api.setConfig({ esconderNomeNotif: v })} label="Esconder nome do remédio" />}
         />
-      </div>
+      </div>}
 
-      <Label>Backup criptografado</Label>
-      <div className="card card--pad" style={{ gap: 12 }}>
+      {secao === 'backup' && <div className="card card--pad" style={{ gap: 12 }}>
         <div className="hstack" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div className="stack" style={{ gap: 2 }}>
             <span style={{ fontSize: 15, fontWeight: 600 }}>{b.ultimo ? `Último backup: ${quando(b.ultimo)}` : 'Nenhum backup ainda'}</span>
@@ -173,31 +179,15 @@ export function Privacidade() {
           <button type="button" className="btn btn--ink btn--h42 btn--grow" onClick={backupAgora}>Fazer agora</button>
           <button type="button" className="btn btn--outline btn--h42 btn--grow" style={{ background: 'transparent' }} onClick={() => setFolha('restaurar')}>Restaurar</button>
         </div>
-      </div>
+      </div>}
 
-      <CardFamilia />
+      {secao === 'aparelhos' && <CardFamilia />}
 
-      {outros.length > 0 && (
-        <>
-          <Label>Compartilhado com você</Label>
-          <div className="card">
-            {outros.map((p) => (
-              <button type="button" key={p.id} className="row" style={{ padding: '12px 16px', gap: 12, justifyContent: 'flex-start' }} onClick={() => nav(`/pessoa/${p.id}`)}>
-                <Avatar pessoa={p} size={32} font={13} />
-                <span className="stack" style={{ flex: 1 }}>
-                  <span style={{ fontSize: 15, fontWeight: 500 }}>{p.curto}</span>
-                  <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{resumoCompartilhado(compartilhado(state, p.id, me.id))}</span>
-                </span>
-                <span className="chev">›</span>
-              </button>
-            ))}
-          </div>
-        </>
+      {secao === 'privacidade' && (
+        <button type="button" className="btn btn--danger-link" style={{ fontSize: 14, padding: '4px 0', minHeight: 44 }} onClick={() => setApagar(true)}>
+          Apagar todos os dados deste aparelho
+        </button>
       )}
-
-      <button type="button" className="btn btn--danger-link" style={{ fontSize: 14, padding: '4px 0', minHeight: 44 }} onClick={() => setApagar(true)}>
-        Apagar todos os dados deste aparelho
-      </button>
 
       {apagar && (
         <>

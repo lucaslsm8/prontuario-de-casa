@@ -73,6 +73,13 @@
 }
 .desk__page { padding: 28px 32px; display: flex; flex-direction: column; gap: 18px; flex: 1; min-height: 0; }
 .desk__page--home { padding: 32px 36px; gap: 24px; }
+/* Configurações do desktop: seções à esquerda, conteúdo à direita. */
+.cfg { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; align-items: start; }
+.cfg__nav { overflow: hidden; }
+.cfg__item { padding: 13px 16px; font-size: 14px; font-weight: 500; text-align: left; border-bottom: 1px solid var(--divider); transition: background var(--t) var(--ease), color var(--t) var(--ease); }
+.cfg__item:last-child { border-bottom: 0; }
+.cfg__item:hover { background: #F8FAFA; }
+.cfg__item.active { background: var(--teal-light); color: var(--teal); font-weight: 600; }
 .desk-title { font-size: 26px; font-weight: 600; letter-spacing: -.02em; }
 .desk-title--32 { font-size: 32px; }
 .card-head { padding: 14px 18px; border-bottom: 1px solid var(--divider); display: flex; justify-content: space-between; align-items: center; }

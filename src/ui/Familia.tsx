@@ -263,7 +263,7 @@ export function EntrarNaFamilia({ desktop, onClose }: { desktop?: boolean; onClo
   };
   return (
     <Folha desktop={desktop} onClose={entrou ? () => {} : onClose} titulo="Entrar na família">
-      <span style={texto}>Em um aparelho que já está na família, abra Privacidade e backup › Convidar aparelho e copie o convite. Cole aqui{leitorQrDisponivel() ? ' ou leia o QR' : ''}.</span>
+      <span style={texto}>Em um aparelho que já está na família, abra Configurações › Aparelhos e sincronização › Convidar aparelho e copie o convite. Cole aqui{leitorQrDisponivel() ? ' ou leia o QR' : ''}.</span>
       {leitorQrDisponivel() && !entrou && (
         <button type="button" className="btn btn--outline btn--h50" style={{ background: 'transparent', minHeight: 44 }} disabled={ocupado} onClick={lerQr}>Ler QR</button>
       )}

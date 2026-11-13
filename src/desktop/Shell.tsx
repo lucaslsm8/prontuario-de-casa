@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { eu, useStore } from '../data/store';
 import { Avatar, SecaoLista, cx } from '../ui';
-import { IcAgenda, IcConsulta, IcCadeado, IcEmergencia, IcExame, IcInicio, IcMarcaCheia, IcPlano, IcRemedio } from '../ui/Icones';
+import { IcAgenda, IcConfig, IcConsulta, IcCadeado,IcEmergencia, IcExame, IcInicio, IcMarcaCheia, IcPlano, IcRemedio } from '../ui/Icones';
 import { quando } from '../data/format';
 import { useVoltar } from './useVoltar';
 import { DEditarMedicao, DEditarPerfil, DEditarRegistroPet, DEditarVacina, DFichaEmergencia, DNovaConsulta, DNovaPessoa, DNovoExame, DNovaMedicao, DNovoPet, DNovoPlano, DNovoRemedio, DRegistroPet, REGISTROS_PET, type RegistroPet } from './Formularios';
@@ -115,13 +115,13 @@ export function Sidebar() {
       </div>
       <div className="sidebar__pe">
         <button type="button" className="sidebar__emergencia" onClick={() => abrir(`emergencia:${me.id}`)}><IcEmergencia />Ficha de emergência</button>
-        <NavLink to="/privacidade" className={({ isActive }) => cx('sidebar__eu', isActive && 'active')}>
+        <NavLink to="/configuracoes" className={({ isActive }) => cx('sidebar__eu', isActive && 'active')}>
           <Avatar pessoa={me} size={34} font={13} />
           <span className="stack" style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ fontWeight: 600 }}>{me.curto}</span>
+            <span style={{ fontWeight: 600 }}>Configurações</span>
             <span className="sidebar__backup">{ultimo ? `Backup ${quando(ultimo)}` : 'Sem backup ainda'}</span>
           </span>
-          <span className="sidebar__cadeado" aria-label="Privacidade e backup"><IcCadeado size={16} /></span>
+          <span className="sidebar__cadeado" aria-hidden><IcConfig size={16} /></span>
         </NavLink>
       </div>
     </aside>
@@ -159,7 +159,7 @@ function ModalAtualizacao() {
           <span style={{ width: 20, height: 20, borderRadius: 6, background: u.backupAntes ? 'var(--teal)' : '#fff', border: u.backupAntes ? undefined : '1.5px solid var(--border-input)', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 12 }}>
             {u.backupAntes ? '✓' : ''}
           </span>
-          Fazer backup antes de instalar{!state.config.backup.temSenha && <span className="muted">(crie a senha do backup em Privacidade)</span>}
+          Fazer backup antes de instalar{!state.config.backup.temSenha && <span className="muted">(crie a senha do backup em Configurações)</span>}
         </button>
         {at.estado === 'erro' && <span style={{ padding: '0 28px 12px', fontSize: 13, color: 'var(--danger)' }}>A atualização não foi instalada. Seus dados não foram alterados.</span>}
         <div className="hstack" style={{ padding: '16px 28px 24px', borderTop: '1px solid var(--divider)', justifyContent: 'space-between' }}>

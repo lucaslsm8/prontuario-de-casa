@@ -334,7 +334,7 @@ export function DPlanos() {
   );
 }
 
-// ── D07 Privacidade e backup ────────────────────────────────────────────────
+// ── D07 Configurações ────────────────────────────────────────────────
 
 const BLOQ = ['1 minuto', '5 minutos', '15 minutos', '30 minutos'];
 
@@ -369,8 +369,22 @@ function ConfirmarPerigo(p: { titulo: string; texto: string; confirmar: string; 
   return <DConfirmar perigo {...p} />;
 }
 
-export function DPrivacidade() {
+/** Seções de Configurações: as mesmas do celular (`Configuracoes` em `mobile/Config.tsx`). */
+const SECOES_CONFIG = [
+  { id: 'familia', nome: 'Família e compartilhamento', texto: 'O que cada pessoa da família vê de você, e o que você vê de cada uma.' },
+  { id: 'privacidade', nome: 'Privacidade e bloqueio', texto: 'Seus dados ficam neste computador. Nada é enviado para servidores.' },
+  { id: 'backup', nome: 'Backup', texto: 'O backup é um arquivo criptografado que fica com você.' },
+  { id: 'aparelhos', nome: 'Aparelhos e sincronização', texto: '' },
+  { id: 'atualizacoes', nome: 'Atualizações', texto: '' },
+  { id: 'exportar', nome: 'Exportar perfil em PDF', texto: '' },
+] as const;
+
+/** D07 — Configurações (era a página única "Privacidade e backup"): seções à esquerda, `?secao=<id>`. */
+export function DConfiguracoes() {
   const [pdf, setPdf] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const atual = SECOES_CONFIG.find((s) => s.id === params.get('secao')) ?? SECOES_CONFIG[0];
+  const secao = atual.id;
   const { state, api } = useStore();
   const nav = useNavigate();
   const c = state.config;
@@ -406,12 +420,19 @@ export function DPrivacidade() {
 
   return (
     <div className="desk__page" style={{ gap: 20 }}>
-      <div className="stack" style={{ gap: 6, maxWidth: 640 }}>
-        <h1 className="desk-title" style={{ margin: 0 }}>Privacidade e backup</h1>
-        <span style={{ fontSize: 15, lineHeight: 1.5, color: 'var(--text-2)' }}>Seus dados ficam neste computador. Nada é enviado para servidores; o backup é um arquivo criptografado que fica com você.</span>
+      <h1 className="desk-title" style={{ margin: 0 }}>Configurações</h1>
+      <div className="cfg">
+      <nav className="card cfg__nav" aria-label="Seções de Configurações">
+        {SECOES_CONFIG.map((s) => (
+          <button type="button" key={s.id} className={cx('cfg__item', s.id === secao && 'active')} aria-current={s.id === secao ? 'page' : undefined} onClick={() => setParams({ secao: s.id }, { replace: true })}>{s.nome}</button>
+        ))}
+      </nav>
+      <div className="stack" style={{ gap: 16, minWidth: 0 }}>
+      <div className="stack" style={{ gap: 4, maxWidth: 640 }}>
+        <span style={{ fontSize: 18, fontWeight: 600 }}>{atual.nome}</span>
+        {atual.texto && <span style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--text-2)' }}>{atual.texto}</span>}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 16 }}>
-        <div className="card" style={{ fontSize: 14 }}>
+        {secao === 'privacidade' && <div className="card" style={{ fontSize: 14 }}>
           <div className="card-head card-head--20"><Label>Bloqueio</Label></div>
           <div className="row" style={{ padding: '14px 20px' }}>
             <span>Pedir senha ao abrir</span>
@@ -427,8 +448,11 @@ export function DPrivacidade() {
           </button>
           <RedesCasa desktop Confirmar={ConfirmarPerigo} />
           <div className="row" style={{ padding: '14px 20px' }}><span>Esconder nomes de remédios nas notificações</span><Toggle small on={c.esconderNomeNotif} onChange={(v) => api.setConfig({ esconderNomeNotif: v })} label="Esconder nomes de remédios" /></div>
-        </div>
-        <div className="card" style={{ fontSize: 14 }}>
+        </div>}
+        {secao === 'privacidade' && (
+          <button type="button" style={{ color: 'var(--danger)', fontWeight: 500, fontSize: 14, alignSelf: 'flex-start', minHeight: 38 }} onClick={() => setApagar(true)}>Apagar todos os dados deste computador</button>
+        )}
+        {secao === 'backup' && <div className="card" style={{ fontSize: 14 }}>
           <div className="card-head card-head--20"><Label>Backup criptografado</Label></div>
           <div className="stack" style={{ padding: '16px 20px', gap: 14 }}>
             <div className="hstack" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -451,14 +475,14 @@ export function DPrivacidade() {
               <button type="button" className="btn btn--outline btn--h38" style={{ background: 'transparent' }} onClick={() => setFolha(b.temSenha ? 'trocar' : 'senha')}>{b.temSenha ? 'Trocar senha' : 'Criar senha'}</button>
             </div>
           </div>
-        </div>
-      </div>
+        </div>}
 
-      <CardFamilia desktop />
+      {secao === 'aparelhos' && <CardFamilia desktop />}
+      {secao === 'aparelhos' && <span className="muted" style={{ fontSize: 14 }}>{c.sync.ultima ? `Última sincronização entre aparelhos: ${c.sync.ultima} · ${c.sync.via}` : 'Sincronização entre aparelhos: ainda não configurada'}</span>}
 
-      <CardAtualizacoes />
+      {secao === 'atualizacoes' && <CardAtualizacoes />}
 
-      <div className="card" style={{ fontSize: 14 }}>
+      {secao === 'exportar' && <div className="card" style={{ fontSize: 14 }}>
         <div className="row" style={{ padding: '16px 20px', gap: 16 }}>
           <span className="stack" style={{ gap: 2 }}>
             <span style={{ fontWeight: 600 }}>Exportar perfil em PDF</span>
@@ -466,10 +490,10 @@ export function DPrivacidade() {
           </span>
           <button type="button" className="btn btn--outline btn--h38" onClick={() => setPdf(true)}>Exportar PDF</button>
         </div>
-      </div>
+      </div>}
       {pdf && <ExportarPdf desktop onClose={() => setPdf(false)} />}
 
-      <div className="card" style={{ fontSize: 14 }}>
+      {secao === 'familia' && <div className="card" style={{ fontSize: 14 }}>
         <div className="card-head card-head--20"><Label>Compartilhamento</Label></div>
         <div style={{ display: 'grid', gridTemplateColumns: cols, padding: '10px 20px', borderBottom: '1px solid var(--divider)', fontSize: 12, color: 'var(--text-2)' }}>
           <span>Pessoa</span>{CATEGORIAS.map((k) => <span key={k.id}>{k.id === 'plano' ? 'Plano' : k.nome}</span>)}<span />
@@ -495,13 +519,9 @@ export function DPrivacidade() {
             </div>
           );
         })}
+        {outros.length === 0 && <div className="row muted" style={{ padding: '14px 20px' }}>Ainda não há outras pessoas na família. Use "+ Adicionar pessoa" na barra lateral.</div>}
+      </div>}
       </div>
-
-      <div className="hstack" style={{ justifyContent: 'space-between', fontSize: 14 }}>
-        <span className="muted">{c.sync.ultima ? `Última sincronização entre aparelhos: ${c.sync.ultima} · ${c.sync.via}` : 'Sincronização entre aparelhos: ainda não configurada'}</span>
-        <span className="hstack" style={{ gap: 16 }}>
-          <button type="button" style={{ color: 'var(--danger)', fontWeight: 500 }} onClick={() => setApagar(true)}>Apagar todos os dados deste computador</button>
-        </span>
       </div>
 
       {apagar && (
