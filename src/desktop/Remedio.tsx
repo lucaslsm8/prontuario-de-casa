@@ -13,6 +13,7 @@ import { partesDoRemedio } from '../data/formularios-puro';
 import { CompreiMais, DosesSeNecessario } from '../ui/Estoque';
 import { Cartela, PilulaDoRemedio, contaCartela } from '../ui/Pilula';
 import { anexosDe } from '../data/anexos';
+import { AvisoAlergia } from '../ui/AvisoAlergia';
 
 const voltar = <Link to="/remedios" style={{ fontSize: 14, fontWeight: 600 }}>← Remédios</Link>;
 
@@ -78,6 +79,8 @@ export function DRemedio() {
           )}
         </div>
       </div>
+
+      {r.ativo && <AvisoAlergia nome={r.nome} pessoaId={r.pessoaId} />}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 16 }}>
         <div className="card" style={{ background: baixo ? 'var(--warn-bg)' : undefined, borderColor: baixo ? 'transparent' : undefined }}>

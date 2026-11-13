@@ -235,3 +235,9 @@ button.row:hover { background: #F8FAFA; }
 .ficha__check.is-ok { background: var(--teal); border-color: var(--teal); }
 .ficha__x { width: 36px; height: 36px; flex: none; border-radius: var(--r-btn); color: var(--text-3); font-size: 18px; }
 @media (max-width: 900px) { .ficha--desk { grid-template-columns: minmax(0, 1fr); } }
+
+/* Agenda do celular: Google Agenda e .ics recolhidos. */
+.agenda-externa > summary { list-style: none; cursor: pointer; min-height: 44px; display: flex; align-items: center; font-size: 14px; font-weight: 500; color: var(--teal); }
+.agenda-externa > summary::-webkit-details-marker { display: none; }
+.agenda-externa > summary::after { content: '›'; margin-left: 6px; transition: transform var(--t) var(--ease); }
+.agenda-externa[open] > summary::after { transform: rotate(90deg); }

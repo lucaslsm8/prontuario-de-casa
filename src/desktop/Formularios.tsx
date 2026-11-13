@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { editaveis, eu, paraConsultas, pessoa, useStore } from '../data/store';
 import { HOJE } from '../data/tempo';
-import { addDias, dataBR, diaMes, idade, mascararTelefone, quem } from '../data/format';
+import { addDias, dataBR, diaMes, idade, mascararTelefone, quem, linhaRemedioEmergencia } from '../data/format';
 import {
   ATALHOS_INTERVALO, ATALHOS_REFORCO, AVISAR, nomeAvisar, CATEGORIAS_EXAME, DOSES, DURACOES, FREQUENCIAS, LEMBRAR, PARENTESCO,
   ABRANGENCIAS, ACOMODACOES, SEGMENTACOES, SEXOS_PET, SEXO_DO_PET, TIPOS_PREVENCAO, sexoPetDoForm, normalizarHora, useFormConsulta, useFormExame, useFormPerfil, useFormPesagem, useFormPessoa, useFormPet,
@@ -15,6 +15,7 @@ import { Sugestoes, SugestoesConsulta } from '../ui/Sugestoes';
 import { AnexosPendentes } from '../ui/Anexos';
 import { CamposAparencia } from '../ui/Aparencia';
 import { CampoResponsavel } from '../ui/Papeis';
+import { AvisoAlergia } from '../ui/AvisoAlergia';
 import type { Consulta, Exame, Medicao, Pesagem, Pessoa, Plano, Prevencao, Procedimento, Remedio, Sintoma, TipoMedicao, TipoProcedimento, Vacina } from '../data/types';
 import { CONTEXTOS_GLICEMIA, MEDICOES, infoMedicao } from '../data/medicoes';
 import { Chip } from '../ui';
@@ -37,6 +38,7 @@ function usePessoasEditaveis() {
 // ── Novo remédio (M06) ──────────────────────────────────────────────────────
 
 export function DNovoRemedio({ onClose, remedio }: Props & { remedio?: Remedio }) {
+  const { state } = useStore();
   const pessoas = usePessoasEditaveis();
   const f = useFormRemedio(onClose, remedio);
   const inicio = remedio?.inicio ?? HOJE;
@@ -59,6 +61,7 @@ export function DNovoRemedio({ onClose, remedio }: Props & { remedio?: Remedio }
         <DCampo label="Para quem" span2 grupo>
           <DChips opcoes={pessoas.opcoes} separarAntes={pessoas.separarAntes} valor={f.para} onChange={f.setPara} />
         </DCampo>
+        <div className="dfield dfield--span2"><AvisoAlergia nome={f.nome} pessoaId={f.para} /></div>
         <DCampo label="Dose">
           <DSelect opcoes={doses.map((d) => ({ id: d, nome: d }))} valor={f.dose} onChange={f.setDose} />
         </DCampo>
@@ -72,6 +75,10 @@ export function DNovoRemedio({ onClose, remedio }: Props & { remedio?: Remedio }
         )}
         <DCampo label="Observação">
           <input className="input input--desk" value={f.observacao} onChange={(e) => f.setObservacao(e.target.value)} placeholder="Ex.: em jejum" />
+        </DCampo>
+        <DCampo label="Receitado por">
+          <input className="input input--desk" list="sug-prof-rem" value={f.receitadoPor} onChange={(e) => f.setReceitadoPor(e.target.value)} placeholder="Ex.: Dra. Marta Lins" />
+          <datalist id="sug-prof-rem">{[...new Set(state.consultas.map((c) => c.profissional).filter((x): x is string => !!x))].sort().map((x) => <option key={x} value={x} />)}</datalist>
         </DCampo>
         <DCampo label="Duração">
           <DSelect opcoes={duracoes} valor={f.duracao} onChange={f.setDuracao} />
@@ -732,7 +739,7 @@ export function DFichaEmergencia({ pessoaId, onClose }: Props & { pessoaId?: str
         {remedios.length > 0 && (
           <div className="stack" style={{ gap: 6 }}>
             <span className="dficha__rot">REMÉDIOS EM USO</span>
-            {remedios.map((r) => <span key={r.id} style={{ fontSize: 18, fontWeight: 500 }}>{r.nome} · {r.horarios.length}x ao dia</span>)}
+            {remedios.map((r) => <span key={r.id} style={{ fontSize: 18, fontWeight: 500, lineHeight: 1.35 }}>{linhaRemedioEmergencia(r)}</span>)}
           </div>
         )}
         {plano && (

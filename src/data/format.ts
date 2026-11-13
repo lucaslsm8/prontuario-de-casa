@@ -158,3 +158,7 @@ export function mascararTelefone(v: string) {
   const corte = resto.length > 8 ? 5 : 4;
   return resto.length <= corte ? `(${ddd}) ${resto}` : `(${ddd}) ${resto.slice(0, corte)}-${resto.slice(corte)}`;
 }
+
+/** Linha do remédio na ficha de emergência: "Losartana 50 mg · 1 comprimido · 08:00 · para pressão alta". */
+export const linhaRemedioEmergencia = (r: Remedio) =>
+  [r.nome, r.doseLonga ?? r.dose, r.horarios.length ? r.horarios.join(', ') : 'se necessário', r.indicacao && `para ${r.indicacao.charAt(0).toLowerCase()}${r.indicacao.slice(1)}`].filter(Boolean).join(' · ');

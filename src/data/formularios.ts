@@ -39,6 +39,7 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
   const [estoque, setEstoque] = useState(inicial ? inicial.estoque ?? 0 : ex(21, 30));
   const [avisar, setAvisar] = useState(inicial?.avisarDias ?? 3);
   const [observacao, setObservacao] = useState(inicial?.observacao ?? '');
+  const [receitadoPor, setReceitadoPor] = useState(inicial?.receitadoPor ?? '');
   const fim = addDias(inicio, duracao);
   const unidade = /c[áa]ps/.test(dose) ? 'cápsulas' : inicial && !/comp/.test(dose) ? inicial.unidade : 'comprimidos';
   const [id] = useState(() => inicial?.id ?? `rem-${novoId()}`);
@@ -82,6 +83,7 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
       avisarDias: avisar,
       lembrete,
       observacao: observacao.trim() || undefined,
+      receitadoPor: receitadoPor.trim() || undefined,
       aparencia: aparencia && (aparencia.forma === 'capsula' ? { ...aparencia, sulco: undefined } : { ...aparencia, cor2: undefined }),
       cartela,
     } as Remedio;
@@ -104,7 +106,7 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
     nome, setNome, dosagem, setDosagem, indicacao, setIndicacao, para, setPara, dose, setDose, freq, setFreq, duracao, setDuracao, horariosTexto, setHorariosTexto, horariosValidos: !!horarios,
     /** Ao sair do campo: "22" → "22:00", "8h30, 21" → "08:30, 21:00". */
     completarHorarios: () => { if (lidos?.length) setHorariosTexto(lidos.join(', ')); },
-    lembrete, setLembrete, estoque, setEstoque, avisar, setAvisar, observacao, setObservacao, fim, unidade, editando: !!inicial,
+    lembrete, setLembrete, estoque, setEstoque, avisar, setAvisar, observacao, setObservacao, receitadoPor, setReceitadoPor, fim, unidade, editando: !!inicial,
     id, receita, setReceita, valido: !!nome.trim() && !!horarios && cartelaValida, salvar,
     aparencia, setAparencia, porCartela, setPorCartela, fileiras, setFileiras, cartelaValida,
     fotoComprimido, setFotoComprimido, fotosCartela, setFotosCartela,

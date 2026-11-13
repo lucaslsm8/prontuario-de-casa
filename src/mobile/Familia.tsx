@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { HOJE } from '../data/tempo';
 import { compartilhado, editaveis, eu, pessoa, podeVer, useStore, type State } from '../data/store';
-import { dataBR, diaMes, idade, numBR, numCurto, quem } from '../data/format';
+import { dataBR, diaMes, idade, numBR, numCurto, quem, linhaRemedioEmergencia } from '../data/format';
 import { CATEGORIAS, type Categoria, type Medicao, type Pessoa, type Plano } from '../data/types';
 import { fmtMedicao, infoMedicao } from '../data/medicoes';
 import { Avatar, FieldGroup, Label, Pill, Row, SecaoLista, Toggle, TopNav } from '../ui';
@@ -594,7 +594,7 @@ export function FichaEmergencia({ onClose, pessoaId }: { onClose?: () => void; p
         {remedios.length > 0 && (
           <div className="stack" style={{ gap: 6 }}>
             <span style={rot}>REMÉDIOS EM USO</span>
-            {remedios.map((r) => <span key={r.id} style={{ fontSize: 18, fontWeight: 500 }}>{r.nome} · {r.horarios.length}x ao dia</span>)}
+            {remedios.map((r) => <span key={r.id} style={{ fontSize: 18, fontWeight: 500, lineHeight: 1.35 }}>{linhaRemedioEmergencia(r)}</span>)}
           </div>
         )}
         {plano && (
@@ -680,7 +680,7 @@ export function CorpoFichaPet({ p, colunaPeso, rotulo }: { p: Pessoa; colunaPeso
       {remedios.length > 0 && (
         <div className="stack" style={{ gap: 6 }}>
           {rotulo('REMÉDIOS EM USO')}
-          {remedios.map((r) => <span key={r.id} style={{ fontSize: 18, fontWeight: 500 }}>{r.nome} · {r.horarios.length}x ao dia</span>)}
+          {remedios.map((r) => <span key={r.id} style={{ fontSize: 18, fontWeight: 500, lineHeight: 1.35 }}>{linhaRemedioEmergencia(r)}</span>)}
         </div>
       )}
       {(vet || c24) && (

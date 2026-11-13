@@ -1,7 +1,7 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
-import { AVISAR, nomeAvisar, DOSES, DURACOES, FREQUENCIAS, partesDoRemedio, useFormRemedio } from '../data/formularios';
+import { AVISAR, nomeAvisar, DOSES, DURACOES, FREQUENCIAS, lerHorarios, partesDoRemedio, useFormRemedio } from '../data/formularios';
 import { editaveis, historicoAdesao, marcaDose, pessoa, useStore, type DiaAdesao } from '../data/store';
 import { addDias, descricaoDose, diaSemanaCurto, diasDeEstoque, estoqueBaixo, parseISO, pctEstoque, quem, textoEstoque } from '../data/format';
 import type { Remedio } from '../data/types';
@@ -15,6 +15,8 @@ import { anexosDe } from '../data/anexos';
 import { ConfirmarSheet } from '../ui/Confirmar';
 import { CompreiMais, DosesSeNecessario } from '../ui/Estoque';
 import { CamposAparencia } from '../ui/Aparencia';
+import { SugestoesConsulta } from '../ui/Sugestoes';
+import { AvisoAlergia } from '../ui/AvisoAlergia';
 import { Cartela, PilulaDoRemedio, contaCartela } from '../ui/Pilula';
 
 /** Doses tomadas e previstas na grade (o que ainda vai ser tomado hoje não conta). */
@@ -182,14 +184,16 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
       <FieldGroup label="Para quem">
         <ChipGroup largo {...opcoesPessoas(pessoas, quem)} valor={para} onChange={setPara} />
       </FieldGroup>
+      <AvisoAlergia nome={nome} pessoaId={para} />
       <div className="card" style={{ fontSize: 15 }}>
         <Row tight label="Dose" valor={<Ciclo valores={DOSES} valor={dose} onChange={setDose} render={(v) => v} />} />
         <Row tight label="Frequência" valor={<Ciclo valores={FREQUENCIAS} valor={freq} onChange={setFreq} render={(v) => v.nome} />} />
-        {freq.horarios.length > 0 && (
+        {/* Os horários de verdade (o campo de baixo), não os padrões da frequência. */}
+        {(lerHorarios(horariosTexto)?.length ?? 0) > 0 && (
           <div className="row row--tight" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
             <span className="row__label">Horários</span>
-            <div className="hstack" style={{ gap: 8 }}>
-              {freq.horarios.map((h) => <span key={h} className="time-chip">{h}</span>)}
+            <div className="hstack" style={{ gap: 8, flexWrap: 'wrap' }}>
+              {(lerHorarios(horariosTexto) ?? []).map((h) => <span key={h} className="time-chip">{h}</span>)}
             </div>
           </div>
         )}
@@ -213,6 +217,13 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
         />
         <Row tight label="Avisar para repor" valor={<Ciclo valores={AVISAR} valor={avisar} onChange={setAvisar} render={nomeAvisar} />} />
       </div>
+      <Field label="Observação (opcional)">
+        <input className="input" value={form.observacao} onChange={(e) => form.setObservacao(e.target.value)} placeholder="Ex.: em jejum, depois do almoço" />
+      </Field>
+      <Field label="Receitado por (opcional)">
+        <input className="input" list="sug-prof" value={form.receitadoPor} onChange={(e) => form.setReceitadoPor(e.target.value)} placeholder="Ex.: Dra. Marta Lins" />
+        <SugestoesConsulta />
+      </Field>
       {freq.id !== 'sn' && (
         <Field label="Horários">
           <input className="input input--mono" value={horariosTexto} onChange={(e) => setHorariosTexto(e.target.value)} onBlur={completarHorarios} placeholder="08:00, 20:00" />
@@ -271,6 +282,8 @@ export function DetalheRemedio() {
           {r.seNecessario ? 'Sem horário fixo' : `${r.doseLonga ?? r.dose} às ${r.horarios.join(', ')}${r.observacao ? `, ${r.observacao}` : ''}`}
         </span>
       </div>
+
+      {r.ativo && <AvisoAlergia nome={r.nome} pessoaId={r.pessoaId} />}
 
       {r.estoque != null && (
         <div className="card" style={{ background: baixo ? 'var(--warn-bg)' : '#fff', borderColor: baixo ? 'transparent' : undefined, padding: '14px 16px', gap: 10 }}>

@@ -124,7 +124,11 @@ function Calendario() {
 
   return (
     <>
-      <div className="hstack" style={{ gap: 8, flexWrap: 'wrap' }}><AgendaIcs compacto /></div>
+      {/* Google Agenda e .ics ficam recolhidos: não ocupam o topo todo dia. */}
+      <details className="agenda-externa">
+        <summary>Google Agenda e arquivos .ics</summary>
+        <div className="hstack" style={{ gap: 8, flexWrap: 'wrap', paddingTop: 10 }}><AgendaIcs compacto /></div>
+      </details>
       <div className="hstack" style={{ justifyContent: 'space-between', fontSize: 15, fontWeight: 600 }}>
         <span>{nomeMes(mes.getMonth()).replace(/^./, (c) => c.toUpperCase())} {mes.getFullYear()}</span>
         <span className="hstack" style={{ color: 'var(--text-2)', fontWeight: 500, gap: 2 }}>
