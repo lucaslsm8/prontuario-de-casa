@@ -1,1 +1,4 @@
-- Cartela maior e mais nítida: bolhas com um tom azulado (o comprimido branco aparece melhor) e o contorno do comprimido tomado mais visível
+- Simulador de reembolso: escolha o serviço (consulta, psicólogo, fisioterapia…), informe quanto pagou e veja quanto volta do plano. Na SulAmérica, a tabela por grade já vem no app
+- Botão "Simular reembolso" no plano e na ficha da consulta
+- Celular: o perfil aberto aparece no topo de cada aba; a aba Perfil abre a página com um toque
+- Celular: "Voltar" volta para a tela anterior e a barra de baixo fica visível nas telas de leitura
