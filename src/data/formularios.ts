@@ -5,6 +5,7 @@ import { addDias, dataBR, diasEntre } from './format';
 import { novoId } from './persistencia';
 import { anexosDe, ehPdf, tamanhoDataUrl } from './anexos';
 import { lerCartela } from './cartela';
+import { lerTrajeto } from './consultas';
 import { lerDosPdfs } from './pdf';
 import type { Anexo, Aparencia, CategoriaExame, Resultado, Consulta, Exame, Medicao, Pesagem, Pessoa, Plano, Prevencao, Procedimento, Remedio, Sintoma, TipoMedicao, TipoProcedimento, Vacina } from './types';
 import { SINAIS, ehPet, familia, pets } from './pets';
@@ -126,6 +127,14 @@ export function useFormConsulta(onSalvo: () => void, { desktop = false, inicial 
   const [levar, setLevar] = useState(i?.levar ?? ex([{ item: 'Carteirinha do plano', ok: true }, { item: 'Raio-X panorâmico (fev)', ok: true }], [{ item: 'Carteirinha do plano', ok: true }]));
   const [novoItem, setNovoItem] = useState<string | null>(null);
   const [lembrar, setLembrar] = useState(i?.lembretes?.[0] ?? '1 dia antes');
+  // Ficha da consulta: endereço (para "Como chegar"), telefone, preparo e tempo de trajeto.
+  const [endereco, setEndereco] = useState(i?.endereco ?? '');
+  const [telefone, setTelefoneBruto] = useState(i?.telefone ?? '');
+  const setTelefone = (v: string) => setTelefoneBruto(mascararTelefone(v));
+  const [preparo, setPreparo] = useState(i?.preparo ?? '');
+  const [trajeto, setTrajeto] = useState(i?.trajetoMin ? String(i.trajetoMin) : '');
+  const trajetoMin = lerTrajeto(trajeto);
+  const trajetoValido = !trajeto.trim() || trajetoMin != null;
 
   // Data e hora do desktop: texto bruto próprio (não derivado de `quando`, senão o campo "pula" ao digitar).
   // O desktop usa setData/setHora; setQuando (mobile) não os atualiza.
@@ -140,6 +149,7 @@ export function useFormConsulta(onSalvo: () => void, { desktop = false, inicial 
 
   const salvar = () => {
     const dh = lerDataHora(quando, HOJE);
+    if (!trajetoValido) { api.toast({ texto: 'Trajeto em minutos, como 30 ou 1h15' }); return; }
     if (!dh) {
       api.toast({ texto: desktop ? 'Informe a data (DD/MM/AAAA) e a hora (HH:MM)' : 'Informe data e hora assim: 18/11 · 14:00' });
       return;
@@ -154,6 +164,10 @@ export function useFormConsulta(onSalvo: () => void, { desktop = false, inicial 
       titulo: tituloFinal,
       profissional: prof.trim() || undefined,
       local: local.trim() || undefined,
+      endereco: endereco.trim() || undefined,
+      telefone: telefone.trim() || undefined,
+      preparo: preparo.trim() || undefined,
+      trajetoMin,
       data: dh.data,
       hora: dh.hora,
       peloPlano: plano ? (i?.peloPlano ?? `${op ?? 'Plano'} · sim`) : undefined,
@@ -171,7 +185,8 @@ export function useFormConsulta(onSalvo: () => void, { desktop = false, inicial 
   return {
     titulo, setTitulo, para, setPara, quando, setQuando, data, setData, hora, setHora,
     prof, setProf, local, setLocal, plano, setPlano, levar, setLevar, novoItem, setNovoItem,
-    lembrar, setLembrar, editando: !!i, paraPet, valido: !!tituloFinal && (!desktop || !!lerDataHora(quando, HOJE)), salvar,
+    lembrar, setLembrar, editando: !!i, paraPet, valido: !!tituloFinal && trajetoValido && (!desktop || !!lerDataHora(quando, HOJE)), salvar,
+    endereco, setEndereco, telefone, setTelefone, preparo, setPreparo, trajeto, setTrajeto, trajetoValido,
   };
 }
 

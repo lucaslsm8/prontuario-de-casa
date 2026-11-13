@@ -47,7 +47,7 @@ async function reduzirImagem(file: File): Promise<string> {
 
 export class ErroAnexo extends Error {}
 /** Tipos que só aceitam foto (álbum do pet e fotos do remédio). */
-export const SO_FOTOS: TipoAnexo[] = ['foto', 'cartela', 'comprimido'];
+export const SO_FOTOS: TipoAnexo[] = ['foto', 'cartela', 'comprimido', 'profissional'];
 
 /** Lê o arquivo escolhido: imagem reduzida para JPEG; PDF como está (até 10 MB). */
 export async function lerArquivo(file: File, donoId: string, tipo: TipoAnexo): Promise<Anexo> {

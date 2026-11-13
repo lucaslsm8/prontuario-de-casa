@@ -6,6 +6,7 @@ import { diaMes } from '../data/format';
 import { DocumentoResumo, TODAS_SECOES, secoesDoResumo, type SecaoResumo } from '../mobile/Agenda';
 import { AcoesRegistro } from './Acoes';
 import { PosConsulta } from '../ui/PosConsulta';
+import { FichaConsulta } from '../ui/FichaConsulta';
 
 /** "← Voltar": volta no histórico do app; aberto direto, vai para a agenda. */
 function Voltar() {
@@ -81,8 +82,11 @@ export function DResumo() {
         </div>
       </div>
 
-      <div className="stack" style={{ width: '100%', maxWidth: 760, margin: '0 auto', gap: 16 }}>
+      <div className="stack" style={{ width: '100%', maxWidth: 960, margin: '0 auto', gap: 16 }}>
+        <h1 className="desk-title" style={{ margin: 0 }}>{c.titulo}</h1>
         <PosConsulta key={c.id} consulta={c} podeEditar={editaConsulta(state, c.pessoaId)} />
+        <FichaConsulta c={c} desktop />
+        <span className="label" style={{ marginTop: 12 }}>Resumo para o médico</span>
         <DocumentoResumo
           consulta={c}
           incluir={incluir}
@@ -91,8 +95,8 @@ export function DResumo() {
           style={{ flex: 'none', padding: 40, gap: 18 }}
           titulo={
             <div className="stack" style={{ gap: 4 }}>
-              <h1 className="desk-title" style={{ margin: 0 }}>Resumo para o {c.titulo.toLowerCase()}</h1>
-              <span style={{ fontSize: 14, color: 'var(--text-2)' }}>{p.curto} · consulta de {diaMes(c.data)}</span>
+              <h2 className="desk-title" style={{ margin: 0, fontSize: 24 }}>Resumo para a consulta</h2>
+              <span style={{ fontSize: 14, color: 'var(--text-2)' }}>{[c.titulo, c.profissional, `${p.curto} · ${diaMes(c.data)} às ${c.hora}`].filter(Boolean).join(' · ')}</span>
             </div>
           }
         />

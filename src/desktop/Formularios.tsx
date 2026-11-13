@@ -140,8 +140,20 @@ export function DNovaConsulta({ onClose, consulta }: Props & { consulta?: Consul
         <DCampo label="Local">
           <input className="input input--desk" list="sug-local" value={f.local} onChange={(e) => f.setLocal(e.target.value)} />
         </DCampo>
+        <DCampo label="Endereço" span2>
+          <input className="input input--desk" value={f.endereco} onChange={(e) => f.setEndereco(e.target.value)} placeholder="Rua, número, bairro, cidade" />
+        </DCampo>
+        <DCampo label="Telefone">
+          <input className="input input--desk input--mono" inputMode="tel" value={f.telefone} onChange={(e) => f.setTelefone(e.target.value)} placeholder="(11) 3000-0000" />
+        </DCampo>
+        <DCampo label="Tempo de trajeto" erro={f.trajetoValido ? undefined : 'Em minutos, como 30 ou 1h15.'}>
+          <input className="input input--desk" value={f.trajeto} onChange={(e) => f.setTrajeto(e.target.value)} placeholder="30 min" />
+        </DCampo>
+        <DCampo label="Preparo" span2>
+          <input className="input input--desk" value={f.preparo} onChange={(e) => f.setPreparo(e.target.value)} placeholder="Ex.: jejum de 8 h, chegar 15 min antes" />
+        </DCampo>
         <DCampo label="Pelo plano" grupo>
-          <DToggle texto={f.plano ? 'Vitalis · sim' : 'Não'} rotulo="Pelo plano" on={f.plano} onChange={f.setPlano} />
+          <DToggle texto={f.plano ? `${state.planos.find((x) => x.pessoaId === f.para)?.operadora.split(' ')[0] ?? 'Plano'} · sim` : 'Não'} rotulo="Pelo plano" on={f.plano} onChange={f.setPlano} />
         </DCampo>
         <DCampo label="Levar" span2 grupo>
           <div className="dlista">

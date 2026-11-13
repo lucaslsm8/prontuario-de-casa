@@ -60,8 +60,8 @@ export interface Pesagem { id: string; pessoaId: PessoaId; data: string; kg: num
  * Arquivo anexado (foto ou PDF), guardado dentro do evento — cifrado no banco e no backup.
  * `donoId` é o exame, o remédio (receita) ou o plano (carteirinha).
  */
-/** `foto`: álbum do pet (donoId = id do pet). `cartela` e `comprimido`: fotos do remédio (donoId = id do remédio). */
-export type TipoAnexo = 'exame' | 'receita' | 'carteirinha' | 'foto' | 'cartela' | 'comprimido';
+/** `foto`: álbum do pet (donoId = id do pet). `cartela` e `comprimido`: fotos do remédio (donoId = id do remédio). `profissional`: foto do médico (donoId = `chaveProfissional`, vale para todas as consultas com ele). */
+export type TipoAnexo = 'exame' | 'receita' | 'carteirinha' | 'foto' | 'cartela' | 'comprimido' | 'profissional';
 export interface Anexo { id: string; donoId: string; tipo: TipoAnexo; nome: string; mime: string; dados: string; tamanho: number; em: string; rotulo?: string }
 
 /** Medição de uma pessoa. Pressão: valor = máxima, valor2 = mínima (mmHg). */
@@ -123,6 +123,10 @@ export interface Consulta {
   profissional?: string;
   local?: string;
   endereco?: string;
+  /** Telefone do consultório ou da clínica. */
+  telefone?: string;
+  /** Tempo de trajeto informado pela pessoa (min): a ficha mostra que horas sair. */
+  trajetoMin?: number;
   data: string;             // ISO yyyy-mm-dd
   hora: string;             // HH:MM
   duracaoMin?: number;

@@ -211,3 +211,27 @@ button.row:hover { background: #F8FAFA; }
 .recorte__area img { position: absolute; left: 0; top: 0; max-width: none; pointer-events: none; }
 .recorte__circulo { position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 999px rgba(20, 32, 42, .5); border: 2px solid rgba(255, 255, 255, .85); pointer-events: none; }
 .recorte__zoom { width: 44px; height: 44px; padding: 0; border-radius: var(--r-btn); font-size: 20px; flex: none; }
+
+/* Ficha da consulta (src/ui/FichaConsulta.tsx). */
+.ficha { display: flex; flex-direction: column; gap: 12px; }
+.ficha--desk { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.ficha--desk .ficha__topo { grid-column: 1 / -1; }
+.ficha__bloco { padding: 14px 16px; gap: 10px; }
+.ficha__rotulo { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ficha__topo { padding: 16px; gap: 14px; }
+.ficha__quando { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; color: var(--text-2); }
+.ficha__quando .mono { font-size: 20px; font-weight: 500; color: var(--ink); }
+.ficha__medico { font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+.ficha__foto {
+  position: relative; width: 72px; height: 72px; flex: none; border-radius: 50%; overflow: hidden;
+  background: var(--teal-light); color: var(--teal); display: grid; place-items: center; font-size: 24px; font-weight: 600;
+}
+.ficha__foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ficha__foto-faixa { position: absolute; left: 0; right: 0; bottom: 0; padding: 3px 0 5px; background: rgba(20, 32, 42, .55); color: #fff; font-size: 11px; font-weight: 500; text-align: center; }
+.ficha__trajeto { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: var(--r-input); background: var(--teal-light); color: var(--teal-dark); font-size: 14px; }
+.ficha__linha { gap: 10px; align-items: center; font-size: 15px; min-height: 36px; text-align: left; }
+.ficha__levar:disabled { cursor: default; color: inherit; }
+.ficha__check { width: 22px; height: 22px; flex: none; border-radius: 6px; border: 1.5px solid var(--border-input); display: grid; place-items: center; font-size: 13px; color: #fff; transition: background var(--t) var(--ease), border-color var(--t) var(--ease); }
+.ficha__check.is-ok { background: var(--teal); border-color: var(--teal); }
+.ficha__x { width: 36px; height: 36px; flex: none; border-radius: var(--r-btn); color: var(--text-3); font-size: 18px; }
+@media (max-width: 900px) { .ficha--desk { grid-template-columns: minmax(0, 1fr); } }

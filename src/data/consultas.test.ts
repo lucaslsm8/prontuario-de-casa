@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { distancia, filtrarConsultas, porMesConsultas } from './consultas';
+import { chaveProfissional, destinoConsulta, distancia, filtrarConsultas, horaDeSair, lerTrajeto, linkRota, porMesConsultas, textoTrajeto } from './consultas';
 import type { Consulta } from './types';
 
 const c = (id: string, x: Partial<Consulta>): Consulta => ({ id, tipo: 'consulta', pessoaId: 'helena', titulo: 'Clínico', data: '2026-11-05', hora: '10:00', levar: [], lembretes: [], ...x });
@@ -43,5 +43,32 @@ describe('perfil (celular)', () => {
     expect(r.exames.every((x) => x.pessoaId === 'roberto')).toBe(true);
     const ids = new Set(r.remedios.map((x) => x.id));
     expect(r.doses.every((d) => ids.has(d.remedioId))).toBe(true);
+  });
+});
+
+describe('ficha da consulta', () => {
+  it('chaveProfissional ignora título, acento e caixa', () => {
+    expect(chaveProfissional('Dra. Marta Lins')).toBe('prof:marta-lins');
+    expect(chaveProfissional('dra marta lins')).toBe('prof:marta-lins');
+    expect(chaveProfissional('Dr. João Sá')).toBe('prof:joao-sa');
+  });
+  it('rota e destino', () => {
+    expect(destinoConsulta({ local: 'Clínica X', endereco: 'Rua A, 10' })).toBe('Clínica X, Rua A, 10');
+    expect(linkRota({ local: 'Clínica X' })).toBe('https://www.google.com/maps/dir/?api=1&destination=Cl%C3%ADnica%20X');
+  });
+  it('hora de sair conta trajeto e 15 min de folga', () => {
+    expect(horaDeSair('15:00', 30)).toBe('14:15');
+    expect(horaDeSair('00:20', 30)).toBe('23:35');
+    expect(horaDeSair('15:00')).toBeUndefined();
+  });
+  it('lê e escreve o trajeto', () => {
+    expect(lerTrajeto('45')).toBe(45);
+    expect(lerTrajeto('45 min')).toBe(45);
+    expect(lerTrajeto('1h15')).toBe(75);
+    expect(lerTrajeto('1 h')).toBe(60);
+    expect(lerTrajeto('1:30')).toBe(90);
+    expect(lerTrajeto('perto')).toBeUndefined();
+    expect(textoTrajeto(75)).toBe('1 h 15 min');
+    expect(textoTrajeto(30)).toBe('30 min');
   });
 });

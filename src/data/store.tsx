@@ -245,7 +245,7 @@ function reducer(s: State, a: Action): State {
         doses: s.doses.filter((d) => remedios.some((r) => r.id === d.remedioId)),
         consultas: dela(s.consultas), vacinas: dela(s.vacinas), prevencoes: dela(s.prevencoes), sintomas: dela(s.sintomas),
         procedimentos: dela(s.procedimentos), pesagens: dela(s.pesagens), medicoes: dela(s.medicoes),
-        anexos: s.anexos.filter((x) => donos.has(x.donoId)),
+        anexos: s.anexos.filter((x) => x.tipo === 'profissional' || donos.has(x.donoId)),
         compartilhamentos: s.compartilhamentos.filter((c) => c.de !== a.id && c.para !== a.id),
         papeis: s.papeis.filter((c) => c.de !== a.id && c.para !== a.id),
       };

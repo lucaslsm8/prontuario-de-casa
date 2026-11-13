@@ -12,6 +12,7 @@ import { MScreen, TabHeader } from './Shell';
 import { textoSalvar } from './Perfil';
 import { ConfirmarSheet } from '../ui/Confirmar';
 import { PosConsulta } from '../ui/PosConsulta';
+import { FichaConsulta } from '../ui/FichaConsulta';
 import { AgendaIcs } from '../ui/AgendaIcs';
 import { SugestoesConsulta } from '../ui/Sugestoes';
 
@@ -246,7 +247,8 @@ export function NovaConsulta({ onDone, consulta }: { onDone?: () => void; consul
   const nav = useNavigate();
   const fechar = onDone ?? (() => nav('/agenda'));
   const pessoas = paraConsultas(state);
-  const { titulo, setTitulo, para, setPara, quando, setQuando, prof, setProf, local, setLocal, plano, setPlano, levar, setLevar, novoItem, setNovoItem, lembrar, setLembrar, paraPet, editando, valido, salvar } = useFormConsulta(fechar, { inicial: consulta });
+  const { titulo, setTitulo, para, setPara, quando, setQuando, prof, setProf, local, setLocal, plano, setPlano, levar, setLevar, novoItem, setNovoItem, lembrar, setLembrar, paraPet, editando, valido, salvar, endereco, setEndereco, telefone, setTelefone, preparo, setPreparo, trajeto, setTrajeto, trajetoValido } = useFormConsulta(fechar, { inicial: consulta });
+  const operadora = state.planos.find((x) => x.pessoaId === para)?.operadora.split(' ')[0];
 
   return (
     <MScreen gap={14}>
@@ -262,8 +264,14 @@ export function NovaConsulta({ onDone, consulta }: { onDone?: () => void; consul
         <Row compact style={{ padding: '12px 16px' }} label="Profissional" valor={<InlineInput style={{ fontWeight: 400 }} list="sug-prof" value={prof} onChange={(e) => setProf(e.target.value)} aria-label="Profissional" />} />
         <SugestoesConsulta />
         <Row compact style={{ padding: '12px 16px' }} label="Local" valor={<InlineInput style={{ fontWeight: 400 }} list="sug-local" value={local} onChange={(e) => setLocal(e.target.value)} aria-label="Local" />} />
-        <Row compact style={{ padding: '12px 16px' }} label="Pelo plano" valor={<button type="button" onClick={() => setPlano(!plano)}>{plano ? 'Vitalis · sim' : 'Não'}</button>} />
+        <Row compact style={{ padding: '12px 16px' }} label="Endereço" valor={<InlineInput style={{ fontWeight: 400 }} value={endereco} onChange={(e) => setEndereco(e.target.value)} placeholder="Rua, número, bairro" aria-label="Endereço" />} />
+        <Row compact style={{ padding: '12px 16px' }} label="Telefone" valor={<InlineInput className="mono" style={{ fontWeight: 400 }} inputMode="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="(11) 3000-0000" aria-label="Telefone" />} />
+        <Row compact style={{ padding: '12px 16px' }} label="Trajeto" valor={<InlineInput style={{ fontWeight: 400, color: trajetoValido ? undefined : 'var(--danger)' }} value={trajeto} onChange={(e) => setTrajeto(e.target.value)} placeholder="30 min" aria-label="Tempo de trajeto" />} />
+        <Row compact style={{ padding: '12px 16px' }} label="Pelo plano" valor={<button type="button" onClick={() => setPlano(!plano)}>{plano ? `${operadora ?? 'Plano'} · sim` : 'Não'}</button>} />
       </div>
+      <Field label="Preparo (opcional)">
+        <input className="input" value={preparo} onChange={(e) => setPreparo(e.target.value)} placeholder="Ex.: jejum de 8 h, chegar 15 min antes" />
+      </Field>
       <FieldGroup label="Levar">
         <div className="card" style={{ fontSize: 15 }}>
           {levar.map((l, i) => (
@@ -393,7 +401,6 @@ export function ResumoConsulta() {
 
   if (!c || !p) return <MScreen><TopNav voltar="Agenda" voltarPara="/agenda" /><span className="muted">Consulta não encontrada.</span></MScreen>;
 
-  const especialista = c.titulo.toLowerCase();
   const documento = <DocumentoResumo consulta={c} incluir={incluir} grande={tela} />;
 
   if (tela) {
@@ -407,12 +414,14 @@ export function ResumoConsulta() {
 
   return (
     <MScreen gap={14}>
-      <TopNav voltar="Consulta" voltarPara="/agenda" acao="Escolher itens" onAcao={() => setEscolher(true)} />
-      <div className="stack" style={{ gap: 4 }}>
-        <h1 className="title title--26" style={{ margin: 0 }}>Resumo para o {especialista}</h1>
-        <span style={{ fontSize: 14, color: 'var(--text-2)' }}>{p.curto} · consulta de {diaMes(c.data)}</span>
-      </div>
+      <TopNav voltar="Agenda" voltarPara="/agenda" acao={editaConsulta(state, c.pessoaId) ? 'Editar' : undefined} onAcao={() => nav(`/consulta/${c.id}/editar`)} />
+      <h1 className="title title--26" style={{ margin: 0 }}>{c.titulo}</h1>
       <PosConsulta key={c.id} consulta={c} podeEditar={editaConsulta(state, c.pessoaId)} />
+      <FichaConsulta c={c} />
+      <div className="hstack" style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+        <Label>Resumo para o médico</Label>
+        <button type="button" className="btn btn--link" style={{ fontSize: 14, minHeight: 44 }} onClick={() => setEscolher(true)}>Escolher itens</button>
+      </div>
       {documento}
       <div className="hstack" style={{ gap: 8 }}>
         <button type="button" className="btn btn--ink btn--h52 btn--grow" onClick={() => window.print()}>Exportar PDF</button>
@@ -420,7 +429,6 @@ export function ResumoConsulta() {
       </div>
       {editaConsulta(state, c.pessoaId) && (
         <div className="hstack" style={{ justifyContent: 'center', gap: 8 }}>
-          <button type="button" className="btn btn--link" style={{ minHeight: 44, fontSize: 15 }} onClick={() => nav(`/consulta/${c.id}/editar`)}>Editar consulta</button>
           <button type="button" className="btn btn--danger-link" style={{ minHeight: 44, fontSize: 15 }} onClick={() => setApagar(true)}>Apagar</button>
         </div>
       )}
