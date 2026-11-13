@@ -11,6 +11,8 @@ import { GaleriaAnexos } from '../ui/Anexos';
 import { AcoesRegistro } from './Acoes';
 import { partesDoRemedio } from '../data/formularios-puro';
 import { CompreiMais, DosesSeNecessario } from '../ui/Estoque';
+import { Cartela, PilulaDoRemedio, contaCartela } from '../ui/Pilula';
+import { anexosDe } from '../data/anexos';
 
 const voltar = <Link to="/remedios" style={{ fontSize: 14, fontWeight: 600 }}>← Remédios</Link>;
 
@@ -52,7 +54,10 @@ export function DRemedio() {
       <div className="hstack" style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div className="stack" style={{ gap: 6, alignItems: 'flex-start' }}>
           {voltar}
-          <h1 className="desk-title" style={{ margin: 0 }}>{r.nome}</h1>
+          <span className="hstack" style={{ gap: 12, alignItems: 'center' }}>
+            <PilulaDoRemedio r={r} tamanho={44} />
+            <h1 className="desk-title" style={{ margin: 0 }}>{r.nome}</h1>
+          </span>
           <span style={{ fontSize: 14, color: 'var(--text-2)' }}>{meta}</span>
         </div>
         <div className="hstack" style={{ gap: 8 }}>
@@ -87,7 +92,14 @@ export function DRemedio() {
                   <span style={{ fontSize: 28, fontWeight: 600, color: baixo ? 'var(--warn-strong)' : undefined }}>{dias} {dias === 1 ? 'dia' : 'dias'}</span>
                   <span style={{ fontSize: 14, color: baixo ? 'var(--warn-text)' : 'var(--text-2)' }}>restam {textoEstoque(r)}</span>
                 </span>
-                <Bar pct={pctEstoque(r)} baixo={baixo} trilhoAlerta={baixo} grossa />
+                {r.cartela ? (
+                  <>
+                    <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Cartela aberta · {contaCartela(r)}</span>
+                    <Cartela r={r} />
+                  </>
+                ) : (
+                  <Bar pct={pctEstoque(r)} baixo={baixo} trilhoAlerta={baixo} grossa />
+                )}
                 {r.ativo && podeEditar && (
                   <CompreiMais
                     r={r}
@@ -120,6 +132,15 @@ export function DRemedio() {
           </div>
         </div>
       </div>
+
+      {(anexosDe(state.anexos, r.id, 'cartela').length > 0 || (podeEditar && r.cartela)) && (
+        <div className="card" style={{ fontSize: 14 }}>
+          <div className="card-head"><Label>Foto da cartela</Label></div>
+          <div style={{ padding: '16px 18px' }}>
+            <GaleriaAnexos key={`${r.id}-cartela`} donoId={r.id} tipo="cartela" podeEditar={podeEditar} vazio="Nenhuma foto." />
+          </div>
+        </div>
+      )}
 
       {r.seNecessario && <DosesSeNecessario r={r} podeEditar={podeEditar} botao="btn btn--teal btn--h40d" />}
 

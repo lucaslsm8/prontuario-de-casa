@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useStore } from '../data/store';
-import { ACEITOS, ErroAnexo, anexosDe, ehPdf, exportarAnexo, lerArquivo } from '../data/anexos';
+import { ACEITOS, ErroAnexo, SO_FOTOS, anexosDe, ehPdf, exportarAnexo, lerArquivo } from '../data/anexos';
 import { abrirPdf, capaDoPdf, desenharPagina } from '../data/pdf';
 import { tamanhoArquivo } from '../data/format';
 import type { Anexo, TipoAnexo } from '../data/types';
@@ -143,7 +143,8 @@ export function GaleriaAnexos({ donoId, tipo, podeEditar = true, vazio, camera }
   const { state, api } = useStore();
   const lista = anexosDe(state.anexos, donoId, tipo);
   const [aberto, setAberto] = useState<number | null>(null);
-  const seletor = useEscolherArquivos(donoId, tipo, api.addAnexos, { camera });
+  const fotos = SO_FOTOS.includes(tipo);
+  const seletor = useEscolherArquivos(donoId, tipo, api.addAnexos, { camera, soFotos: fotos });
   return (
     <div className="anexos">
       {lista.map((a, n) => (
@@ -152,7 +153,7 @@ export function GaleriaAnexos({ donoId, tipo, podeEditar = true, vazio, camera }
       {podeEditar && (
         <button type="button" className="anexo anexo--add" onClick={seletor.abrir} disabled={seletor.lendo} aria-label="Adicionar arquivo">
           {seletor.lendo ? '…' : '+'}
-          <span>{camera ? 'Foto' : 'Foto ou PDF'}</span>
+          <span>{camera || fotos ? 'Foto' : 'Foto ou PDF'}</span>
         </button>
       )}
       {!podeEditar && lista.length === 0 && <span className="muted" style={{ fontSize: 14 }}>{vazio ?? 'Nenhum arquivo.'}</span>}
@@ -165,7 +166,8 @@ export function GaleriaAnexos({ donoId, tipo, podeEditar = true, vazio, camera }
 /** Arquivos escolhidos num formulário que ainda não foi salvo (viram eventos só no "Salvar"). */
 export function AnexosPendentes({ donoId, tipo, lista, onChange, camera }: { donoId: string; tipo: TipoAnexo; lista: Anexo[]; onChange: (l: Anexo[]) => void; camera?: boolean }) {
   const [aberto, setAberto] = useState<number | null>(null);
-  const seletor = useEscolherArquivos(donoId, tipo, (novos) => onChange([...lista, ...novos]), { camera });
+  const fotos = SO_FOTOS.includes(tipo);
+  const seletor = useEscolherArquivos(donoId, tipo, (novos) => onChange([...lista, ...novos]), { camera, soFotos: fotos });
   return (
     <div className="anexos">
       {lista.map((a, n) => (
@@ -173,7 +175,7 @@ export function AnexosPendentes({ donoId, tipo, lista, onChange, camera }: { don
       ))}
       <button type="button" className="anexo anexo--add" onClick={seletor.abrir} disabled={seletor.lendo} aria-label="Adicionar arquivo">
         {seletor.lendo ? '…' : '+'}
-        <span>{lista.length ? 'Mais páginas' : camera ? 'Foto' : 'Foto ou PDF'}</span>
+        <span>{lista.length ? (fotos ? 'Mais fotos' : 'Mais páginas') : camera || fotos ? 'Foto' : 'Foto ou PDF'}</span>
       </button>
       {seletor.elemento}
       {aberto != null && <Visualizador anexos={lista} inicio={aberto} onClose={() => setAberto(null)} />}

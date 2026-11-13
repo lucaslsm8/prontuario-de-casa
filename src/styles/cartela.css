@@ -1,0 +1,37 @@
+/* Cartela visual do remédio (src/ui/Pilula.tsx; esboço em docs/cartela-remedio.html). */
+.pilula { display: block; overflow: visible; flex: none; }
+.pilula__corpo { transition: opacity var(--t) var(--ease); }
+
+.cartela {
+  display: grid; gap: 8px; padding: 12px; border-radius: var(--r-card);
+  background: linear-gradient(135deg, #E8EDEF 0%, #D5DDE0 45%, #EEF2F3 60%, #D9E0E3 100%);
+  border: 1px solid #C8D1D5; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6);
+}
+.cartela__bolha {
+  aspect-ratio: 1; border-radius: 12px; display: grid; place-items: center; min-width: 0;
+  background: rgba(255, 255, 255, .55); box-shadow: inset 0 0 0 1px rgba(20, 32, 42, .08), 0 1px 2px rgba(20, 32, 42, .08);
+  transition: background var(--t) var(--ease), box-shadow var(--t) var(--ease);
+}
+.cartela__bolha .pilula { width: 86%; height: 86%; }
+.cartela__bolha.is-vazia { background: #CDD5D9; box-shadow: inset 0 2px 4px rgba(20, 32, 42, .18); }
+/* A bolha que acabou de esvaziar: o contorno aparece suave. */
+.cartela__bolha.is-vazia .pilula { animation: pilula-sai var(--t) var(--ease); }
+@keyframes pilula-sai { from { opacity: 0; transform: scale(.85); } }
+
+/* Comprimido no cartão escuro da dose. */
+.hero__pilula { width: 52px; height: 52px; flex: none; border-radius: var(--r-card); background: var(--hero-2); display: grid; place-items: center; }
+.hero__pilula .pilula { width: 42px; height: 42px; }
+.hero--compacto .hero__pilula { width: 44px; height: 44px; }
+.hero--compacto .hero__pilula .pilula { width: 36px; height: 36px; }
+
+/* "Como ele é" no formulário. */
+.aparencia__previa { display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: var(--r-card); background: var(--chip-neutral); }
+.aparencia__previa .pilula { width: 56px; height: 56px; }
+.aparencia__chip { display: inline-flex; align-items: center; gap: 6px; }
+.aparencia__chip .pilula { width: 24px; height: 24px; }
+.aparencia__cores { display: flex; flex-wrap: wrap; gap: 10px; }
+.aparencia__cor { width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(20, 32, 42, .2); position: relative; }
+.aparencia__cor::after { content: ''; position: absolute; inset: -5px; } /* alvo de toque ≥ 44px */
+.aparencia__cor[aria-pressed='true'] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--teal); }
+.aparencia__foto { width: 64px; height: 64px; border-radius: 50%; overflow: hidden; flex: none; border: 1px solid var(--border-card); }
+.aparencia__foto img { width: 100%; height: 100%; object-fit: cover; display: block; }

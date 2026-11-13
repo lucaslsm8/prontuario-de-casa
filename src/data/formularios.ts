@@ -3,9 +3,10 @@ import { HOJE, ex } from './tempo';
 import { eu, useStore } from './store';
 import { addDias, dataBR, diasEntre } from './format';
 import { novoId } from './persistencia';
-import { ehPdf } from './anexos';
+import { anexosDe, ehPdf, tamanhoDataUrl } from './anexos';
+import { lerCartela } from './cartela';
 import { lerDosPdfs } from './pdf';
-import type { Anexo, CategoriaExame, Resultado, Consulta, Exame, Medicao, Pesagem, Pessoa, Plano, Prevencao, Procedimento, Remedio, Sintoma, TipoMedicao, TipoProcedimento, Vacina } from './types';
+import type { Anexo, Aparencia, CategoriaExame, Resultado, Consulta, Exame, Medicao, Pesagem, Pessoa, Plano, Prevencao, Procedimento, Remedio, Sintoma, TipoMedicao, TipoProcedimento, Vacina } from './types';
 import { SINAIS, ehPet, familia, pets } from './pets';
 import { diffPessoa, formDePessoa, lerNumeroBR, normalizarTexto, novaChave, pessoaDoForm, type ErrosPerfil, type FormPerfil, type FormPet, type LinhaAlergia, type LinhaCondicao } from './perfil';
 import {
@@ -41,6 +42,17 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
   const unidade = /c[áa]ps/.test(dose) ? 'cápsulas' : inicial && !/comp/.test(dose) ? inicial.unidade : 'comprimidos';
   const [id] = useState(() => inicial?.id ?? `rem-${novoId()}`);
   const [receita, setReceita] = useState<Anexo[]>([]);
+  // "Como ele é": desenho do comprimido, tamanho da cartela e fotos.
+  const [aparencia, setAparencia] = useState<Aparencia | undefined>(inicial?.aparencia);
+  const [porCartela, setPorCartela] = useState(inicial?.cartela ? String(inicial.cartela.porCartela) : '');
+  const [fileiras, setFileiras] = useState(inicial?.cartela ? String(inicial.cartela.fileiras) : '');
+  const cartela = lerCartela(porCartela, fileiras);
+  const cartelaValida = !porCartela.trim() || !!cartela;
+  const fotoSalva = anexosDe(state.anexos, id, 'comprimido').sort((a, b) => b.em.localeCompare(a.em))[0]?.dados;
+  /** Foto nova do comprimido (data URL recortado), `null` = tirar a que está salva. */
+  const [fotoNova, setFotoComprimido] = useState<string | null | undefined>();
+  const fotoComprimido = fotoNova === null ? undefined : fotoNova ?? fotoSalva;
+  const [fotosCartela, setFotosCartela] = useState<Anexo[]>([]);
   /** Trocar a frequência repõe os horários padrão dela. */
   const setFreq = (f: Frequencia) => { setFreqBruta(f); setHorariosTexto(f.horarios.join(', ')); };
   const lidos = lerHorarios(horariosTexto);
@@ -48,6 +60,7 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
 
   const salvar = () => {
     if (!horarios) { api.toast({ texto: 'Horários assim: 08:00, 20:00' }); return; }
+    if (!cartelaValida) { api.toast({ texto: 'Cartela: quantos comprimidos (1 a 200) e fileiras' }); return; }
     const remedio: Remedio = {
       ...(inicial ?? { ativo: true }),
       id,
@@ -68,13 +81,20 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
       avisarDias: avisar,
       lembrete,
       observacao: observacao.trim() || undefined,
+      aparencia: aparencia && (aparencia.forma === 'capsula' ? { ...aparencia, sulco: undefined } : { ...aparencia, cor2: undefined }),
+      cartela,
     } as Remedio;
     if (inicial) {
       api.editar('remedios', id, diffRegistro(inicial, remedio), `${remedio.nome} atualizado`);
     } else {
       api.addRemedio(remedio);
-      api.addAnexos(receita);
+      api.addAnexos([...receita, ...fotosCartela]);
       api.toast({ texto: `${remedio.nome} salvo` });
+    }
+    // Foto do comprimido: uma só; a nova substitui a anterior.
+    if (fotoNova !== undefined) {
+      anexosDe(state.anexos, id, 'comprimido').forEach((a) => api.removerAnexo(a));
+      if (fotoNova) api.addAnexos([{ id: `anx-${novoId()}`, donoId: id, tipo: 'comprimido', nome: 'Comprimido.jpg', mime: 'image/jpeg', dados: fotoNova, tamanho: tamanhoDataUrl(fotoNova), em: new Date().toISOString() }]);
     }
     onSalvo();
   };
@@ -84,9 +104,12 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
     /** Ao sair do campo: "22" → "22:00", "8h30, 21" → "08:30, 21:00". */
     completarHorarios: () => { if (lidos?.length) setHorariosTexto(lidos.join(', ')); },
     lembrete, setLembrete, estoque, setEstoque, avisar, setAvisar, observacao, setObservacao, fim, unidade, editando: !!inicial,
-    id, receita, setReceita, valido: !!nome.trim() && !!horarios, salvar,
+    id, receita, setReceita, valido: !!nome.trim() && !!horarios && cartelaValida, salvar,
+    aparencia, setAparencia, porCartela, setPorCartela, fileiras, setFileiras, cartelaValida,
+    fotoComprimido, setFotoComprimido, fotosCartela, setFotosCartela,
   };
 }
+export type FormRemedio = ReturnType<typeof useFormRemedio>;
 
 // ── Consulta ────────────────────────────────────────────────────────────────
 

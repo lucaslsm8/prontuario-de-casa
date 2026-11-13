@@ -58,13 +58,18 @@ export interface Pesagem { id: string; pessoaId: PessoaId; data: string; kg: num
  * Arquivo anexado (foto ou PDF), guardado dentro do evento — cifrado no banco e no backup.
  * `donoId` é o exame, o remédio (receita) ou o plano (carteirinha).
  */
-/** `foto`: álbum do pet (donoId = id do pet). */
-export type TipoAnexo = 'exame' | 'receita' | 'carteirinha' | 'foto';
+/** `foto`: álbum do pet (donoId = id do pet). `cartela` e `comprimido`: fotos do remédio (donoId = id do remédio). */
+export type TipoAnexo = 'exame' | 'receita' | 'carteirinha' | 'foto' | 'cartela' | 'comprimido';
 export interface Anexo { id: string; donoId: string; tipo: TipoAnexo; nome: string; mime: string; dados: string; tamanho: number; em: string; rotulo?: string }
 
 /** Medição de uma pessoa. Pressão: valor = máxima, valor2 = mínima (mmHg). */
 export type TipoMedicao = 'peso' | 'pressao' | 'glicemia' | 'altura' | 'temperatura' | 'saturacao';
 export interface Medicao { id: string; pessoaId: PessoaId; tipo: TipoMedicao; data: string; hora?: string; valor: number; valor2?: number; contexto?: string; nota?: string }
+
+export type FormaPilula = 'redondo' | 'oval' | 'oblongo' | 'capsula';
+export type CorPilula = 'branco' | 'amarelo' | 'rosa' | 'laranja' | 'azul' | 'verde' | 'vermelho' | 'marrom';
+/** `cor2`: a outra metade da cápsula. `sulco`: risco no meio (não vale para cápsula). */
+export interface Aparencia { forma: FormaPilula; cor: CorPilula; cor2?: CorPilula; sulco?: boolean }
 
 export interface Remedio {
   id: string;
@@ -84,6 +89,10 @@ export interface Remedio {
   estoque?: number;       // unidades
   estoqueTexto?: string;  // quando não é contado em unidades ("1 cartela")
   ultimaCompra?: number;  // derivado do evento `comprei`: sugestão no próximo "Comprei mais"
+  /** Como o comprimido é (desenho na cartela e no Início). Ausente = sem desenho. */
+  aparencia?: Aparencia;
+  /** Tamanho da cartela: a cartela aberta sai do estoque (resto por `porCartela`). */
+  cartela?: { porCartela: number; fileiras: number };
   avisarDias: number;
   receitadoPor?: string;
   indicacao?: string;

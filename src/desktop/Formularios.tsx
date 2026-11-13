@@ -13,6 +13,7 @@ import { TIPOS_CONDICAO, type TipoCondicao } from '../data/perfil';
 import { LISTA_POR_TIPO } from '../data/sugestoes';
 import { Sugestoes, SugestoesConsulta } from '../ui/Sugestoes';
 import { AnexosPendentes } from '../ui/Anexos';
+import { CamposAparencia } from '../ui/Aparencia';
 import type { Consulta, Exame, Medicao, Pesagem, Pessoa, Plano, Prevencao, Procedimento, Remedio, Sintoma, TipoMedicao, TipoProcedimento, Vacina } from '../data/types';
 import { CONTEXTOS_GLICEMIA, MEDICOES, infoMedicao } from '../data/medicoes';
 import { Chip } from '../ui';
@@ -91,6 +92,10 @@ export function DNovoRemedio({ onClose, remedio }: Props & { remedio?: Remedio }
         <div className="dfield dfield--span2">
           <DToggle texto="Lembrete no horário" on={f.lembrete} onChange={f.setLembrete} />
         </div>
+        <div className="dfield dfield--span2" style={{ borderTop: '1px solid var(--divider)', paddingTop: 14 }}>
+          <span className="label">Como ele é</span>
+        </div>
+        <CamposAparencia f={f} desktop />
         {!f.editando && (
           <DCampo label="Receita (opcional)" span2 grupo>
             <AnexosPendentes donoId={f.id} tipo="receita" lista={f.receita} onChange={f.setReceita} />

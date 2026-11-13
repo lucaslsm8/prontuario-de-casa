@@ -10,6 +10,7 @@ import type { Remedio } from '../data/types';
 import { Avatar, SecaoLista, cx } from '.';
 import { IcCheck, IcDesfazer, IcPular, IcSino } from './Icones';
 import { CompreiMais } from './Estoque';
+import { Pilula, PilulaDoRemedio, useFotoComprimido } from './Pilula';
 
 /** Estado do Início: doses de hoje, a da vez e as ações do cartão. */
 export function useDoseDaVez() {
@@ -39,6 +40,13 @@ export function useDoseDaVez() {
   };
 }
 type DaVez = ReturnType<typeof useDoseDaVez>;
+
+/** O comprimido ao lado do nome, para conferir antes de tocar Tomei (só com desenho ou foto). */
+function HeroPilula({ r }: { r: Remedio }) {
+  const foto = useFotoComprimido(r.id);
+  if (!r.aparencia && !foto) return null;
+  return <span className="hero__pilula"><Pilula aparencia={r.aparencia} foto={foto} /></span>;
+}
 
 function NomeDose({ nome }: { nome: string }) {
   const [n, conc] = separarConcentracao(nome);
@@ -78,6 +86,7 @@ export function CartaoDose({ dv, compacto, onCadastrar }: { dv: DaVez; compacto?
       <span className={cx('hero__rotulo', `hero__rotulo--${tom}`)}><span className="hero__ponto" />{rotulo}</span>
       <div className="hero__linha">
         <span className="hero__hora">{d.horario}</span>
+        <HeroPilula r={d.remedio} />
         <span className="stack" style={{ gap: 4, minWidth: 0 }}>
           <span className="hero__nome"><NomeDose nome={d.remedio.nome} /></span>
           <span className="hero__sub"><strong>{quem(d.pessoa)}</strong> · {d.remedio.dose}</span>
@@ -131,7 +140,10 @@ export function ListaDoses({ doses, agora, compacto }: { doses: DoseHoje[]; agor
         <span className="dose-linha__hora">{d.horario}</span>
         <Avatar pessoa={d.pessoa} size={compacto ? 30 : 34} font={compacto ? 11 : 12} />
         <span className="stack" style={{ flex: 1, minWidth: 0 }}>
-          <span className="dose-linha__nome">{nome}{conc && !compacto && <span className="dose-linha__conc"> {conc}</span>}</span>
+          <span className="dose-linha__nome" style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+            <PilulaDoRemedio r={d.remedio} tamanho={20} estado={d.dose?.status === 'tomada' ? 'contorno' : 'cheio'} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{nome}{conc && !compacto && <span className="dose-linha__conc"> {conc}</span>}</span>
+          </span>
           <span className="dose-linha__quem">{quem(d.pessoa)}{d.pessoa.tipo === 'pet' ? ` · ${d.remedio.dose}` : ''}</span>
         </span>
         {d.dose ? (

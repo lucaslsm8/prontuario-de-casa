@@ -14,6 +14,8 @@ import { AnexosPendentes, GaleriaAnexos } from '../ui/Anexos';
 import { anexosDe } from '../data/anexos';
 import { ConfirmarSheet } from '../ui/Confirmar';
 import { CompreiMais, DosesSeNecessario } from '../ui/Estoque';
+import { CamposAparencia } from '../ui/Aparencia';
+import { Cartela, PilulaDoRemedio, contaCartela } from '../ui/Pilula';
 
 /** Doses tomadas e previstas na grade (o que ainda vai ser tomado hoje não conta). */
 export function somaAdesao(grade: DiaAdesao[]) {
@@ -162,7 +164,8 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
   const nav = useNavigate();
   const fechar = onDone ?? (() => nav('/remedios'));
   const pessoas = editaveis(state);
-  const { nome, setNome, dosagem, setDosagem, indicacao, setIndicacao, para, setPara, dose, setDose, freq, setFreq, duracao, setDuracao, lembrete, setLembrete, estoque, setEstoque, avisar, setAvisar, fim, unidade, id: remId, receita, setReceita, horariosTexto, setHorariosTexto, completarHorarios, horariosValidos, editando, valido, salvar } = useFormRemedio(fechar, remedio);
+  const form = useFormRemedio(fechar, remedio);
+  const { nome, setNome, dosagem, setDosagem, indicacao, setIndicacao, para, setPara, dose, setDose, freq, setFreq, duracao, setDuracao, lembrete, setLembrete, estoque, setEstoque, avisar, setAvisar, fim, unidade, id: remId, receita, setReceita, horariosTexto, setHorariosTexto, completarHorarios, horariosValidos, editando, valido, salvar } = form;
 
   return (
     <MScreen gap={12}>
@@ -216,6 +219,8 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
           {!horariosValidos && <span style={{ fontSize: 13, color: 'var(--danger)' }}>Use HH:MM separados por vírgula.</span>}
         </Field>
       )}
+      <Label style={{ marginTop: 8 }}>Como ele é</Label>
+      <CamposAparencia f={form} />
       {!editando && (
         <FieldGroup label="Receita (opcional)">
           <AnexosPendentes donoId={remId} tipo="receita" lista={receita} onChange={setReceita} />
@@ -243,6 +248,7 @@ export function DetalheRemedio() {
   if (!r) return <MScreen><TopNav voltar="Remédios" voltarPara="/remedios" /><span className="muted">Remédio não encontrado.</span></MScreen>;
   const p = pessoa(state, r.pessoaId);
   const temReceita = anexosDe(state.anexos, r.id, 'receita').length > 0;
+  const temFotoCartela = anexosDe(state.anexos, r.id, 'cartela').length > 0;
   const podeEditar = editaveis(state).some((x) => x.id === r.pessoaId);
   const dias = diasDeEstoque(r);
   const baixo = estoqueBaixo(r);
@@ -257,7 +263,10 @@ export function DetalheRemedio() {
         <span style={{ fontSize: 13, color: 'var(--text-2)' }}>
           {quem(p)} · {r.continuo ? `uso contínuo${desde ? ` desde ${desde}` : ''}` : r.seNecessario ? 'se necessário' : 'tratamento'}
         </span>
-        <h1 className="title" style={{ margin: 0 }}>{r.nome}</h1>
+        <span className="hstack" style={{ gap: 10, alignItems: 'center' }}>
+          <PilulaDoRemedio r={r} tamanho={40} />
+          <h1 className="title" style={{ margin: 0 }}>{r.nome}</h1>
+        </span>
         <span style={{ fontSize: 15, color: 'var(--text-2)' }}>
           {r.seNecessario ? 'Sem horário fixo' : `${r.doseLonga ?? r.dose} às ${r.horarios.join(', ')}${r.observacao ? `, ${r.observacao}` : ''}`}
         </span>
@@ -269,7 +278,17 @@ export function DetalheRemedio() {
             <span style={{ fontSize: 15, fontWeight: 600, color: baixo ? 'var(--warn-strong)' : undefined }}>Restam {textoEstoque(r)}</span>
             {acaba && <span style={{ fontSize: 13, color: baixo ? 'var(--warn-text)' : 'var(--text-2)' }}>acaba {diaSemanaCurto(acaba).replace(/, 0?(\d+)\/(\d+)/, ', $1/$2')}</span>}
           </div>
-          <Bar pct={pctEstoque(r)} baixo={baixo} trilhoAlerta={baixo} grossa />
+          {r.cartela ? (
+            <>
+              <div className="hstack" style={{ justifyContent: 'space-between' }}>
+                <Label>Cartela aberta</Label>
+                <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{contaCartela(r)}</span>
+              </div>
+              <Cartela r={r} />
+            </>
+          ) : (
+            <Bar pct={pctEstoque(r)} baixo={baixo} trilhoAlerta={baixo} grossa />
+          )}
           <div className="hstack" style={{ gap: 8, fontSize: 13, fontWeight: 600, color: baixo ? 'var(--warn-strong)' : 'var(--teal)' }}>
             {podeEditar && r.ativo && <CompreiMais r={r} className="btn btn--h36" style={{ background: baixo ? '#fff' : 'var(--teal-light)' }} />}
             <button type="button" className="btn btn--h36" onClick={() => document.getElementById('receita')?.scrollIntoView({ behavior: 'smooth' })}>{temReceita ? 'Ver receita' : 'Guardar receita'}</button>
@@ -294,6 +313,13 @@ export function DetalheRemedio() {
         <Label>Receita</Label>
         <GaleriaAnexos donoId={r.id} tipo="receita" podeEditar={podeEditar} vazio="Nenhuma receita guardada." />
       </div>
+
+      {(temFotoCartela || (podeEditar && r.cartela)) && (
+        <div className="stack" style={{ gap: 8 }}>
+          <Label>Foto da cartela</Label>
+          <GaleriaAnexos donoId={r.id} tipo="cartela" podeEditar={podeEditar} vazio="Nenhuma foto." />
+        </div>
+      )}
 
       <div className="card" style={{ fontSize: 14 }}>
         {r.receitadoPor && <Row compact label="Receitado por" valor={r.receitadoPor} style={{ padding: '12px 16px' }} />}

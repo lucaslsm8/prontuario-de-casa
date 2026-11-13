@@ -13,6 +13,7 @@ import './styles/shell.css';
 import './styles/inicio.css';
 import './styles/graficos.css';
 import './styles/anexos.css';
+import './styles/cartela.css';
 import { StoreProvider } from './data/store';
 import App from './App';
 
