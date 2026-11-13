@@ -11,6 +11,7 @@ import { emCasaAgora } from './redeCasa';
 import { eventosParaEnviar, migrarLog, novoAparelhoId, ordenarLog, resolverEu, ultimoHlc, type Identidade } from './log';
 import type { PatchPessoa } from './perfil';
 import { medicoesDoPatch, perfilDasMedicoes } from './medicoes';
+import { qtdPorDose, somarEstoque } from './format';
 import type { Categoria, Config, Consulta, Dose, Exame, Pessoa, Plano, Remedio, Compartilhamento, Vacina, Prevencao, Sintoma, Procedimento, Pesagem, Medicao, Anexo, Aparelho } from './types';
 import { vistoPorAparelho, nomePadraoAparelho, plataformaDoId } from './aparelhos';
 
@@ -155,7 +156,7 @@ function reducer(s: State, a: Action): State {
       return { ...s, config: mesclarConfig(s.config, a.patch), temSenha: a.temSenha ?? s.temSenha };
     case 'dose': {
       const remedios = s.remedios.map((r) =>
-        r.id === a.dose.remedioId && r.estoque != null && a.dose.status === 'tomada' ? { ...r, estoque: Math.max(0, r.estoque - 1) } : r,
+        r.id === a.dose.remedioId && r.estoque != null && a.dose.status === 'tomada' ? { ...r, estoque: somarEstoque(r.estoque, -(a.dose.qtd ?? 1)) } : r,
       );
       return { ...s, doses: [...s.doses, a.dose], remedios };
     }
@@ -163,12 +164,12 @@ function reducer(s: State, a: Action): State {
       const alvo = [...s.doses].reverse().find((d) => d.remedioId === a.remedioId && d.previstoPara === a.previstoPara);
       if (!alvo) return s;
       const remedios = s.remedios.map((r) =>
-        r.id === a.remedioId && r.estoque != null && alvo.status === 'tomada' ? { ...r, estoque: r.estoque + 1 } : r,
+        r.id === a.remedioId && r.estoque != null && alvo.status === 'tomada' ? { ...r, estoque: somarEstoque(r.estoque, alvo.qtd ?? 1) } : r,
       );
       return { ...s, doses: s.doses.filter((d) => d !== alvo), remedios };
     }
     case 'comprei':
-      return { ...s, remedios: s.remedios.map((r) => (r.id === a.remedioId ? { ...r, estoque: (r.estoque ?? 0) + a.qtd } : r)) };
+      return { ...s, remedios: s.remedios.map((r) => (r.id === a.remedioId ? { ...r, estoque: somarEstoque(r.estoque ?? 0, a.qtd), ultimaCompra: a.qtd } : r)) };
     case 'encerrar':
       return {
         ...s,
@@ -448,7 +449,8 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
       marcarDose(remedioId: string, horario: string, status: Dose['status'] = 'tomada', dia = HOJE) {
         const registradoEm = horaAgora();
         const previstoPara = `${dia}T${horario}`;
-        emitir({ type: 'dose', dose: { remedioId, previstoPara, status, registradoEm } });
+        const rem = ref.current.remedios.find((x) => x.id === remedioId);
+        emitir({ type: 'dose', dose: { remedioId, previstoPara, status, registradoEm, ...(status === 'tomada' && rem ? { qtd: qtdPorDose(rem) } : {}) } });
         // Bloqueado (ação vinda da notificação): sem toast, que mostraria o nome do remédio
         // por cima do desbloqueio e deixaria "Desfazer" mudar dados sem desbloquear.
         if (ref.current.bloqueado) return;
@@ -457,6 +459,14 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
           texto: status === 'tomada' ? `${r?.nome ?? 'Dose'} marcado às ${registradoEm}` : 'Dose pulada',
           desfazer: () => emitir({ type: 'desfazerDose', remedioId, previstoPara }),
         });
+      },
+      /** Remédio "se necessário": registra uma dose agora, com o motivo (opcional). */
+      tomeiAgora(remedioId: string, motivo?: string) {
+        const r = ref.current.remedios.find((x) => x.id === remedioId);
+        const registradoEm = horaAgora();
+        const previstoPara = `${HOJE}T${registradoEm}`;
+        emitir({ type: 'dose', dose: { remedioId, previstoPara, status: 'tomada', registradoEm, qtd: r ? qtdPorDose(r) : 1, ...(motivo?.trim() ? { motivo: motivo.trim() } : {}) } });
+        mostrarToast({ texto: `${r?.nome ?? 'Dose'} registrado às ${registradoEm}`, desfazer: () => emitir({ type: 'desfazerDose', remedioId, previstoPara }) });
       },
       /** Desfaz a dose registrada na lista do Início (evento novo, append-only). */
       desfazerDose: (remedioId: string, horario: string) => emitir({ type: 'desfazerDose', remedioId, previstoPara: `${HOJE}T${horario}` }),

@@ -3,7 +3,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
 import { AVISAR, nomeAvisar, DOSES, DURACOES, FREQUENCIAS, partesDoRemedio, useFormRemedio } from '../data/formularios';
 import { editaveis, historicoAdesao, pessoa, useStore, type DiaAdesao } from '../data/store';
-import { addDias, descricaoDose, diaSemanaCurto, diasDeEstoque, estoqueBaixo, parseISO, pctEstoque, quem } from '../data/format';
+import { addDias, descricaoDose, diaSemanaCurto, diasDeEstoque, estoqueBaixo, parseISO, pctEstoque, quem, textoEstoque } from '../data/format';
 import type { Remedio } from '../data/types';
 import { Bar, ChipGroup, Field, FieldGroup, Label, Pill, Row, SecaoLista, Segmented, Toggle, TopNav, InlineInput } from '../ui';
 import { agruparFamiliaPets, opcoesPessoas } from '../data/pets';
@@ -13,6 +13,7 @@ import { AdesaoSemanal } from '../ui/Adesao';
 import { AnexosPendentes, GaleriaAnexos } from '../ui/Anexos';
 import { anexosDe } from '../data/anexos';
 import { ConfirmarSheet } from '../ui/Confirmar';
+import { CompreiMais, DosesSeNecessario } from '../ui/Estoque';
 
 /** Doses tomadas e previstas na grade (o que ainda vai ser tomado hoje não conta). */
 export function somaAdesao(grade: DiaAdesao[]) {
@@ -265,12 +266,12 @@ export function DetalheRemedio() {
       {r.estoque != null && (
         <div className="card" style={{ background: baixo ? 'var(--warn-bg)' : '#fff', borderColor: baixo ? 'transparent' : undefined, padding: '14px 16px', gap: 10 }}>
           <div className="hstack" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span style={{ fontSize: 15, fontWeight: 600, color: baixo ? 'var(--warn-strong)' : undefined }}>Restam {r.estoque} {r.unidade}</span>
+            <span style={{ fontSize: 15, fontWeight: 600, color: baixo ? 'var(--warn-strong)' : undefined }}>Restam {textoEstoque(r)}</span>
             {acaba && <span style={{ fontSize: 13, color: baixo ? 'var(--warn-text)' : 'var(--text-2)' }}>acaba {diaSemanaCurto(acaba).replace(/, 0?(\d+)\/(\d+)/, ', $1/$2')}</span>}
           </div>
           <Bar pct={pctEstoque(r)} baixo={baixo} trilhoAlerta={baixo} grossa />
           <div className="hstack" style={{ gap: 8, fontSize: 13, fontWeight: 600, color: baixo ? 'var(--warn-strong)' : 'var(--teal)' }}>
-            <button type="button" className="btn btn--h36" style={{ background: baixo ? '#fff' : 'var(--teal-light)' }} onClick={() => api.comprei(r.id, 30)}>Comprei mais</button>
+            {podeEditar && r.ativo && <CompreiMais r={r} className="btn btn--h36" style={{ background: baixo ? '#fff' : 'var(--teal-light)' }} />}
             <button type="button" className="btn btn--h36" onClick={() => document.getElementById('receita')?.scrollIntoView({ behavior: 'smooth' })}>{temReceita ? 'Ver receita' : 'Guardar receita'}</button>
           </div>
         </div>
@@ -286,6 +287,8 @@ export function DetalheRemedio() {
           <AdesaoSemanal remedioId={r.id} altura={130} className="card" style={{ padding: 14 }} />
         </div>
       )}
+
+      {r.seNecessario && <DosesSeNecessario r={r} podeEditar={podeEditar} botao="btn btn--soft btn--h36" />}
 
       <div id="receita" className="stack" style={{ gap: 8 }}>
         <Label>Receita</Label>

@@ -83,6 +83,7 @@ export interface Remedio {
   fim?: string;
   estoque?: number;       // unidades
   estoqueTexto?: string;  // quando não é contado em unidades ("1 cartela")
+  ultimaCompra?: number;  // derivado do evento `comprei`: sugestão no próximo "Comprei mais"
   avisarDias: number;
   receitadoPor?: string;
   indicacao?: string;
@@ -97,6 +98,10 @@ export interface Dose {
   previstoPara: string;   // ISO date + hora "2026-10-28T06:30"
   status: DoseStatus;
   registradoEm: string;   // "06:34"
+  /** Unidades que saíram do estoque (ausente nos eventos antigos = 1). */
+  qtd?: number;
+  /** Remédio "se necessário": por que tomou ("dor de cabeça"). */
+  motivo?: string;
 }
 
 export interface Consulta {

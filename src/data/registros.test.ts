@@ -57,3 +57,22 @@ describe('eventos genéricos', () => {
     expect(projetar([...base, ev('addAnexo', { anexo: foto }, 3), ev('removerPessoa', { id: 'bia' }, 4)]).anexos).toEqual([]);
   });
 });
+
+describe('estoque pela dose', () => {
+  const base = [ev('addPessoa', { pessoa: ana }, 0), ev('addRemedio', { remedio: { ...rem, pessoaId: 'ana', dose: '2 comp.', doseLonga: '2 comprimidos', estoque: 10 } }, 1)];
+  const dose = (n: number, extra: Record<string, unknown> = {}) => ev('dose', { dose: { remedioId: 'r1', previstoPara: `2026-10-2${n}T08:00`, status: 'tomada', registradoEm: '08:01', ...extra } }, 10 + n);
+  it('desconta a quantidade gravada na dose; dose antiga sem qtd desconta 1', () => {
+    expect(projetar([...base, dose(1, { qtd: 2 })]).remedios[0].estoque).toBe(8);
+    expect(projetar([...base, dose(1)]).remedios[0].estoque).toBe(9);
+    expect(projetar([...base, dose(1, { qtd: 0.5 }), dose(2, { qtd: 0.5 })]).remedios[0].estoque).toBe(9);
+  });
+  it('desfazer devolve a mesma quantidade', () => {
+    const s = projetar([...base, dose(1, { qtd: 2 }), ev('desfazerDose', { remedioId: 'r1', previstoPara: '2026-10-21T08:00' }, 20)]);
+    expect(s.remedios[0].estoque).toBe(10);
+  });
+  it('comprei soma a quantidade e guarda a última compra', () => {
+    const s = projetar([...base, ev('comprei', { remedioId: 'r1', qtd: 28 }, 20)]);
+    expect(s.remedios[0].estoque).toBe(38);
+    expect(s.remedios[0].ultimaCompra).toBe(28);
+  });
+});

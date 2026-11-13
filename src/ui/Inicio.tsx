@@ -1,7 +1,7 @@
 // Peças do Início (redesign "cartão escuro"), usadas no desktop (D01) e no celular (M03).
 import { useRef, useState } from 'react';
 import { dosesHoje, useStore, type DoseHoje } from '../data/store';
-import { addDias, dataBR, diasDeEstoque, estoqueBaixo, pctEstoque, quem } from '../data/format';
+import { addDias, dataBR, diasDeEstoque, estoqueBaixo, pctEstoque, quem, textoEstoque } from '../data/format';
 import { HOJE } from '../data/tempo';
 import { useAgora } from '../data/useAgora';
 import { chaveDose, doseEmFoco, estadoDose, hhmm, minutos, posDia, separarConcentracao, type Adiadas } from '../data/inicio';
@@ -9,6 +9,7 @@ import { agruparFamiliaPets } from '../data/pets';
 import type { Remedio } from '../data/types';
 import { Avatar, SecaoLista, cx } from '.';
 import { IcCheck, IcDesfazer, IcPular, IcSino } from './Icones';
+import { CompreiMais } from './Estoque';
 
 /** Estado do Início: doses de hoje, a da vez e as ações do cartão. */
 export function useDoseDaVez() {
@@ -171,12 +172,11 @@ export function useRemedioAcabando(remedios: Remedio[]) {
 
 /** "Remédio acabando": 10 blocos e "Comprei mais". */
 export function RemedioAcabando({ r, compacto }: { r: Remedio; compacto?: boolean }) {
-  const { api } = useStore();
   const dias = diasDeEstoque(r) ?? 0;
   const baixo = estoqueBaixo(r);
   const cheios = Math.ceil(pctEstoque(r) / 10);
   const [nome, conc] = separarConcentracao(r.nome);
-  const comprar = <button type="button" className="btn btn--outline acabando__comprar" onClick={() => api.comprei(r.id, 30)}>Comprei mais</button>;
+  const comprar = <CompreiMais r={r} className="btn btn--outline acabando__comprar" />;
   if (compacto) {
     return (
       <div className={cx('acabando acabando--compacto', baixo && 'is-baixo')}>
@@ -195,7 +195,7 @@ export function RemedioAcabando({ r, compacto }: { r: Remedio; compacto?: boolea
         <span className="pill acabando__pill">{dias === 1 ? '1 dia' : `${dias} dias`}</span>
       </div>
       <span style={{ fontWeight: 600, fontSize: 16 }}>{nome}{conc && <span style={{ fontWeight: 400, color: 'var(--text-2)' }}> {conc}</span>}</span>
-      <span style={{ fontSize: 13, color: 'var(--text-2)' }}>{r.estoque} {r.unidade} · acaba em {dataBR(addDias(HOJE, dias)).slice(0, 5)}</span>
+      <span style={{ fontSize: 13, color: 'var(--text-2)' }}>{textoEstoque(r)} · acaba em {dataBR(addDias(HOJE, dias)).slice(0, 5)}</span>
       <div className="acabando__blocos" aria-hidden>
         {Array.from({ length: 10 }, (_, i) => (
           <span key={i} className={cx(i < cheios && 'is-cheio')} style={{ transitionDelay: `${i * 25}ms` }} />

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
 import { editaveis, historicoAdesao, pessoa, useStore } from '../data/store';
-import { addDias, dataBR, diaMes, diasDeEstoque, estoqueBaixo, pctEstoque, quem } from '../data/format';
+import { addDias, dataBR, diaMes, diasDeEstoque, estoqueBaixo, pctEstoque, quem, textoEstoque } from '../data/format';
 import { Bar, Label } from '../ui';
 import { GradeAdesao, somaAdesao } from '../mobile/Remedios';
 import { DConfirmar } from './Formulario';
@@ -10,6 +10,7 @@ import { AdesaoSemanal } from '../ui/Adesao';
 import { GaleriaAnexos } from '../ui/Anexos';
 import { AcoesRegistro } from './Acoes';
 import { partesDoRemedio } from '../data/formularios-puro';
+import { CompreiMais, DosesSeNecessario } from '../ui/Estoque';
 
 const voltar = <Link to="/remedios" style={{ fontSize: 14, fontWeight: 600 }}>← Remédios</Link>;
 
@@ -31,6 +32,7 @@ export function DRemedio() {
     );
   }
 
+  const podeEditar = editaveis(state).some((x) => x.id === r.pessoaId);
   const dias = diasDeEstoque(r);
   const baixo = r.ativo && estoqueBaixo(r);
   const acaba = dias != null ? addDias(HOJE, dias) : undefined;
@@ -83,18 +85,15 @@ export function DRemedio() {
               <>
                 <span className="hstack" style={{ gap: 8, alignItems: 'baseline' }}>
                   <span style={{ fontSize: 28, fontWeight: 600, color: baixo ? 'var(--warn-strong)' : undefined }}>{dias} {dias === 1 ? 'dia' : 'dias'}</span>
-                  <span style={{ fontSize: 14, color: baixo ? 'var(--warn-text)' : 'var(--text-2)' }}>restam {r.estoque} {r.unidade}</span>
+                  <span style={{ fontSize: 14, color: baixo ? 'var(--warn-text)' : 'var(--text-2)' }}>restam {textoEstoque(r)}</span>
                 </span>
                 <Bar pct={pctEstoque(r)} baixo={baixo} trilhoAlerta={baixo} grossa />
-                {r.ativo && (
-                  <button
-                    type="button"
+                {r.ativo && podeEditar && (
+                  <CompreiMais
+                    r={r}
                     className="btn btn--h40d"
                     style={{ alignSelf: 'flex-start', marginTop: 'auto', fontWeight: 600, background: baixo ? '#fff' : 'var(--teal-light)', color: baixo ? 'var(--warn-strong)' : 'var(--teal)' }}
-                    onClick={() => api.comprei(r.id, 30)}
-                  >
-                    Comprei mais
-                  </button>
+                  />
                 )}
               </>
             ) : (
@@ -122,10 +121,12 @@ export function DRemedio() {
         </div>
       </div>
 
+      {r.seNecessario && <DosesSeNecessario r={r} podeEditar={podeEditar} botao="btn btn--teal btn--h40d" />}
+
       <div className="card" style={{ fontSize: 14 }}>
         <div className="card-head"><Label>Receita</Label></div>
         <div style={{ padding: '16px 18px' }}>
-          <GaleriaAnexos key={r.id} donoId={r.id} tipo="receita" podeEditar={editaveis(state).some((x) => x.id === r.pessoaId)} vazio="Nenhuma receita guardada." />
+          <GaleriaAnexos key={r.id} donoId={r.id} tipo="receita" podeEditar={podeEditar} vazio="Nenhuma receita guardada." />
         </div>
       </div>
 

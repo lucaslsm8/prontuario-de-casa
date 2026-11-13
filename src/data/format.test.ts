@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { mascararTelefone } from './format';
+import { diasDeEstoque, mascararTelefone, qtdPorDose, textoEstoque } from './format';
+import type { Remedio } from './types';
 
 describe('mascararTelefone', () => {
   it('celular e fixo enquanto digita', () => {
@@ -31,5 +32,26 @@ describe('mascararTelefone', () => {
   it('estrangeiro e número longo ficam como estão', () => {
     expect(mascararTelefone('+351 912 345 678')).toBe('+351 912 345 678');
     expect(mascararTelefone('0800 123 4567 99')).toBe('0800 123 4567 99');
+  });
+});
+
+describe('quantidade por dose e dias de estoque', () => {
+  const r = (dose: string, horarios: string[], estoque: number) => ({ id: 'r', pessoaId: 'a', nome: 'X', dose, doseLonga: dose, unidade: 'comprimidos', horarios, continuo: true, avisarDias: 3, lembrete: true, ativo: true, estoque }) as Remedio;
+  it('lê a quantidade do texto da dose', () => {
+    expect(qtdPorDose(r('2 comprimidos', [], 0))).toBe(2);
+    expect(qtdPorDose(r('½ comprimido', [], 0))).toBe(0.5);
+    expect(qtdPorDose(r('1/2 comprimido', [], 0))).toBe(0.5);
+    expect(qtdPorDose(r('1½ comprimido', [], 0))).toBe(1.5);
+    expect(qtdPorDose(r('1,5 comp.', [], 0))).toBe(1.5);
+    expect(qtdPorDose(r('1 cápsula', [], 0))).toBe(1);
+    expect(qtdPorDose(r('um pouco', [], 0))).toBe(1);
+  });
+  it('dias de estoque contam a dose', () => {
+    expect(diasDeEstoque(r('2 comprimidos', ['08:00', '20:00'], 20))).toBe(5);
+    expect(diasDeEstoque(r('½ comprimido', ['08:00'], 10))).toBe(20);
+    expect(diasDeEstoque(r('1 comprimido', ['08:00', '20:00'], 21))).toBe(10);
+  });
+  it('estoque com meio comprimido', () => {
+    expect(textoEstoque(r('½ comprimido', [], 20.5))).toBe('20,5 comprimidos');
   });
 });

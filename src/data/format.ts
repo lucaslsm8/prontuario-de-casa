@@ -74,10 +74,23 @@ export const numCurto = (n: number) => (Number.isInteger(n) ? String(n) : numBR(
 export function dosesPorDia(r: Remedio) {
   return Math.max(1, r.horarios.length);
 }
+/** Quantas unidades saem do estoque por dose: "2 comprimidos" → 2, "½ comprimido" → 0,5, "1,5 comp." → 1,5. */
+export function qtdPorDose(r: Pick<Remedio, 'dose' | 'doseLonga'>) {
+  const t = (r.doseLonga ?? r.dose).trim();
+  const fr = t.match(/^(\d+)\s*\/\s*(\d+)/);
+  if (fr && Number(fr[1]) && Number(fr[2])) return Number(fr[1]) / Number(fr[2]);
+  const m = t.match(/^(\d+(?:[.,]\d+)?)?\s*(½)?/);
+  const n = (m?.[1] ? Number(m[1].replace(',', '.')) : 0) + (m?.[2] ? 0.5 : 0);
+  return n > 0 ? n : 1;
+}
+/** Soma ou tira do estoque sem resto de ponto flutuante e sem passar de zero. */
+export const somarEstoque = (estoque: number, delta: number) => Math.max(0, Math.round((estoque + delta) * 100) / 100);
 export function diasDeEstoque(r: Remedio) {
   if (r.estoque == null) return undefined;
-  return Math.floor(r.estoque / dosesPorDia(r));
+  return Math.floor(r.estoque / (dosesPorDia(r) * qtdPorDose(r)) + 1e-9);
 }
+/** "21 comprimidos", "20,5 comprimidos". */
+export const textoEstoque = (r: Remedio) => `${numCurto(r.estoque ?? 0)} ${r.unidade}`;
 /** Estoque "baixo" quando os dias restantes são ≤ "Avisar para repor". */
 export function estoqueBaixo(r: Remedio) {
   const d = diasDeEstoque(r);
