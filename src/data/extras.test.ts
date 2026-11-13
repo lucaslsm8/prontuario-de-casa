@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { foraDaFaixa, fmtValor, marcadoresDaPessoa, montarResultado, serieMarcador } from './resultados';
+import { foraDaFaixa, fmtValor, marcadoresDaPessoa, montarResultado, qtdForaDaFaixa, serieMarcador, textoForaDaFaixa } from './resultados';
 import { compararAgenda, gerarIcs, idDaAgenda, lerIcs } from './ics';
 import { buscar, linhaDoTempo } from './busca';
 import { estadoExemplo } from './store';
@@ -81,5 +81,16 @@ describe('atualização', () => {
     expect(dataDoRelease('2026-11-02T13:00:00Z')).toBe('02/11/2026');
     expect(dataDoRelease('2026-11-02 13:00:00.0 +00:00:00')).toBe('02/11/2026');
     expect(dataDoRelease(undefined)).toBe('');
+  });
+});
+
+describe('valores fora da faixa na lista', () => {
+  it('conta e escreve', () => {
+    const e = { resultados: [{ marcador: 'LDL', valor: 138, unidade: 'mg/dL' }, { marcador: 'HDL', valor: 38, unidade: 'mg/dL' }, { marcador: 'HDL', valor: 60, unidade: 'mg/dL' }] };
+    expect(qtdForaDaFaixa(e)).toBe(2);
+    expect(qtdForaDaFaixa({})).toBe(0);
+    expect(textoForaDaFaixa(1)).toBe('1 valor fora da faixa');
+    expect(textoForaDaFaixa(2)).toBe('2 valores fora da faixa');
+    expect(textoForaDaFaixa(0)).toBe('');
   });
 });

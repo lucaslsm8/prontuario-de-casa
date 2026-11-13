@@ -102,6 +102,7 @@ function Calendario() {
   const nav = useNavigate();
   const primeiro = state.consultas.find((c) => c.data >= HOJE)?.data ?? HOJE;
   const [sel, setSel] = useState(primeiro);
+  const [externa, setExterna] = useState(false);
   const inicioSemana = segunda(sel);
   const semana = Array.from({ length: 7 }, (_, i) => addDias(inicioSemana, i));
   const mes = parseISO(sel);
@@ -125,10 +126,8 @@ function Calendario() {
   return (
     <>
       {/* Google Agenda e .ics ficam recolhidos: não ocupam o topo todo dia. */}
-      <details className="agenda-externa">
-        <summary>Google Agenda e arquivos .ics</summary>
-        <div className="hstack" style={{ gap: 8, flexWrap: 'wrap', paddingTop: 10 }}><AgendaIcs compacto /></div>
-      </details>
+      <button type="button" className="agenda-externa" aria-expanded={externa} onClick={() => setExterna(!externa)}>Google Agenda e arquivos .ics</button>
+      {externa && <div className="hstack" style={{ gap: 8, flexWrap: 'wrap' }}><AgendaIcs compacto /></div>}
       <div className="hstack" style={{ justifyContent: 'space-between', fontSize: 15, fontWeight: 600 }}>
         <span>{nomeMes(mes.getMonth()).replace(/^./, (c) => c.toUpperCase())} {mes.getFullYear()}</span>
         <span className="hstack" style={{ color: 'var(--text-2)', fontWeight: 500, gap: 2 }}>

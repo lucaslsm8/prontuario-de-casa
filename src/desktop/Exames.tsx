@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { qtdForaDaFaixa, textoForaDaFaixa } from '../data/resultados';
 import { useNavigate, useParams } from 'react-router-dom';
 import { editaveis, pessoa, useStore } from '../data/store';
 import { dataBR, dataCurta, diaMes, quem } from '../data/format';
@@ -47,6 +48,7 @@ export function DExames() {
         <span className="stack" style={{ flex: 1, gap: 2 }}>
           <span style={{ fontSize: 15, fontWeight: 600 }}>{e.nome}</span>
           <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{quem(pessoa(state, e.pessoaId))} · {e.laboratorio}</span>
+          {qtdForaDaFaixa(e) > 0 && <span className="pill pill--warn" style={{ alignSelf: 'flex-start', marginTop: 4 }}>{textoForaDaFaixa(qtdForaDaFaixa(e))}</span>}
         </span>
         <span className="mono" style={{ fontSize: 12, color: 'var(--text-2)' }}>{dataCurta(e.dataColeta)}</span>
       </button>

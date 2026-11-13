@@ -74,3 +74,8 @@ export function serieMarcador(exames: Exame[], pessoaId: string, marcador: strin
     .sort((a, b) => a.e.dataColeta.localeCompare(b.e.dataColeta))
     .map(({ e, r }) => ({ data: e.dataColeta, valor: r.valor, rotulo: fmtResultado(r), exameId: e.id, resultado: r }));
 }
+
+/** Quantos valores do exame estão fora da faixa (para o destaque na lista). */
+export const qtdForaDaFaixa = (e: Pick<Exame, 'resultados'>) => (e.resultados ?? []).filter((r) => foraDaFaixa(r)).length;
+/** "1 valor fora da faixa" / "3 valores fora da faixa" / '' */
+export const textoForaDaFaixa = (n: number) => (n ? `${n} ${n === 1 ? 'valor' : 'valores'} fora da faixa` : '');

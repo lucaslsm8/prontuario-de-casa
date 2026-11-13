@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { qtdForaDaFaixa, textoForaDaFaixa } from '../data/resultados';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { CATEGORIAS_EXAME, useFormExame } from '../data/formularios';
 import { editaveis, pessoa, useStore } from '../data/store';
@@ -64,6 +65,7 @@ export function Exames() {
                   <div className="stack" style={{ flex: 1, gap: 2 }}>
                     <span style={{ fontSize: 15, fontWeight: 600 }}>{e.nome}</span>
                     <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{quem(pessoa(state, e.pessoaId))} · {diaMes(e.dataColeta)} · {e.laboratorio}</span>
+                    {qtdForaDaFaixa(e) > 0 && <span className="pill pill--warn" style={{ alignSelf: 'flex-start', marginTop: 4 }}>{textoForaDaFaixa(qtdForaDaFaixa(e))}</span>}
                   </div>
                   <span className="chev">›</span>
                 </button>
