@@ -1,5 +1,3 @@
-- Remédios: dosagem e "Para que serve" em campos próprios no cadastro
-- Todo registro (vacinas, prevenção, sintomas, procedimentos, pesagens e medições) pode ser editado e apagado
-- Procedimentos também para pessoas, com quem realizou e anestesista
-- Sincronização da família: pacotes que não abriam agora são recuperados
-- Desktop: abrir o app de novo traz a janela que já está aberta
+- Remédios: o estoque desconta a dose de verdade (2 comprimidos tiram 2, meio comprimido tira meio), e a previsão de quando acaba também
+- "Comprei mais" pergunta quantas unidades entraram, já sugerindo a última compra
+- Remédio "se necessário": botão "Tomei agora", com o motivo (dor, febre…) e a lista de quando tomou
