@@ -1,6 +1,3 @@
-- Remédios em gotas, mL, sachê, jato e outros: a dose é quantidade + forma, e o estoque é contado nessa unidade
-- Aviso de alergia ao cadastrar um remédio (pelo nome ou pela família, como amoxicilina e penicilina)
-- "Observação" e "Receitado por" no cadastro do remédio
-- Ficha de emergência mostra a dose, os horários e para que serve cada remédio
-- Exames com valores fora da faixa aparecem marcados na lista
-- Agenda: dá para marcar um exame (não só consulta); Google Agenda e .ics ficam num botão
+- Remédios em gotas e mL: informe o tamanho do frasco e veja o frasco desenhado com o nível baixando
+- Cartela redesenhada: bolhas com brilho, comprimido com volume, bolha vazia afundada
+- Sem cartela ou frasco definido, a tela do remédio pergunta o tamanho com um toque (10, 14, 20, 28, 30…)
