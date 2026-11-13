@@ -91,3 +91,19 @@ Andamento no branch `melhorias`:
 22. **Teclado no desktop:** Enter salva, Esc fecha (conferir em todos os diálogos), atalhos N para nova consulta etc.
 23. **Hora de "Tomada às" nos dados de exemplo:** usa o relógio real (22:09) e não o 14:20 do exemplo.
 24. **Doses "se necessário" e pets na tela Remédios do desktop:** conferir os filtros.
+
+## Cartela visual do remédio (pedido em 13/11/2026)
+
+A cartela (ou os comprimidos) desenhada na tela. Cada dose tomada deixa só o contorno do comprimido, e meia dose deixa metade, para a pessoa comparar com a cartela física.
+
+### Primeira versão
+- **De onde vem a cartela:** do estoque. Com o tamanho da cartela (ex.: 2×7 = 14), o que resta na cartela aberta é o resto do estoque por 14. Estoque 20,5 = um comprimido pela metade. "Tomei", "Desfazer" e "Comprei mais" já mexem no estoque, então não precisa de evento novo.
+- **Cadastro do remédio:** forma (redondo, oval, oblongo, cápsula), cor (duas na cápsula), sulco, comprimidos por cartela e fileiras.
+- **Desenho em SVG** (offline, leve), com os estados inteiro, metade e contorno.
+- **Fotos reais:** a pessoa fotografa a cartela e o comprimido (anexos cifrados, recorte com o ajuste de foto do perfil). A foto do comprimido pode preencher cada lugar da cartela no lugar do desenho.
+- **Onde aparece:** na tela do remédio (cartela grande), no cartão da dose do Início (o comprimido ao lado do nome, para conferir antes de tocar Tomei) e na animação ao tomar (150–200 ms). Gotas e xarope mostram o nível do frasco.
+- Nada de imagens da internet: tudo sai das fotos da própria pessoa (regra de privacidade).
+
+### Futuro
+- **Foto vira ilustração:** o app lê a foto da cartela e do comprimido e monta sozinho o desenho, com forma, cor, sulco, quantidade e disposição dos comprimidos na cartela. Tudo no aparelho, sem servidor. Primeiro passo: contorno e cor média da foto, sem IA, com a pessoa confirmando.
+- **Conferir com a câmera:** apontar para o comprimido na mão e o app dizer se bate com o cadastrado.
