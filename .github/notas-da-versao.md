@@ -1,3 +1,1 @@
-- Remédios em gotas e mL: informe o tamanho do frasco e veja o frasco desenhado com o nível baixando
-- Cartela redesenhada: bolhas com brilho, comprimido com volume, bolha vazia afundada
-- Sem cartela ou frasco definido, a tela do remédio pergunta o tamanho com um toque (10, 14, 20, 28, 30…)
+- Cartela maior e mais nítida: bolhas com um tom azulado (o comprimido branco aparece melhor) e o contorno do comprimido tomado mais visível
