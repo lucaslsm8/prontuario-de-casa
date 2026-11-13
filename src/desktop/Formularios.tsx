@@ -134,7 +134,10 @@ export function DNovaConsulta({ onClose, consulta }: Props & { consulta?: Consul
   return (
     <DDialogo titulo={f.editando ? 'Editar consulta' : 'Nova consulta'} onClose={onClose} rodape={<DRodape salvar={f.editando ? 'Salvar alterações' : 'Salvar consulta'} onSalvar={f.salvar} valido={f.valido} onCancelar={onClose} />}>
       <DGrade>
-        <DCampo label="Especialidade" span2>
+        <DCampo label="Tipo" span2 grupo>
+          <DChips opcoes={[{ id: 'consulta' as const, nome: 'Consulta' }, { id: 'exame' as const, nome: 'Exame' }]} valor={f.tipo} onChange={f.setTipo} />
+        </DCampo>
+        <DCampo label={f.tipo === 'exame' ? 'Exame' : 'Especialidade'} span2>
           <input className="input input--desk" value={f.titulo} onChange={(e) => f.setTitulo(e.target.value)} placeholder={f.paraPet ? 'Veterinário' : 'Ex.: Cardiologista'} />
         </DCampo>
         <DCampo label="Para quem" span2 grupo>

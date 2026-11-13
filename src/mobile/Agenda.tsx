@@ -250,13 +250,15 @@ export function NovaConsulta({ onDone, consulta }: { onDone?: () => void; consul
   const nav = useNavigate();
   const fechar = onDone ?? (() => nav('/agenda'));
   const pessoas = paraConsultas(state);
-  const { titulo, setTitulo, para, setPara, quando, setQuando, prof, setProf, local, setLocal, plano, setPlano, levar, setLevar, novoItem, setNovoItem, lembrar, setLembrar, paraPet, editando, valido, salvar, endereco, setEndereco, telefone, setTelefone, preparo, setPreparo, trajeto, setTrajeto, trajetoValido } = useFormConsulta(fechar, { inicial: consulta });
+  const form = useFormConsulta(fechar, { inicial: consulta });
+  const { titulo, setTitulo, para, setPara, quando, setQuando, prof, setProf, local, setLocal, plano, setPlano, levar, setLevar, novoItem, setNovoItem, lembrar, setLembrar, paraPet, editando, valido, salvar, endereco, setEndereco, telefone, setTelefone, preparo, setPreparo, trajeto, setTrajeto, trajetoValido } = form;
   const operadora = state.planos.find((x) => x.pessoaId === para)?.operadora.split(' ')[0];
 
   return (
     <MScreen gap={14}>
       <TopNav voltar="Cancelar" titulo={editando ? 'Editar consulta' : 'Nova consulta'} />
-      <Field label="Especialidade">
+      <Segmented opcoes={[{ id: 'consulta', nome: 'Consulta' }, { id: 'exame', nome: 'Exame' }]} valor={form.tipo} onChange={form.setTipo} />
+      <Field label={form.tipo === 'exame' ? 'Exame' : 'Especialidade'}>
         <input className="input input--50" value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder={paraPet ? 'Veterinário' : undefined} autoFocus />
       </Field>
       <FieldGroup label="Para quem">

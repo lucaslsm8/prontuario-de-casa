@@ -132,6 +132,8 @@ export function useFormConsulta(onSalvo: () => void, { desktop = false, inicial 
   const { state, api, perfil } = useStore();
   const i = inicial;
   const [titulo, setTitulo] = useState(i?.titulo ?? ex('Dentista', ''));
+  /** Consulta com um profissional ou exame agendado (coleta, imagem…). */
+  const [tipo, setTipo] = useState<Consulta['tipo']>(i?.tipo ?? 'consulta');
   const [para, setPara] = useState(i?.pessoaId ?? perfil ?? eu(state).id);
   const [quando, setQuando] = useState(i ? `${dataBR(i.data).slice(0, 5)} · ${i.hora}` : ex('18/11 · 14:00', ''));
   const [prof, setProf] = useState(i?.profissional ?? ex('Dr. Renato Souza', ''));
@@ -172,7 +174,7 @@ export function useFormConsulta(onSalvo: () => void, { desktop = false, inicial 
     const consulta: Consulta = {
       ...(i ?? { duracaoMin: 30 }),
       id: i?.id ?? `c-${novoId()}`,
-      tipo: i?.tipo ?? 'consulta',
+      tipo,
       pessoaId: para,
       titulo: tituloFinal,
       profissional: prof.trim() || undefined,
@@ -199,7 +201,7 @@ export function useFormConsulta(onSalvo: () => void, { desktop = false, inicial 
     titulo, setTitulo, para, setPara, quando, setQuando, data, setData, hora, setHora,
     prof, setProf, local, setLocal, plano, setPlano, levar, setLevar, novoItem, setNovoItem,
     lembrar, setLembrar, editando: !!i, paraPet, valido: !!tituloFinal && trajetoValido && (!desktop || !!lerDataHora(quando, HOJE)), salvar,
-    endereco, setEndereco, telefone, setTelefone, preparo, setPreparo, trajeto, setTrajeto, trajetoValido,
+    tipo, setTipo, endereco, setEndereco, telefone, setTelefone, preparo, setPreparo, trajeto, setTrajeto, trajetoValido,
   };
 }
 
