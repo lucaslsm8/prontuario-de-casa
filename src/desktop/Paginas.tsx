@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useState } from 'react';
+import { SimuladorReembolso } from '../ui/Reembolso';
 import { ExportarPdf } from '../mobile/Config';
 import { HOJE, MODO_REAL } from '../data/tempo';
 import { RestaurarBackup, SenhaApp, SenhaBackup } from '../ui/Backup';
@@ -210,6 +211,7 @@ export function DPlanos() {
   const sel = state.planos.find((p) => p.id === selId) ?? state.planos[0];
   const [params] = useSearchParams();
   const [balcao, setBalcao] = useState(() => params.get('balcao') === '1');
+  const [simular, setSimular] = useState(false);
   const fecharBalcao = useCallback(() => setBalcao(false), []);
   const cel = (k: string, v: React.ReactNode, i: number, total: number) => (
     <div className="stack" style={{ padding: '14px 20px', gap: 2, borderRight: i % 2 === 0 ? '1px solid var(--divider)' : undefined, borderBottom: i < total - 2 ? '1px solid var(--divider)' : undefined }}>
@@ -296,10 +298,16 @@ export function DPlanos() {
                   Mostrar no balcão
                 </button>
               )}
+              {on && (
+                <button type="button" className={cx('btn btn--h36 plano-card__acao', dark ? 'btn--on-dark' : 'btn--soft')} onClick={() => setSimular(true)}>
+                  Simular reembolso
+                </button>
+              )}
             </div>
           );
         })}
       </div>
+      {simular && sel && <SimuladorReembolso plano={sel} onClose={() => setSimular(false)} />}
       {balcao && <CarteirinhaBalcao desktop plano={sel} nome={pessoa(state, sel.pessoaId)?.nome ?? sel.titularNome} onClose={fecharBalcao} />}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 16, alignItems: 'start' }}>
         <div className="card" style={{ fontSize: 14 }}>

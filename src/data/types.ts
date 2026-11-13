@@ -185,6 +185,8 @@ export interface Plano {
   central?: string;
   mensalidade?: string;
   anotacao?: string;
+  /** Simulador de reembolso: a grade (tabela da operadora) e os valores que a pessoa informou por serviço (chave em reembolso.ts). */
+  reembolso?: { grade?: number; valores?: Record<string, number> };
 }
 
 /** Aparelho da família (evento `aparelho`). `visto` é o ISO do último evento dele no log. */

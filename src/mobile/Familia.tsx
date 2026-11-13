@@ -15,6 +15,7 @@ import { MScreen, TabHeader } from './Shell';
 import { GaleriaAnexos } from '../ui/Anexos';
 import { ConfirmarSheet, RemoverPessoaMobile } from '../ui/Confirmar';
 import { PapeisDaPessoa, SeloNivel } from '../ui/Papeis';
+import { SimuladorReembolso } from '../ui/Reembolso';
 import { podeDecidir } from '../data/papeis';
 
 const NOMES_CAT: Record<Categoria, string> = { perfil: 'Perfil clínico', remedios: 'Remédios', consultas: 'Consultas', exames: 'Exames', plano: 'Plano' };
@@ -416,6 +417,7 @@ export function PlanoSaude() {
   const p = pessoa(state, id ?? '');
   const plano = state.planos.find((x) => x.pessoaId === id);
   const [balcao, setBalcao] = useState(false);
+  const [simular, setSimular] = useState(false);
   const [apagar, setApagar] = useState(false);
   const nav = useNavigate();
   const podeEditarPlano = !!plano && editaveis(state).some((x) => x.id === plano.pessoaId);
@@ -464,6 +466,7 @@ export function PlanoSaude() {
         <button type="button" className="btn btn--teal btn--h50 btn--grow" onClick={() => setBalcao(true)}>Mostrar no balcão</button>
         <button type="button" className="btn btn--outline btn--h50 btn--grow" onClick={copiar}>Copiar nº</button>
       </div>
+      <button type="button" className="btn btn--soft btn--h50" onClick={() => setSimular(true)}>Simular reembolso</button>
       <div className="card" style={{ fontSize: 14 }}>
         <Row label="Acomodação" valor={plano.acomodacao} />
         <Row label="Segmentação" valor={plano.segmentacao} />
@@ -488,6 +491,7 @@ export function PlanoSaude() {
       )}
 
       {balcao && <CarteirinhaBalcao plano={plano} nome={p.nome} onClose={() => setBalcao(false)} />}
+      {simular && <SimuladorReembolso plano={plano} onClose={() => setSimular(false)} />}
     </MScreen>
   );
 }

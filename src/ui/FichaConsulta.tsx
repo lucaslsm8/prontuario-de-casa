@@ -12,6 +12,7 @@ import { HOJE } from '../data/tempo';
 import type { Consulta } from '../data/types';
 import { CarteirinhaBalcao } from '../mobile/Familia';
 import { useEscolherFoto } from './Foto';
+import { SimuladorReembolso } from './Reembolso';
 import { cx } from '.';
 
 function Bloco({ rotulo, children, tom, direita }: { rotulo: string; children: ReactNode; tom?: 'warn'; direita?: ReactNode }) {
@@ -81,6 +82,7 @@ function Perguntas({ c, podeEditar }: { c: Consulta; podeEditar: boolean }) {
 export function FichaConsulta({ c, desktop }: { c: Consulta; desktop?: boolean }) {
   const { state, api } = useStore();
   const [carteirinha, setCarteirinha] = useState(false);
+  const [simular, setSimular] = useState(false);
   const p = pessoa(state, c.pessoaId);
   if (!p) return null;
   const pode = editaConsulta(state, c.pessoaId);
@@ -158,7 +160,10 @@ export function FichaConsulta({ c, desktop }: { c: Consulta; desktop?: boolean }
         <Bloco rotulo="Plano">
           <span>{c.peloPlano ? `Pelo plano · ${plano?.operadora ?? c.peloPlano.split(' · ')[0]}` : 'Particular'}</span>
           {plano && <span className="muted mono" style={{ fontSize: 13 }}>Carteirinha {plano.numero}</span>}
-          {plano && c.peloPlano && <button type="button" className="btn btn--soft btn--h40" style={{ alignSelf: 'flex-start' }} onClick={() => setCarteirinha(true)}>Mostrar carteirinha</button>}
+          <div className="hstack" style={{ gap: 8, flexWrap: 'wrap' }}>
+            {plano && c.peloPlano && <button type="button" className="btn btn--soft btn--h40" onClick={() => setCarteirinha(true)}>Mostrar carteirinha</button>}
+            {plano && <button type="button" className="btn btn--outline btn--h40" onClick={() => setSimular(true)}>Simular reembolso</button>}
+          </div>
         </Bloco>
       )}
 
@@ -172,6 +177,7 @@ export function FichaConsulta({ c, desktop }: { c: Consulta; desktop?: boolean }
         </Bloco>
       )}
 
+      {simular && plano && <SimuladorReembolso plano={plano} servicoInicial={/psic/i.test(c.titulo) ? '50000470' : c.tipo === 'consulta' ? '10101012' : undefined} onClose={() => setSimular(false)} />}
       {carteirinha && plano && <CarteirinhaBalcao plano={plano} nome={p.nome} desktop={desktop} onClose={() => setCarteirinha(false)} />}
     </div>
   );

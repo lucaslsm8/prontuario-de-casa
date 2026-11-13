@@ -240,3 +240,9 @@ button.row:hover { background: #F8FAFA; }
 .agenda-externa { align-self: flex-start; min-height: 44px; display: inline-flex; align-items: center; font-size: 14px; font-weight: 500; color: var(--teal); }
 .agenda-externa::after { content: '›'; margin-left: 6px; transition: transform var(--t) var(--ease); }
 .agenda-externa[aria-expanded='true']::after { transform: rotate(90deg); }
+
+/* Simulador de reembolso (src/ui/Reembolso.tsx). */
+.sheet.reembolso { max-height: 90vh; overflow-y: auto; }
+.reembolso__resultado { padding: 14px 16px; gap: 4px; background: var(--teal-light); border-color: transparent; }
+.reembolso__resultado .label { color: var(--teal); }
+.reembolso__valor { font-size: 30px; font-weight: 600; letter-spacing: -.02em; color: var(--teal-dark); font-variant-numeric: tabular-nums; }
