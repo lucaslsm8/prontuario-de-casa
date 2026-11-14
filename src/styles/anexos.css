@@ -47,8 +47,16 @@
 .visor__seta:disabled { opacity: .25; }
 
 /* Resultado do exame (texto do laudo). */
-.laudo { font-size: 14px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
-.laudo--previa { display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
+.laudo { font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; display: flex; flex-direction: column; gap: 12px; }
+.laudo__secao { display: flex; flex-direction: column; gap: 2px; }
+.laudo__titulo { margin: 0 0 2px; font-size: 13px; font-weight: 700; letter-spacing: .02em; color: var(--ink); }
+.laudo__linha { margin: 0; }
+.laudo__linha strong { font-weight: 600; }
+/* A conclusão do laudo (impressão, conclusão, diagnóstico): o que mais importa, num bloco destacado. */
+.laudo__secao--destaque { background: var(--teal-light); border-radius: var(--r-btn); padding: 10px 12px; }
+.laudo__secao--destaque .laudo__titulo { color: var(--teal-dark); }
+.laudo__secao--destaque .laudo__linha { font-weight: 500; }
+.laudo--previa { display: -webkit-box; -webkit-line-clamp: 10; -webkit-box-orient: vertical; overflow: hidden; }
 .laudo--inteiro { max-height: min(60vh, 640px); overflow-y: auto; padding-right: 4px; user-select: text; }
 .dialog:has(.laudo--inteiro) { width: min(720px, calc(100vw - 48px)); }
 

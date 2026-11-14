@@ -6,6 +6,27 @@ import { anexosDe } from '../data/anexos';
 import { lerResultado } from '../data/ocr';
 import type { Exame } from '../data/types';
 import { Folha } from './Backup';
+import { cx } from './index';
+import { estruturaDoLaudo, type SecaoLaudo } from '../data/laudo';
+
+/**
+ * Texto do laudo formatado: títulos de seção em negrito, "Rótulo: valor" com o rótulo em negrito e a conclusão
+ * (impressão, conclusão, diagnóstico) em destaque. `secoes` limita o que aparece (a prévia mostra só a conclusão).
+ */
+export function TextoLaudo({ secoes, className }: { secoes: SecaoLaudo[]; className?: string }) {
+  return (
+    <div className={cx('laudo', className)}>
+      {secoes.map((s, i) => (
+        <section key={i} className={cx('laudo__secao', s.destaque && 'laudo__secao--destaque')}>
+          {s.titulo && <h4 className="laudo__titulo">{s.titulo}</h4>}
+          {s.linhas.map((l, j) => (
+            <p key={j} className="laudo__linha">{l.rotulo && <strong>{l.rotulo}: </strong>}{l.texto}</p>
+          ))}
+        </section>
+      ))}
+    </div>
+  );
+}
 
 export const AVISO_SEM_TEXTO = 'Não encontrei texto no resultado. Digite o que for importante em Editar.';
 
@@ -46,19 +67,22 @@ export function ResultadoLaudo({ exame, podeEditar, desktop }: { exame: Exame; p
     );
   }
 
+  // Prévia: a conclusão do laudo, quando ele tem uma; senão o começo do texto (cortado em algumas linhas).
+  const secoes = estruturaDoLaudo(exame.laudo);
+  const conclusao = secoes.filter((s) => s.destaque);
   return (
-    <div className="card" style={{ padding: '12px 14px', gap: 8, borderRadius: 8, alignItems: 'flex-start' }}>
+    <div className="card" style={{ padding: '12px 14px', gap: 8, borderRadius: 8, alignItems: 'stretch' }}>
       <span style={{ fontSize: 12, color: 'var(--text-2)' }}>Resultado</span>
-      <span className="laudo laudo--previa">{exame.laudo}</span>
+      {conclusao.length ? <TextoLaudo secoes={conclusao} /> : <TextoLaudo secoes={secoes} className="laudo--previa" />}
       <div className="hstack" style={{ gap: 18, flexWrap: 'wrap' }}>
-        <button type="button" className="btn btn--link" style={{ minHeight: 44, fontSize: 14 }} onClick={() => setAberto(true)}>Ver resultado</button>
+        <button type="button" className="btn btn--link" style={{ minHeight: 44, fontSize: 14 }} onClick={() => setAberto(true)}>{conclusao.length ? 'Ver o laudo completo' : 'Ver resultado'}</button>
         {podeEditar && arquivos.length > 0 && (
           <button type="button" className="btn btn--link" style={{ minHeight: 44, fontSize: 14, color: 'var(--text-2)', fontWeight: 500 }} disabled={lendo !== null} onClick={ler}>{texto ?? 'Ler de novo'}</button>
         )}
       </div>
       {aberto && (
         <Folha desktop={desktop} titulo={`Resultado · ${exame.nome}`} onClose={() => setAberto(false)}>
-          <div className="laudo laudo--inteiro">{exame.laudo}</div>
+          <TextoLaudo secoes={secoes} className="laudo--inteiro" />
           <button type="button" className={desktop ? 'btn btn--outline btn--h40d' : 'btn btn--outline btn--h50'} style={{ alignSelf: desktop ? 'flex-end' : undefined }} onClick={() => setAberto(false)}>Fechar</button>
         </Folha>
       )}

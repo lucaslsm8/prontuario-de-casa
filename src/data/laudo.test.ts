@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dataDoTexto, limparTexto, marcadoresDoTexto, textoDoLaudo } from './laudo';
+import { dataDoTexto, estruturaDoLaudo, limparTexto, marcadoresDoTexto, textoDoLaudo } from './laudo';
 
 const LAUDO = `LABORATÓRIO EXEMPLO
 Paciente: Helena Almeida   Data da coleta: 12/09/2026
@@ -58,5 +58,45 @@ describe('laudo', () => {
   it('página única: tira identificação e rodapé, mantém os valores', () => {
     const t = textoDoLaudo(['Paciente: Helena Almeida', 'Glicose 92 mg/dL', 'Página 1 de 1', 'Assinado eletronicamente por Dr. X'].map((l) => l).join('\n').split('\n\n'));
     expect(t).toBe('Glicose 92 mg/dL');
+  });
+});
+
+describe('estruturaDoLaudo', () => {
+  const LAUDO = [
+    'Técnica:',
+    'Exame realizado com aquisição volumétrica, sem contraste.',
+    'Análise:',
+    'Fígado com dimensões normais.',
+    'Rins tópicos, sem cálculos.',
+    'Impressão:',
+    'Exame dentro da normalidade.',
+  ].join('\n');
+
+  it('títulos sozinhos na linha abrem seções; a impressão fica em destaque', () => {
+    const s = estruturaDoLaudo(LAUDO);
+    expect(s.map((x) => x.titulo)).toEqual(['Técnica', 'Análise', 'Impressão']);
+    expect(s.map((x) => x.destaque)).toEqual([false, false, true]);
+    expect(s[1].linhas.map((l) => l.texto)).toEqual(['Fígado com dimensões normais.', 'Rins tópicos, sem cálculos.']);
+  });
+
+  it('seção conhecida com o conteúdo na mesma linha', () => {
+    const s = estruturaDoLaudo('Conclusão: Sem alterações.\nObservação: repetir em 6 meses.');
+    expect(s).toEqual([
+      { titulo: 'Conclusão', destaque: true, linhas: [{ texto: 'Sem alterações.' }] },
+      { titulo: 'Observação', destaque: false, linhas: [{ texto: 'repetir em 6 meses.' }] },
+    ]);
+  });
+
+  it('título em maiúsculas e linhas "Rótulo: valor"', () => {
+    const s = estruturaDoLaudo('LABORATÓRIO CENTRAL\nData da coleta: 05/11/2026\nBIOQUÍMICA\nCreatinina 1,8 mg/dL (0,7 a 1,3)\nMaterial: soro');
+    expect(s.map((x) => x.titulo)).toEqual(['LABORATÓRIO CENTRAL', 'BIOQUÍMICA']);
+    expect(s[0].linhas).toEqual([{ rotulo: 'Data da coleta', texto: '05/11/2026' }]);
+    expect(s[1].linhas).toEqual([{ texto: 'Creatinina 1,8 mg/dL (0,7 a 1,3)' }, { rotulo: 'Material', texto: 'soro' }]);
+  });
+
+  it('não confunde hora, frase longa nem texto sem estrutura', () => {
+    expect(estruturaDoLaudo('Coleta às 10:30 no laboratório')[0].linhas[0]).toEqual({ texto: 'Coleta às 10:30 no laboratório' });
+    expect(estruturaDoLaudo('Comparado ao exame anterior realizado no mesmo serviço: sem mudanças.')[0].linhas[0].rotulo).toBeUndefined();
+    expect(estruturaDoLaudo('Texto simples.\nOutra linha.')).toEqual([{ destaque: false, linhas: [{ texto: 'Texto simples.' }, { texto: 'Outra linha.' }] }]);
   });
 });

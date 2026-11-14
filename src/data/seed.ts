@@ -309,7 +309,8 @@ export const exames: Exame[] = [
   { id: 'tsh', pessoaId: 'helena', nome: 'TSH e T4 livre', categoria: 'Sangue', dataColeta: '2026-06-03', laboratorio: 'Lab. Central', solicitante: 'Dra. Marta Lins', arquivo: 'PDF', paginas: 1,
     resultados: [{ marcador: 'TSH', valor: 2.1, unidade: 'mUI/L' }, { marcador: 'T4 livre', valor: 1.2, unidade: 'ng/dL' }] },
   { id: 'glicemia', pessoaId: 'roberto', nome: 'Glicemia de jejum', categoria: 'Sangue', dataColeta: '2026-06-03', laboratorio: 'Lab. Central', arquivo: 'PDF', paginas: 1, resultados: [{ marcador: 'Glicose', valor: 109, unidade: 'mg/dL' }, { marcador: 'Hemoglobina glicada', valor: 5.9, unidade: '%' }] },
-  { id: 'mamografia', pessoaId: 'helena', nome: 'Mamografia', categoria: 'Imagem', dataColeta: '2026-02-18', laboratorio: 'Imagem Diagnóstica Sul', arquivo: 'PDF', paginas: 3 },
+  { id: 'mamografia', pessoaId: 'helena', nome: 'Mamografia', categoria: 'Imagem', dataColeta: '2026-02-18', laboratorio: 'Imagem Diagnóstica Sul', arquivo: 'PDF', paginas: 3,
+    laudo: 'Técnica:\nMamografia digital bilateral nas incidências craniocaudal e médio-lateral oblíqua.\nAnálise:\nMamas com padrão fibroglandular disperso.\nNão há nódulos, calcificações suspeitas ou distorções arquiteturais.\nPele e mamilos sem alterações.\nLinfonodos axilares de aspecto habitual.\nImpressão:\nExame sem achados suspeitos.\nBI-RADS: categoria 1.\nRecomendação: controle anual.' },
   { id: 'hemograma', pessoaId: 'helena', nome: 'Hemograma completo', categoria: 'Sangue', dataColeta: '2026-02-18', laboratorio: 'Lab. Central', arquivo: 'PDF', paginas: 2 },
 ];
 

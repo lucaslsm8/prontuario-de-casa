@@ -127,3 +127,59 @@ export function dataDoTexto(texto: string): string | undefined {
   if (+m < 1 || +m > 12 || +d < 1 || +d > 31) return undefined;
   return `${a}-${m}-${d}`;
 }
+
+// ── Leitura do laudo na tela: seções e rótulos ─────────────────────────────
+
+/** Uma linha do laudo; `rotulo` quando ela começa com "Rótulo: valor" (ex.: "Data da coleta: 05/11/2026"). */
+export interface LinhaLaudo { rotulo?: string; texto: string }
+/** Seção do laudo ("Técnica", "Análise", "Impressão"…). `destaque`: a conclusão (impressão, conclusão, diagnóstico). */
+export interface SecaoLaudo { titulo?: string; destaque: boolean; linhas: LinhaLaudo[] }
+
+/** Nomes de seção que podem vir com o conteúdo na mesma linha ("Impressão: Esteatose hepática."). */
+const NOMES_SECAO = /^(t[eé]cnica|m[eé]todo|metodologia|an[aá]lise|relat[oó]rio|achados|descri[cç][aã]o|indica[cç][aã]o( cl[ií]nica)?|informa[cç][oõ]es cl[ií]nicas|hist[oó]ria cl[ií]nica|dados cl[ií]nicos|impress[aã]o( diagn[oó]stica)?|conclus[aã]o|opini[aã]o|diagn[oó]stico|resultado|coment[aá]rios?|observa[cç][aã]o|observa[cç][oõ]es|nota|notas)$/i;
+const DESTAQUE = /^(impress|conclus|opini|diagn)/i;
+
+/** "Técnica:" sozinho na linha, ou um nome de seção conhecido, ou um título curto em MAIÚSCULAS ("BIOQUÍMICA"). */
+function tituloDaLinha(l: string): string | undefined {
+  const m = l.match(/^([^:]{2,40}):$/);
+  if (m && m[1].trim().split(/\s+/).length <= 5 && /\p{L}/u.test(m[1])) return m[1].trim();
+  if (NOMES_SECAO.test(l.replace(/[.:]$/, '').trim())) return l.replace(/[.:]$/, '').trim();
+  if (l.length >= 3 && l.length <= 50 && !/\d/.test(l) && l === l.toUpperCase() && /\p{Lu}{3}/u.test(l)) return l;
+  return undefined;
+}
+
+/** "Rótulo: valor" com rótulo curto que começa por letra e não tem números (não confunde "10:30" nem frases longas). */
+function linhaDoLaudo(l: string): LinhaLaudo {
+  const m = l.match(/^(\p{L}[^:\d]{1,30}):\s+(\S.*)$/u);
+  if (m && m[1].trim().split(/\s+/).length <= 4) return { rotulo: m[1].trim(), texto: m[2].trim() };
+  return { texto: l };
+}
+
+/**
+ * Separa o texto do laudo em seções para a tela: títulos ("Técnica:", "IMPRESSÃO"), linhas com rótulo e a conclusão
+ * marcada como destaque. Só muda a apresentação: o texto guardado continua o mesmo.
+ */
+export function estruturaDoLaudo(texto: string): SecaoLaudo[] {
+  const secoes: SecaoLaudo[] = [];
+  let atual: SecaoLaudo = { destaque: false, linhas: [] };
+  const abrir = (titulo: string) => {
+    if (atual.titulo || atual.linhas.length) secoes.push(atual);
+    atual = { titulo, destaque: DESTAQUE.test(sem(titulo)), linhas: [] };
+  };
+  for (const bruta of texto.replace(/\r/g, '').split('\n')) {
+    const l = bruta.trim();
+    if (!l) continue;
+    // "Impressão: Esteatose hepática." — seção conhecida com o conteúdo na mesma linha.
+    const junto = l.match(/^([^:]{2,40}):\s+(\S.*)$/);
+    if (junto && NOMES_SECAO.test(junto[1].trim())) {
+      abrir(junto[1].trim());
+      atual.linhas.push({ texto: junto[2].trim() });
+      continue;
+    }
+    const titulo = tituloDaLinha(l);
+    if (titulo) abrir(titulo);
+    else atual.linhas.push(linhaDoLaudo(l));
+  }
+  if (atual.titulo || atual.linhas.length) secoes.push(atual);
+  return secoes;
+}
