@@ -49,7 +49,8 @@ export function proximosLembretes(s: State, agora: Date, horas = 24): Lembrete[]
   // Só de quem está sob o seu cuidado: você, os pets e quem te aceitou como cuidador ou administrador.
   const meuId = s.pessoas.find((p) => p.souEu)?.id;
   const meu = (pessoaId: string) => !meuId || noMeuCuidado(s, meuId, pessoaId);
-  for (const r of s.remedios) {
+  // Modo só de informações: sem lembrete de dose (consultas, vacinas e cuidados continuam).
+  for (const r of s.config.modoInfo ? [] : s.remedios) {
     if (!meu(r.pessoaId)) continue;
     if (!r.ativo || !r.lembrete || r.seNecessario) continue;
     const p = s.pessoas.find((x) => x.id === r.pessoaId);

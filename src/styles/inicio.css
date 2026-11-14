@@ -175,3 +175,36 @@ button.numero:hover, a.card.numero:hover { background: #F8FAFA; }
 .bloqueio__ver { position: absolute; right: 6px; top: 6px; height: 38px; padding: 0 12px; border-radius: var(--r-btn); font-size: 13px; font-weight: 600; color: var(--teal-on-dark); }
 .bloqueio__ver:hover { background: rgba(255, 255, 255, .06); }
 .bloqueio__rodape { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255, 255, 255, .5); }
+
+/* Modo só de informações: remédios em uso, alergias e exames recentes. */
+.info-card { padding: 18px 22px; gap: 10px; }
+.info-card--compacto { padding: 14px 16px; gap: 8px; }
+.info-card__titulo { font-size: 18px; font-weight: 600; }
+.info-card--compacto .info-card__titulo { font-size: 16px; }
+.info-rem__grupo { display: flex; flex-direction: column; }
+.info-rem__grupo + .info-rem__grupo { border-top: 1px solid var(--divider); padding-top: 6px; }
+.info-rem__pessoa { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text-2); padding: 6px 0 2px; }
+.info-rem {
+  display: flex; align-items: center; gap: 14px; min-height: 56px; padding: 8px 0; color: inherit;
+  border-radius: var(--r-btn); transition: background var(--t) var(--ease);
+}
+.info-rem:hover { background: var(--bg); }
+.info-rem--compacto { align-items: flex-start; gap: 12px; min-height: 44px; }
+.info-rem__pilula { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--bg); }
+.info-rem--compacto .info-rem__pilula { width: 36px; height: 36px; }
+.info-rem__nome { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.info-rem__conc { font-weight: 400; color: var(--text-2); }
+.info-rem__det { font-size: 13px; color: var(--text-2); }
+.info-rem__para { font-size: 12px; color: var(--text-3); }
+.info-rem__horas { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 4px; }
+.info-rem__horas--lado { justify-content: flex-end; padding-top: 0; flex: none; max-width: 45%; }
+.info-rem__hora {
+  font-family: var(--font-mono); font-size: 12px; font-weight: 500; padding: 3px 8px;
+  border-radius: var(--r-pill); background: var(--teal-light); color: var(--teal);
+}
+.info-saude { display: flex; flex-direction: column; gap: 6px; color: inherit; padding: 4px 0; }
+.info-saude + .info-saude { border-top: 1px solid var(--divider); padding-top: 8px; }
+.info-saude__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.info-exame { display: flex; align-items: center; gap: 12px; min-height: 44px; color: inherit; }
+.info-exame + .info-exame { border-top: 1px solid var(--divider); padding-top: 8px; }
+.info-rem__pilula:empty { background: transparent; }

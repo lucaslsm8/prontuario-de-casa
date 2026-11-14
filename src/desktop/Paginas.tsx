@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useState } from 'react';
+import { ModoUso } from '../ui/ModoUso';
 import { SimuladorReembolso } from '../ui/Reembolso';
 import { ExportarPdf } from '../mobile/Config';
 import { HOJE, MODO_REAL } from '../data/tempo';
@@ -21,6 +22,9 @@ import { RedesCasa } from '../ui/RedesCasa';
 import { DConfirmar } from './Formulario';
 import { AgendaIcs } from '../ui/AgendaIcs';
 import { FaixaNumeros } from '../ui/Numeros';
+import { proximoHorario, remediosEmUso } from '../data/inicio';
+import { useAgora } from '../data/useAgora';
+import { PilulaDoRemedio } from '../ui/Pilula';
 import { IcAgenda, IcCheck, IcEstoque, IcExame, IcRemedio } from '../ui/Icones';
 
 // ── D04 Agenda (mês) ────────────────────────────────────────────────────────
@@ -108,6 +112,8 @@ export function DAgenda() {
 // ── D05 Remédios ────────────────────────────────────────────────────────────
 
 const COLS = '2fr 1fr 1.4fr 1.2fr 1.4fr';
+/** Modo só de informações: sem adesão nem estoque; no lugar, para que serve. */
+const COLS_INFO = '2fr 1fr 1.4fr 1.6fr';
 
 export function DRemedios() {
   const { state } = useStore();
@@ -124,6 +130,11 @@ export function DRemedios() {
   const baixos = ativos.filter(estoqueBaixo);
   const adesoes = ativos.map((r) => adesao(state, r.id)).filter((x): x is number => x != null);
   const mediaAdesao = adesoes.length ? Math.round(adesoes.reduce((a, b) => a + b, 0) / adesoes.length) : undefined;
+  const info = !!state.config.modoInfo;
+  const agora = useAgora();
+  const cols = info ? COLS_INFO : COLS;
+  const proxHora = proximoHorario(remediosEmUso(ativos, HOJE), agora);
+  const quantasPessoas = new Set(ativos.map((r) => r.pessoaId)).size;
 
   return (
     <div className="desk__page">
@@ -131,7 +142,11 @@ export function DRemedios() {
         <h1 className="desk-title" style={{ margin: 0 }}>Remédios</h1>
         <button type="button" className="btn btn--teal btn--h38" onClick={() => abrir('remedio')}>Novo remédio</button>
       </div>
-      <FaixaNumeros itens={[
+      <FaixaNumeros itens={info ? [
+        { rotulo: 'Em uso', valor: ativos.length, det: `${ativos.filter((r) => r.seNecessario).length} se necessário`, icone: <IcRemedio />, tom: 'teal' },
+        { rotulo: 'Próximo horário', valor: proxHora ?? '—', det: proxHora ? 'de algum remédio' : 'sem horário fixo', icone: <IcAgenda />, tom: 'sol' },
+        { rotulo: 'Pessoas', valor: quantasPessoas, det: quantasPessoas === 1 ? 'toma remédio' : 'tomam remédio', icone: <IcCheck size={18} />, tom: 'neutro' },
+      ] : [
         { rotulo: 'Em uso', valor: ativos.length, det: `${ativos.filter((r) => r.seNecessario).length} se necessário`, icone: <IcRemedio />, tom: 'teal' },
         { rotulo: 'Doses de hoje', valor: `${dosesHoje(state).filter((d) => d.dose?.status === 'tomada').length}/${dosesHoje(state).length}`, det: 'tomadas', icone: <IcCheck size={18} />, tom: 'neutro', para: '/' },
         { rotulo: 'Adesão média', valor: mediaAdesao == null ? '—' : `${mediaAdesao}%`, det: 'últimos 30 dias', icone: <IcAgenda />, tom: 'sol' },
@@ -144,11 +159,11 @@ export function DRemedios() {
 
       {aba === 'uso' ? (
         <div className="card" style={{ fontSize: 14 }}>
-          <div className="mono" style={{ display: 'grid', gridTemplateColumns: COLS, padding: '12px 20px', borderBottom: '1px solid var(--divider)', fontSize: 11, letterSpacing: '.08em', color: 'var(--text-2)' }}>
-            <span>REMÉDIO</span><span>PESSOA</span><span>HORÁRIOS</span><span>ADESÃO 30 D</span><span>ESTOQUE</span>
+          <div className="mono" style={{ display: 'grid', gridTemplateColumns: cols, padding: '12px 20px', borderBottom: '1px solid var(--divider)', fontSize: 11, letterSpacing: '.08em', color: 'var(--text-2)' }}>
+            <span>REMÉDIO</span><span>PESSOA</span><span>HORÁRIOS</span>{info ? <span>PARA QUE SERVE</span> : <><span>ADESÃO 30 D</span><span>ESTOQUE</span></>}
           </div>
           {ordenada.map((r: Remedio, i) => {
-            const baixo = estoqueBaixo(r);
+            const baixo = !info && estoqueBaixo(r);
             const dias = diasDeEstoque(r);
             return (
               <Fragment key={r.id}>
@@ -156,14 +171,15 @@ export function DRemedios() {
                 <button
                   type="button"
                   onClick={() => nav(`/remedios/${r.id}`)}
-                  style={{ display: 'grid', gridTemplateColumns: COLS, padding: '16px 20px', alignItems: 'center', textAlign: 'left', width: '100%', borderBottom: i < ordenada.length - 1 && i !== grupos.familia.length - 1 ? '1px solid var(--divider)' : undefined, background: baixo ? 'var(--warn-row)' : undefined, borderRadius: i === ordenada.length - 1 ? '0 0 var(--r-card) var(--r-card)' : undefined }}
+                  style={{ display: 'grid', gridTemplateColumns: cols, padding: '16px 20px', alignItems: 'center', textAlign: 'left', width: '100%', borderBottom: i < ordenada.length - 1 && i !== grupos.familia.length - 1 ? '1px solid var(--divider)' : undefined, background: baixo ? 'var(--warn-row)' : undefined, borderRadius: i === ordenada.length - 1 ? '0 0 var(--r-card) var(--r-card)' : undefined }}
                 >
                   <span className="stack" style={{ gap: 2 }}>
-                    <span style={{ fontSize: 15, fontWeight: 600 }}>{r.nome}</span>
+                    <span style={{ fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>{info && <PilulaDoRemedio r={r} tamanho={22} />}{r.nome}</span>
                     <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{r.seNecessario ? 'se necessário' : `${r.dose}${r.observacao ? ` ${r.observacao}` : ''} · ${r.continuo ? 'contínuo' : 'tratamento'}`}</span>
                   </span>
                   <span>{quem(pessoa(state, r.pessoaId))}</span>
                   <span className={r.horarios.length ? 'mono' : 'faint'}>{r.horarios.length ? r.horarios.join(' · ') : 'sem horário'}</span>
+                  {info ? <span className={r.indicacao ? undefined : 'faint'}>{r.indicacao ?? '—'}</span> : <>
                   {(() => { const a = adesao(state, r.id); return <span className={a == null ? 'faint' : undefined}>{a != null ? `${a}%` : '—'}</span>; })()}
                   {dias != null ? (
                     <span className="hstack" style={{ gap: 10 }}>
@@ -173,6 +189,7 @@ export function DRemedios() {
                   ) : (
                     <span className="muted">{r.estoqueTexto ?? '—'}</span>
                   )}
+                  </>}
                 </button>
               </Fragment>
             );
@@ -180,7 +197,7 @@ export function DRemedios() {
           {lista.length === 0 && (
             <div className="stack" style={{ padding: '22px 20px', gap: 6, alignItems: 'flex-start' }}>
               <span style={{ fontSize: 15, fontWeight: 600 }}>{filtro === 'todos' ? 'Nenhum remédio em uso' : 'Nenhum remédio em uso para essa pessoa'}</span>
-              <span className="muted" style={{ fontSize: 14, lineHeight: 1.45 }}>Cadastre o remédio com os horários: o Início mostra a dose da vez e o app lembra na hora certa.</span>
+              <span className="muted" style={{ fontSize: 14, lineHeight: 1.45 }}>{info ? 'Cadastre o remédio com os horários: o Início mostra o que cada um toma, como é e a que horas.' : 'Cadastre o remédio com os horários: o Início mostra a dose da vez e o app lembra na hora certa.'}</span>
               <button type="button" className="btn btn--soft btn--h38" style={{ marginTop: 6 }} onClick={() => abrir('remedio')}>Cadastrar remédio</button>
             </div>
           )}
@@ -376,6 +393,7 @@ function ConfirmarPerigo(p: { titulo: string; texto: string; confirmar: string; 
 /** Seções de Configurações: as mesmas do celular (`Configuracoes` em `mobile/Config.tsx`). */
 const SECOES_CONFIG = [
   { id: 'familia', nome: 'Família e compartilhamento', texto: 'O que cada pessoa da família vê de você, e o que você vê de cada uma.' },
+  { id: 'modo', nome: 'Modo de uso', texto: 'Acompanhar as doses do dia ou só guardar as informações de cada remédio.' },
   { id: 'privacidade', nome: 'Privacidade e bloqueio', texto: 'Seus dados ficam neste computador. Nada é enviado para servidores.' },
   { id: 'backup', nome: 'Backup', texto: 'O backup é um arquivo criptografado que fica com você.' },
   { id: 'aparelhos', nome: 'Aparelhos e sincronização', texto: '' },
@@ -484,6 +502,7 @@ export function DConfiguracoes() {
       {secao === 'aparelhos' && <CardFamilia desktop />}
       {secao === 'aparelhos' && <span className="muted" style={{ fontSize: 14 }}>{c.sync.ultima ? `Última sincronização entre aparelhos: ${c.sync.ultima} · ${c.sync.via}` : 'Sincronização entre aparelhos: ainda não configurada'}</span>}
 
+      {secao === 'modo' && <div className="card" style={{ padding: 20, maxWidth: 640 }}><ModoUso /></div>}
       {secao === 'atualizacoes' && <CardAtualizacoes />}
 
       {secao === 'exportar' && <div className="card" style={{ fontSize: 14 }}>

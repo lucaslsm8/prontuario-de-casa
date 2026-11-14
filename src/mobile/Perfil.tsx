@@ -66,8 +66,9 @@ export function PerfilProvider({ children }: { children: ReactNode }) {
 /** O que a pessoa tem pendente agora, só com o que ela compartilha com você. */
 function pendencia(state: State, p: Pessoa, agora: number) {
   const ver = (c: 'remedios' | 'consultas') => p.souEu || ehPet(p) || podeVer(state, p.id, c);
-  const doses = ver('remedios') ? dosesHoje(state).filter((d) => d.pessoa.id === p.id) : [];
-  const remedios = ver('remedios') ? state.remedios.filter((r) => r.pessoaId === p.id) : [];
+  const info = !!state.config.modoInfo;
+  const doses = ver('remedios') && !info ? dosesHoje(state).filter((d) => d.pessoa.id === p.id) : [];
+  const remedios = ver('remedios') && !info ? state.remedios.filter((r) => r.pessoaId === p.id) : [];
   const consultas = ver('consultas') ? state.consultas.filter((c) => c.pessoaId === p.id) : [];
   return pendenciaDoPerfil(doses, remedios, consultas, agora, HOJE);
 }

@@ -44,6 +44,8 @@ export function DNovoRemedio({ onClose, remedio }: Props & { remedio?: Remedio }
   const inicio = remedio?.inicio ?? HOJE;
   const duracoes = [...new Set([...DURACOES, f.duracao])].map((v) => ({ id: v, nome: v ? `${v} dias · até ${diaMes(addDias(inicio, v))}` : 'Uso contínuo' }));
   const freqs = FREQUENCIAS.some((x) => x.nome === f.freq.nome) ? FREQUENCIAS : [f.freq, ...FREQUENCIAS];
+  // Modo só de informações: sem estoque, frasco nem lembrete.
+  const info = !!state.config.modoInfo;
 
   return (
     <DDialogo titulo={f.editando ? 'Editar remédio' : 'Novo remédio'} onClose={onClose} rodape={<DRodape salvar={f.editando ? 'Salvar alterações' : 'Salvar remédio'} onSalvar={f.salvar} valido={f.valido} onCancelar={onClose} />}>
@@ -85,11 +87,12 @@ export function DNovoRemedio({ onClose, remedio }: Props & { remedio?: Remedio }
         <DCampo label="Duração">
           <DSelect opcoes={duracoes} valor={f.duracao} onChange={f.setDuracao} />
         </DCampo>
-        {f.liquido && (
+        {!info && f.liquido && (
           <DCampo label="Frasco (mL)" erro={f.frascoValido ? undefined : 'Em mL, como 20 ou 120.'}>
             <input className="input input--desk input--mono" inputMode="decimal" value={f.frascoMl} onChange={(e) => f.setFrascoMl(e.target.value.replace(/[^0-9,.]/g, ''))} placeholder="20" />
           </DCampo>
         )}
+        {!info && <>
         <DCampo label="Avisar para repor">
           <DSelect opcoes={(AVISAR.includes(f.avisar) ? AVISAR : [f.avisar, ...AVISAR]).map((v) => ({ id: v, nome: nomeAvisar(v) }))} valor={f.avisar} onChange={f.setAvisar} />
         </DCampo>
@@ -107,6 +110,7 @@ export function DNovoRemedio({ onClose, remedio }: Props & { remedio?: Remedio }
         <div className="dfield dfield--span2">
           <DToggle texto="Lembrete no horário" on={f.lembrete} onChange={f.setLembrete} />
         </div>
+        </>}
         {f.comCartela && (
           <>
             <div className="dfield dfield--span2" style={{ borderTop: '1px solid var(--divider)', paddingTop: 14 }}>

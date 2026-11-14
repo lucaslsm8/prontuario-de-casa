@@ -6,7 +6,8 @@ import { dataLonga, diaMes, estoqueBaixo, mesSigla, quem } from '../data/format'
 import { Bar, Check, Circle, Label, SecaoLista } from '../ui';
 import { CartaoDose, LinhaDia, ListaDoses, RemedioAcabando, useDoseDaVez, useRemedioAcabando } from '../ui/Inicio';
 import { agruparFamiliaPets, ehPet, proximaConsultaDaFamilia } from '../data/pets';
-import { estadoDose, saudacao } from '../data/inicio';
+import { estadoDose, examesRecentes, proximoHorario, remediosEmUso, saudacao } from '../data/inicio';
+import { AlergiasCondicoes, ExamesRecentes, RemediosEmUso } from '../ui/InicioInfo';
 import { useAgora } from '../data/useAgora';
 import type { Consulta } from '../data/types';
 import { MScreen } from './Shell';
@@ -19,7 +20,8 @@ export function Inicio() {
   const doPerfil = perfil ? pessoa(state, perfil) : undefined;
   if (doPerfil && ehPet(doPerfil)) return <PetPerfil key={doPerfil.id} pet={doPerfil} inicio />;
   const vazio = state.remedios.length === 0 && state.consultas.length === 0 && state.exames.length === 0;
-  return vazio ? <InicioVazio /> : <InicioCheio />;
+  if (vazio) return <InicioVazio />;
+  return state.config.modoInfo ? <InicioInfo /> : <InicioCheio />;
 }
 
 /** Topo do Início: o perfil aberto, Buscar e Configurações (como nas outras abas) e, embaixo, "Bom dia, Helena" e a data. */
@@ -40,18 +42,35 @@ function Topo() {
   );
 }
 
-function InicioCheio() {
+/** Modo só de informações: o que cada um toma e quando, alergias, próximas consultas e exames recentes. */
+function InicioInfo() {
   const { state, perfil } = useStore();
   const nav = useNavigate();
-  const dv = useDoseDaVez();
   const meus = (pessoaId: string) => !!perfil || doMeuCuidado(state, pessoaId);
-  const { doses, agora } = dv;
-  const tomadas = doses.filter((d) => d.dose?.status === 'tomada').length;
-  const acabando = useRemedioAcabando(state.remedios.filter((r) => meus(r.pessoaId)));
+  const remedios = state.remedios.filter((r) => meus(r.pessoaId));
+  // No perfil de alguém, só ele (as pessoas não passam pelo recorte do perfil, só os registros).
+  const pessoas = state.pessoas.filter((p) => (perfil ? p.id === perfil : doMeuCuidado(state, p.id)));
+  return (
+    <MScreen tabs gap={14}>
+      <Topo />
+      <PedidosPendentes />
+      <RemediosEmUso remedios={remedios} compacto onCadastrar={() => nav('/remedios/novo')} />
+      <Numeros info />
+      <AlergiasCondicoes pessoas={pessoas} compacto />
+      <Proximos />
+      <ExamesRecentes exames={state.exames.filter((e) => meus(e.pessoaId))} compacto />
+    </MScreen>
+  );
+}
+
+/** "Próximos": as duas próximas consultas, com os pets separados. */
+function Proximos() {
+  const { state, perfil } = useStore();
+  const nav = useNavigate();
+  const meus = (pessoaId: string) => !!perfil || doMeuCuidado(state, pessoaId);
   const prox = proximos(state).filter((c) => meus(c.pessoaId)).slice(0, 2);
   const proxG = agruparFamiliaPets(prox, state);
   const divisoria = <SecaoLista rotulo="Pets" style={{ padding: '12px 14px 4px' }} />;
-
   const linhaProx = (c: Consulta) => (
     <button type="button" key={c.id} className="row" style={{ gap: 14, padding: '13px 14px', justifyContent: 'flex-start' }} onClick={() => nav('/agenda')}>
       <div className="stack" style={{ width: 44, alignItems: 'center' }}>
@@ -67,6 +86,26 @@ function InicioCheio() {
     </button>
   );
 
+  return (
+    <div className="stack" style={{ gap: 8, paddingTop: 6 }}>
+      <Label>Próximos</Label>
+      <div className="card">
+        {proxG.familia.map(linhaProx)}
+        {proxG.pets.length > 0 && <>{divisoria}{proxG.pets.map(linhaProx)}</>}
+        {prox.length === 0 && <div className="row muted" style={{ fontSize: 14 }}>Nada marcado nos próximos 30 dias.</div>}
+      </div>
+    </div>
+  );
+}
+
+function InicioCheio() {
+  const { state, perfil } = useStore();
+  const nav = useNavigate();
+  const dv = useDoseDaVez();
+  const meus = (pessoaId: string) => !!perfil || doMeuCuidado(state, pessoaId);
+  const { doses, agora } = dv;
+  const tomadas = doses.filter((d) => d.dose?.status === 'tomada').length;
+  const acabando = useRemedioAcabando(state.remedios.filter((r) => meus(r.pessoaId)));
   return (
     <MScreen tabs gap={14}>
       <Topo />
@@ -89,20 +128,50 @@ function InicioCheio() {
 
       {acabando && <RemedioAcabando key={acabando.id} r={acabando} compacto />}
 
-      <div className="stack" style={{ gap: 8, paddingTop: 6 }}>
-        <Label>Próximos</Label>
-        <div className="card">
-          {proxG.familia.map(linhaProx)}
-          {proxG.pets.length > 0 && <>{divisoria}{proxG.pets.map(linhaProx)}</>}
-          {prox.length === 0 && <div className="row muted" style={{ fontSize: 14 }}>Nada marcado nos próximos 30 dias.</div>}
-        </div>
-      </div>
+      <Proximos />
     </MScreen>
   );
 }
 
-/** Os três números do painel do desktop (D01): doses de hoje, próxima consulta e estoque baixo, do perfil aberto. */
-function Numeros() {
+/**
+ * Os três números do painel do desktop (D01): doses de hoje, próxima consulta e estoque baixo, do perfil aberto.
+ * No modo só de informações: remédios em uso (e o próximo horário), próxima consulta e último exame.
+ */
+function Numeros({ info }: { info?: boolean }) {
+  if (info) return <NumerosInfo />;
+  return <NumerosDoses />;
+}
+
+function NumerosInfo() {
+  const { state } = useStore();
+  const nav = useNavigate();
+  const agora = useAgora();
+  const emUso = remediosEmUso(state.remedios, HOJE);
+  const proxHora = proximoHorario(emUso, agora);
+  const prox = proximaConsultaDaFamilia(state);
+  const ultimo = examesRecentes(state.exames, 1)[0];
+  return (
+    <section className="card numeros-m">
+      <button type="button" onClick={() => nav('/remedios')}>
+        <span className="numeros-m__rot">Remédios em uso</span>
+        <span className="numeros-m__valor">{emUso.length}</span>
+        <span className="numeros-m__det">{proxHora ? `próximo às ${proxHora}` : emUso.length ? 'sem horário' : 'nenhum'}</span>
+      </button>
+      <button type="button" onClick={() => nav('/agenda')}>
+        <span className="numeros-m__rot">Próxima consulta</span>
+        <span className="numeros-m__valor">{prox ? diaMes(prox.data) : '—'}</span>
+        <span className="numeros-m__det">{prox ? prox.titulo : 'Nada marcado'}</span>
+      </button>
+      <button type="button" onClick={() => nav(ultimo ? `/exames/${ultimo.id}` : '/exames')}>
+        <span className="numeros-m__rot">Último exame</span>
+        <span className="numeros-m__valor">{ultimo ? diaMes(ultimo.dataColeta) : '—'}</span>
+        <span className="numeros-m__det">{ultimo ? ultimo.nome : 'Nenhum ainda'}</span>
+      </button>
+    </section>
+  );
+}
+
+function NumerosDoses() {
   const { state } = useStore();
   const nav = useNavigate();
   const { doses, agora } = useDoseDaVez();

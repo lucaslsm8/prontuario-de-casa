@@ -3,17 +3,24 @@ import { Link } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
 import { doMeuCuidado, eu, pessoa, proximos, useStore } from '../data/store';
 import { dataLonga, diasEntre, estoqueBaixo, mesSigla, quem } from '../data/format';
-import { estadoDose, saudacao, separarConcentracao } from '../data/inicio';
+import { estadoDose, examesRecentes, proximoHorario, remediosEmUso, saudacao, separarConcentracao } from '../data/inicio';
+import { AlergiasCondicoes, ExamesRecentes, RemediosEmUso } from '../ui/InicioInfo';
+import { useAgora } from '../data/useAgora';
 import { ehPet, proximaConsultaDaFamilia } from '../data/pets';
 import { CartaoDose, LinhaDia, ListaDoses, RemedioAcabando, useDoseDaVez, useRemedioAcabando } from '../ui/Inicio';
-import { IcAgenda, IcEstoque, IcRemedio } from '../ui/Icones';
+import { IcAgenda, IcEstoque, IcExame, IcRemedio } from '../ui/Icones';
 import { cx } from '../ui';
 import { useAbrir } from './Shell';
 
 const emDias = (n: number) => (n === 0 ? 'hoje' : n === 1 ? 'amanhã' : `em ${n} dias`);
 
-/** D01 — Início (redesign "cartão escuro"). */
+/** D01 — Início (redesign "cartão escuro"). No modo só de informações, `DInicioInfo`. */
 export function DInicio() {
+  const { state } = useStore();
+  return state.config.modoInfo ? <DInicioInfo /> : <DInicioDoses />;
+}
+
+function DInicioDoses() {
   const { state } = useStore();
   const abrir = useAbrir();
   const dv = useDoseDaVez();
@@ -89,6 +96,98 @@ export function DInicio() {
           </section>
 
           {acabando && <RemedioAcabando key={acabando.id} r={acabando} />}
+
+          <section className="card" style={{ padding: 16, gap: 12 }}>
+            <div className="hstack" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <span style={{ fontWeight: 600, fontSize: 16 }}>Próximos compromissos</span>
+              <Link to="/agenda" style={{ fontWeight: 600, fontSize: 13 }}>Ver agenda</Link>
+            </div>
+            {prox.map((c) => {
+              const p = pessoa(state, c.pessoaId);
+              return (
+                <Link key={c.id} to="/agenda" className="compromisso">
+                  <span className={cx('compromisso__data', p && ehPet(p) && 'compromisso__data--pet')}>
+                    <b>{c.data.slice(8, 10)}</b><span>{mesSigla(c.data)}</span>
+                  </span>
+                  <span className="stack" style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ fontWeight: 600 }}>{c.titulo}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{[c.hora, quem(p)].filter(Boolean).join(' · ')}</span>
+                  </span>
+                  <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{emDias(diasEntre(HOJE, c.data))}</span>
+                </Link>
+              );
+            })}
+            {prox.length === 0 && <span className="muted" style={{ fontSize: 14 }}>Nada marcado nos próximos 30 dias.</span>}
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** D01 no modo só de informações: o que cada um toma e quando, sem doses do dia nem estoque. */
+function DInicioInfo() {
+  const { state } = useStore();
+  const abrir = useAbrir();
+  const agora = useAgora();
+  const meus = (pessoaId: string) => doMeuCuidado(state, pessoaId);
+  const remedios = state.remedios.filter((r) => meus(r.pessoaId));
+  const emUso = remediosEmUso(remedios, HOJE);
+  const proxHora = proximoHorario(emUso, agora);
+  const proxConsulta = proximaConsultaDaFamilia({ ...state, consultas: state.consultas.filter((c) => meus(c.pessoaId)) });
+  const exames = state.exames.filter((e) => meus(e.pessoaId));
+  const ultimo = examesRecentes(exames, 1)[0];
+  const prox = proximos(state).filter((c) => meus(c.pessoaId)).slice(0, 3);
+
+  return (
+    <div className="desk__page desk__page--home">
+      <div className="hstack" style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <div className="stack" style={{ gap: 4 }}>
+          <span style={{ fontSize: 14, color: 'var(--text-2)' }}>{dataLonga(HOJE)}</span>
+          <h1 className="desk-title desk-title--32" style={{ margin: 0 }}>{saudacao(agora)}, {eu(state).curto}</h1>
+        </div>
+        <div className="hstack" style={{ gap: 8 }}>
+          <button type="button" className="btn btn--outline btn--h40d" onClick={() => abrir('exame')}>Adicionar exame</button>
+          <button type="button" className="btn btn--teal btn--h40d" onClick={() => abrir('consulta')}>Nova consulta</button>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 280px', gap: 18, alignItems: 'start' }}>
+        <div className="stack" style={{ gap: 18, minWidth: 0 }}>
+          <PedidosPendentes />
+          <RemediosEmUso remedios={remedios} onCadastrar={() => abrir('remedio')} />
+          <ExamesRecentes exames={exames} />
+        </div>
+
+        <div className="stack" style={{ gap: 14, minWidth: 0 }}>
+          <section className="card numeros">
+            <Link to="/remedios" className="numero">
+              <span className="numero__ic"><IcRemedio /></span>
+              <span className="stack" style={{ flex: 1, minWidth: 0 }}>
+                <span className="numero__rot">Remédios em uso</span>
+                <span className="numero__det">{proxHora ? `próximo às ${proxHora}` : emUso.length ? 'sem horário' : 'nenhum'}</span>
+              </span>
+              <span className="numero__valor">{emUso.length}</span>
+            </Link>
+            <Link to="/agenda" className="numero">
+              <span className="numero__ic numero__ic--sol"><IcAgenda /></span>
+              <span className="stack" style={{ flex: 1, minWidth: 0 }}>
+                <span className="numero__rot">Próxima consulta</span>
+                <span className="numero__det">{proxConsulta ? `${proxConsulta.titulo} · ${quem(pessoa(state, proxConsulta.pessoaId))}` : 'Nada marcado'}</span>
+              </span>
+              <span className="numero__valor numero__valor--sm">{proxConsulta ? `${proxConsulta.data.slice(8, 10)}/${proxConsulta.data.slice(5, 7)}` : '—'}</span>
+            </Link>
+            <Link to={ultimo ? `/exames/${ultimo.id}` : '/exames'} className="numero">
+              <span className="numero__ic numero__ic--neutro"><IcExame /></span>
+              <span className="stack" style={{ flex: 1, minWidth: 0 }}>
+                <span className="numero__rot">Último exame</span>
+                <span className="numero__det">{ultimo ? `${ultimo.nome} · ${quem(pessoa(state, ultimo.pessoaId))}` : 'Nenhum ainda'}</span>
+              </span>
+              <span className="numero__valor numero__valor--sm">{ultimo ? `${ultimo.dataColeta.slice(8, 10)}/${ultimo.dataColeta.slice(5, 7)}` : '—'}</span>
+            </Link>
+          </section>
+
+          <AlergiasCondicoes pessoas={state.pessoas.filter((p) => meus(p.id))} />
 
           <section className="card" style={{ padding: 16, gap: 12 }}>
             <div className="hstack" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>

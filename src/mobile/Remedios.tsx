@@ -86,7 +86,7 @@ export function Remedios() {
           <div className="card card--dashed" style={{ padding: 18, gap: 6, alignItems: 'flex-start' }}>
             <span style={{ fontSize: 15, fontWeight: 600 }}>{aba === 'uso' ? 'Nenhum remédio em uso' : 'Nada encerrado por aqui'}</span>
             <span style={{ fontSize: 14, color: 'var(--text-2)' }}>
-              {aba === 'uso' ? 'Cadastre o remédio e o app avisa na hora de tomar.' : 'Tratamentos encerrados aparecem aqui.'}
+              {aba === 'uso' ? (state.config.modoInfo ? 'Cadastre o remédio para guardar como ele é e a que horas tomar.' : 'Cadastre o remédio e o app avisa na hora de tomar.') : 'Tratamentos encerrados aparecem aqui.'}
             </span>
             {aba === 'uso' && <button type="button" className="btn btn--soft btn--h40" style={{ marginTop: 6 }} onClick={() => nav('/remedios/novo')}>Cadastrar remédio</button>}
           </div>
@@ -100,8 +100,10 @@ function CartaoRemedio({ r }: { r: Remedio }) {
   const { state } = useStore();
   const nav = useNavigate();
   const p = pessoa(state, r.pessoaId);
-  const baixo = estoqueBaixo(r);
-  const dias = diasDeEstoque(r);
+  // Modo só de informações: sem estoque; o cartão mostra o comprimido e os horários.
+  const info = !!state.config.modoInfo;
+  const baixo = !info && estoqueBaixo(r);
+  const dias = info ? undefined : diasDeEstoque(r);
   const titulo = (
     <div className="stack" style={{ gap: 2 }}>
       <span style={{ fontSize: 16, fontWeight: 600 }}>{r.nome}</span>
@@ -122,6 +124,12 @@ function CartaoRemedio({ r }: { r: Remedio }) {
         {titulo}
         {baixo && <Pill tom="warn">Repor</Pill>}
       </div>
+      {info && (
+        <div className="hstack" style={{ gap: 10, alignItems: 'center' }}>
+          <PilulaDoRemedio r={r} tamanho={24} />
+          <span className="info-rem__horas" style={{ paddingTop: 0 }}>{[...r.horarios].sort().map((h) => <span key={h} className="info-rem__hora">{h}</span>)}</span>
+        </div>
+      )}
       {dias != null && (
         <div className="hstack" style={{ gap: 10 }}>
           <Bar pct={pctEstoque(r)} baixo={baixo} />
@@ -164,6 +172,8 @@ export function EditarRemedio() {
 }
 
 const ETAPAS_REMEDIO = ['O quê e para quem', 'Quando tomar', 'Estoque e detalhes'];
+/** No modo só de informações não há estoque: a última etapa é só de detalhes. */
+const nomeEtapa = (i: number, info: boolean) => (info && i === 2 ? 'Detalhes' : ETAPAS_REMEDIO[i]);
 
 export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?: Remedio }) {
   const { state } = useStore();
@@ -175,6 +185,7 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
   // Cadastro novo em três etapas; editar mostra tudo numa página (quem edita quer ir direto ao campo).
   // O "Salvar" do topo vale em qualquer etapa, assim que o formulário é válido.
   const [passo, setPasso] = useState(1);
+  const info = !!state.config.modoInfo;
   const etapas = !editando;
   const ver = (n: number) => !etapas || passo === n;
   const rolagem = useRef<HTMLDivElement>(null);
@@ -187,7 +198,7 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
       {etapas && (
         <div className="stack" style={{ gap: 8 }}>
           <div className="etapas" aria-hidden>{ETAPAS_REMEDIO.map((_, i) => <span key={i} className={cx('etapas__barra', i < passo && 'is-on')} />)}</div>
-          <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Etapa {passo} de {ETAPAS_REMEDIO.length} · {ETAPAS_REMEDIO[passo - 1]}</span>
+          <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Etapa {passo} de {ETAPAS_REMEDIO.length} · {nomeEtapa(passo - 1, info)}</span>
         </div>
       )}
       {ver(1) && <>
@@ -234,7 +245,7 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
           label="Duração"
           valor={<Ciclo valores={DURACOES} valor={duracao} onChange={setDuracao} render={(v) => (v ? `${v} dias · até ${fim.slice(8, 10)}/${fim.slice(5, 7)}` : 'Uso contínuo')} />}
         />
-        <Row tight mutedLabel={false} label="Lembrete no horário" valor={<Toggle on={lembrete} onChange={setLembrete} label="Lembrete no horário" />} />
+        {!info && <Row tight mutedLabel={false} label="Lembrete no horário" valor={<Toggle on={lembrete} onChange={setLembrete} label="Lembrete no horário" />} />}
       </div>
       {freq.id !== 'sn' && (
         <Field label="Horários">
@@ -244,7 +255,7 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
       )}
       </>}
       {ver(3) && <>
-      <div className="card" style={{ fontSize: 15 }}>
+      {!info && <div className="card" style={{ fontSize: 15 }}>
         <Row
           tight
           label="Estoque atual"
@@ -267,7 +278,7 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
           />
         )}
         <Row tight label="Avisar para repor" valor={<Ciclo valores={AVISAR} valor={avisar} onChange={setAvisar} render={nomeAvisar} />} />
-      </div>
+      </div>}
       <Field label="Observação (opcional)">
         <input className="input" value={form.observacao} onChange={(e) => form.setObservacao(e.target.value)} placeholder="Ex.: em jejum, depois do almoço" />
       </Field>
@@ -326,6 +337,8 @@ export function DetalheRemedio() {
   const acaba = dias != null ? addDias(HOJE, dias) : undefined;
   const { tomadas, previstas } = somaAdesao(grade);
   const desde = r.inicio ? parseISO(r.inicio).getFullYear() : undefined;
+  // Modo só de informações: sem estoque, adesão nem lembrete; ficam o que é, como é e quando tomar.
+  const info = !!state.config.modoInfo;
 
   return (
     <MScreen gap={16} tabs>
@@ -345,7 +358,7 @@ export function DetalheRemedio() {
 
       {r.ativo && <AvisoAlergia nome={r.nome} pessoaId={r.pessoaId} />}
 
-      {r.estoque != null && (
+      {!info && r.estoque != null && (
         <div className="card" style={{ background: baixo ? 'var(--warn-bg)' : '#fff', borderColor: baixo ? 'transparent' : undefined, padding: '14px 16px', gap: 10 }}>
           <div className="hstack" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
             <span style={{ fontSize: 15, fontWeight: 600, color: baixo ? 'var(--warn-strong)' : undefined }}>Restam {textoEstoque(r)}</span>
@@ -374,7 +387,7 @@ export function DetalheRemedio() {
         </div>
       )}
 
-      {!r.seNecessario && (
+      {!info && !r.seNecessario && (
         <div className="stack" style={{ gap: 8 }}>
           <div className="hstack" style={{ justifyContent: 'space-between' }}>
             <Label>Últimos 14 dias</Label>
@@ -385,7 +398,7 @@ export function DetalheRemedio() {
         </div>
       )}
 
-      {r.seNecessario && <DosesSeNecessario r={r} podeEditar={marcaDose(state, r.pessoaId)} botao="btn btn--soft btn--h36" />}
+      {!info && r.seNecessario && <DosesSeNecessario r={r} podeEditar={marcaDose(state, r.pessoaId)} botao="btn btn--soft btn--h36" />}
 
       <div id="receita" className="stack" style={{ gap: 8 }}>
         <Label>Receita</Label>
@@ -403,7 +416,7 @@ export function DetalheRemedio() {
         {r.receitadoPor && <Row compact label="Receitado por" valor={r.receitadoPor} style={{ padding: '12px 16px' }} />}
         {r.indicacao && <Row compact label="Para que serve" valor={r.indicacao} style={{ padding: '12px 16px' }} />}
         {partesDoRemedio(r)[1] && <Row compact label="Dosagem" valor={partesDoRemedio(r)[1]} style={{ padding: '12px 16px' }} />}
-        <Row compact label="Lembrete" valor={r.lembrete && r.horarios.length ? `${r.horarios.join(', ')} · ativo` : 'desligado'} style={{ padding: '12px 16px' }} />
+        {!info && <Row compact label="Lembrete" valor={r.lembrete && r.horarios.length ? `${r.horarios.join(', ')} · ativo` : 'desligado'} style={{ padding: '12px 16px' }} />}
       </div>
 
       {podeEditar && (

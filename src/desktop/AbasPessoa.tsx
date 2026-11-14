@@ -38,7 +38,7 @@ export function CardRemediosEmUso({ id }: { id: string }) {
         <div key={r.id} className="stack" style={{ padding: '12px 18px', gap: 2 }}>
           <span style={{ fontSize: 15, fontWeight: 600 }}>{r.nome}</span>
           <span style={{ fontSize: 13, color: 'var(--text-2)' }}>
-            {r.seNecessario ? 'se necessário' : r.horarios.join(', ')}{diasDeEstoque(r) != null ? ` · ${diasDeEstoque(r)} dias de estoque` : ''}
+            {r.seNecessario ? 'se necessário' : r.horarios.join(', ')}{!state.config.modoInfo && diasDeEstoque(r) != null ? ` · ${diasDeEstoque(r)} dias de estoque` : ''}
           </span>
         </div>
       ))}

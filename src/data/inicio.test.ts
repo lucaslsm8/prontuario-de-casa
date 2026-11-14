@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chaveDose, doseEmFoco, estadoDose, hhmm, minutos, posDia, saudacao, separarConcentracao } from './inicio';
+import { chaveDose, doseEmFoco, estadoDose, hhmm, minutos, posDia, proximoHorario, remediosEmUso, saudacao, separarConcentracao, textoHorarios } from './inicio';
 import type { DoseHoje } from './store';
 import type { Pessoa, Remedio } from './types';
 
@@ -73,5 +73,37 @@ describe('linha do dia e textos', () => {
   });
   it('saudacao pelo horário', () => {
     expect([saudacao(minutos('08:00')), saudacao(minutos('14:20')), saudacao(minutos('19:00'))]).toEqual(['Bom dia', 'Boa tarde', 'Boa noite']);
+  });
+});
+
+describe('modo só de informações', () => {
+  const r = (id: string, horarios: string[], extra: Partial<Remedio> = {}): Remedio =>
+    ({ id, pessoaId: 'a', nome: id, dose: '1 comp.', unidade: 'comprimidos', horarios, continuo: true, avisarDias: 5, lembrete: true, ativo: true, ...extra });
+
+  it('remediosEmUso: ativos, pela hora do primeiro horário, "se necessário" no fim', () => {
+    const lista = remediosEmUso([
+      r('noite', ['21:00']),
+      r('sos', [], { seNecessario: true }),
+      r('manha', ['20:00', '07:00']),
+      r('parado', ['08:00'], { ativo: false }),
+      r('acabou', ['08:00'], { fim: '2026-10-01' }),
+    ], '2026-10-28');
+    expect(lista.map((x) => x.id)).toEqual(['manha', 'noite', 'sos']);
+  });
+
+  it('textoHorarios', () => {
+    expect(textoHorarios({ horarios: ['20:00', '08:00'] })).toBe('08:00 e 20:00');
+    expect(textoHorarios({ horarios: ['08:00', '14:00', '20:00'] })).toBe('08:00, 14:00 e 20:00');
+    expect(textoHorarios({ horarios: ['08:00'] })).toBe('08:00');
+    expect(textoHorarios({ horarios: [], seNecessario: true })).toBe('Se necessário');
+    expect(textoHorarios({ horarios: [] })).toBe('Sem horário');
+  });
+
+  it('proximoHorario: o próximo de hoje ou o primeiro de amanhã', () => {
+    const lista = [{ horarios: ['20:00', '08:00'] }, { horarios: ['12:00'] }, { horarios: ['03:00'], seNecessario: true }];
+    expect(proximoHorario(lista, minutos('09:00'))).toBe('12:00');
+    expect(proximoHorario(lista, minutos('20:00'))).toBe('20:00');
+    expect(proximoHorario(lista, minutos('21:00'))).toBe('08:00');
+    expect(proximoHorario([], 0)).toBeUndefined();
   });
 });

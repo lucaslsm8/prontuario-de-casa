@@ -15,6 +15,7 @@ import { Cartela, DefinirTamanho, Frasco, PilulaDoRemedio, contaCartela } from '
 import { ehLiquido } from '../data/cartela';
 import { anexosDe } from '../data/anexos';
 import { AvisoAlergia } from '../ui/AvisoAlergia';
+import { textoHorarios } from '../data/inicio';
 
 const voltar = <Link to="/remedios" style={{ fontSize: 14, fontWeight: 600 }}>← Remédios</Link>;
 
@@ -37,6 +38,8 @@ export function DRemedio() {
   }
 
   const podeEditar = editaveis(state).some((x) => x.id === r.pessoaId);
+  // Modo só de informações: sem estoque, adesão nem lembrete; no lugar, "Quando tomar".
+  const info = !!state.config.modoInfo;
   const dias = diasDeEstoque(r);
   const baixo = r.ativo && estoqueBaixo(r);
   const acaba = dias != null ? addDias(HOJE, dias) : undefined;
@@ -48,7 +51,7 @@ export function DRemedio() {
     ['Para que serve', r.indicacao ?? '—'],
     ['Dosagem', partesDoRemedio(r)[1] || '—'],
     ['Desde', r.inicio ? dataBR(r.inicio) : '—'],
-    ['Lembrete', r.lembrete && r.horarios.length ? 'ligado' : 'desligado'],
+    ...(info ? [] : [['Lembrete', r.lembrete && r.horarios.length ? 'ligado' : 'desligado'] as [string, string]]),
   ];
 
   return (
@@ -83,7 +86,22 @@ export function DRemedio() {
 
       {r.ativo && <AvisoAlergia nome={r.nome} pessoaId={r.pessoaId} />}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 16 }}>
+      {info && (
+        <div className="card">
+          <div className="card-head"><Label>Quando tomar</Label></div>
+          <div className="hstack" style={{ padding: '16px 18px 18px', gap: 16, alignItems: 'center' }}>
+            <span className="info-rem__pilula" style={{ width: 56, height: 56 }} aria-hidden><PilulaDoRemedio r={r} tamanho={40} /></span>
+            <span className="stack" style={{ gap: 6, flex: 1, minWidth: 0 }}>
+              <span style={{ fontSize: 16, fontWeight: 600 }}>{[r.doseLonga ?? r.dose, r.observacao].filter(Boolean).join(' · ')}</span>
+              <span className="info-rem__horas" style={{ paddingTop: 0 }}>
+                {(r.seNecessario || !r.horarios.length ? [textoHorarios(r)] : [...r.horarios].sort()).map((h) => <span key={h} className="info-rem__hora" style={{ fontSize: 14, padding: '4px 10px' }}>{h}</span>)}
+              </span>
+            </span>
+          </div>
+        </div>
+      )}
+
+      {!info && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 16 }}>
         <div className="card" style={{ background: baixo ? 'var(--warn-bg)' : undefined, borderColor: baixo ? 'transparent' : undefined }}>
           <div className="card-head" style={baixo ? { borderBottomColor: 'var(--warn-track)' } : undefined}>
             <Label cor={baixo ? 'var(--warn-text)' : undefined}>Estoque</Label>
@@ -140,7 +158,7 @@ export function DRemedio() {
             )}
           </div>
         </div>
-      </div>
+      </div>}
 
       {(anexosDe(state.anexos, r.id, 'cartela').length > 0 || (podeEditar && r.cartela)) && (
         <div className="card" style={{ fontSize: 14 }}>
@@ -151,7 +169,7 @@ export function DRemedio() {
         </div>
       )}
 
-      {r.seNecessario && <DosesSeNecessario r={r} podeEditar={marcaDose(state, r.pessoaId)} botao="btn btn--teal btn--h40d" />}
+      {!info && r.seNecessario && <DosesSeNecessario r={r} podeEditar={marcaDose(state, r.pessoaId)} botao="btn btn--teal btn--h40d" />}
 
       <div className="card" style={{ fontSize: 14 }}>
         <div className="card-head"><Label>Receita</Label></div>

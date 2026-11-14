@@ -2,6 +2,7 @@
 // Funções puras (sem React), testadas em inicio.test.ts.
 
 import type { DoseHoje } from './store';
+import type { Exame, Remedio } from './types';
 
 /** "06:30" → 390 */
 export const minutos = (h: string) => {
@@ -64,3 +65,31 @@ export function separarConcentracao(nome: string): [string, string] {
 }
 
 export const saudacao = (agora: number) => (agora < 12 * 60 ? 'Bom dia' : agora < 18 * 60 ? 'Boa tarde' : 'Boa noite');
+
+// ---- Modo só de informações (Configurações): o Início mostra o que cada um toma, sem acompanhar doses. ----
+
+/** Remédios em uso, na ordem do dia: primeiro horário; "se necessário" e sem horário no fim. */
+export function remediosEmUso(remedios: Remedio[], hoje: string): Remedio[] {
+  const primeiro = (r: Remedio) => (r.seNecessario || !r.horarios.length ? '99:99' : [...r.horarios].sort()[0]);
+  return remedios
+    .filter((r) => r.ativo && !(r.fim && r.fim < hoje))
+    .sort((a, b) => primeiro(a).localeCompare(primeiro(b)) || a.nome.localeCompare(b.nome, 'pt-BR'));
+}
+
+/** "08:00 e 20:00", "08:00, 14:00 e 20:00", "Se necessário", "Sem horário". */
+export function textoHorarios(r: Pick<Remedio, 'horarios' | 'seNecessario'>): string {
+  if (r.seNecessario) return 'Se necessário';
+  const h = [...r.horarios].sort();
+  if (!h.length) return 'Sem horário';
+  return h.length === 1 ? h[0] : `${h.slice(0, -1).join(', ')} e ${h[h.length - 1]}`;
+}
+
+/** Exames mais recentes (até `n`), do mais novo para o mais antigo. */
+export const examesRecentes = (exames: Exame[], n = 3) =>
+  [...exames].sort((a, b) => b.dataColeta.localeCompare(a.dataColeta)).slice(0, n);
+
+/** O próximo horário de remédio a partir de agora (minuto do dia); depois do último do dia, o primeiro de amanhã. */
+export function proximoHorario(remedios: Pick<Remedio, 'horarios' | 'seNecessario'>[], agora: number): string | undefined {
+  const todos = [...new Set(remedios.filter((r) => !r.seNecessario).flatMap((r) => r.horarios))].sort();
+  return todos.find((h) => minutos(h) >= agora) ?? todos[0];
+}

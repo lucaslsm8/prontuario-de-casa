@@ -50,6 +50,11 @@ describe('proximosLembretes', () => {
     expect(proximosLembretes(s, em('2026-10-29T08:00'))[0].titulo).toBe('Hora do remédio da Helena');
   });
 
+  it('no modo só de informações não lembra doses', () => {
+    const s = estado({ remedios: [remedio({ horarios: ['21:00'], inicio: HOJE_INI })] });
+    expect(proximosLembretes({ ...s, config: { ...s.config, modoInfo: true } }, em('2026-10-29T08:00')).some((x) => x.id.startsWith('dose|'))).toBe(false);
+  });
+
   it('mantém a dose não registrada na lista por 24 h (o Rust decide se ainda avisa)', () => {
     const s = estado({ remedios: [remedio({ horarios: ['06:30'] })] });
     const tem = (agora: string) => proximosLembretes(s, em(agora)).some((x) => x.id === 'dose|levo|2026-10-29T06:30');

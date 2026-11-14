@@ -1,4 +1,5 @@
 import { AgendaCelular } from '../ui/AgendaCelular';
+import { ModoUso } from '../ui/ModoUso';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { HOJE, MODO_EXEMPLO } from '../data/tempo';
@@ -50,6 +51,8 @@ export function Configuracoes() {
           onClick={() => setExportar(true)}
         />
       </div>
+      <Label>Modo de uso</Label>
+      <ModoUso />
       <Label>Menu inferior</Label>
       <Segmented opcoes={[{ id: 'texto', nome: 'Texto' }, { id: 'icones', nome: 'Ícones' }]} valor={state.config.menuIcones ? 'icones' : 'texto'} onChange={(v) => api.setConfig({ menuIcones: v === 'icones' })} />
       {exportar && <ExportarPdf onClose={() => setExportar(false)} />}

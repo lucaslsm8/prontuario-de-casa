@@ -367,7 +367,7 @@ function RemediosEmUso({ id }: { id: string }) {
   return (
     <Secao titulo="Remédios em uso">
       {lista.map((r) => {
-        const estoque = diasDeEstoque(r);
+        const estoque = state.config.modoInfo ? undefined : diasDeEstoque(r);
         return (
           <button type="button" key={r.id} className="row" style={{ textAlign: 'left' }} onClick={() => nav(`/remedios/${r.id}`)}>
             <Texto titulo={r.nome} detalhe={`${r.seNecessario ? 'se necessário' : r.horarios.join(', ')}${estoque != null ? ` · ${estoque} dias de estoque` : ''}`} />

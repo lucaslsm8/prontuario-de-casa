@@ -206,6 +206,8 @@ export interface Config {
   fichaSemDesbloqueio: boolean;
   /** Celular: menu inferior só com ícones (padrão: texto). Vale para este aparelho. */
   menuIcones?: boolean;
+  /** Modo só de informações: o app mostra o que cada um toma e quando, sem marcar doses, estoque nem lembretes de dose. Vale para este aparelho. */
+  modoInfo?: boolean;
   /** Vem do armazenamento (Rust), não do log de eventos. */
   backup: { ultimo?: string | null; tamanho?: number | null; freq: 'semanal' | 'manual'; arquivo?: string | null; pasta: string; temSenha: boolean };
   update: {
