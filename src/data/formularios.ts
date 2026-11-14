@@ -3,10 +3,10 @@ import { HOJE, ex } from './tempo';
 import { eu, useStore } from './store';
 import { addDias, dataBR, diasEntre } from './format';
 import { novoId } from './persistencia';
-import { anexosDe, ehPdf, tamanhoDataUrl } from './anexos';
+import { anexosDe, tamanhoDataUrl } from './anexos';
 import { GOTAS_POR_ML, lerCartela } from './cartela';
 import { lerTrajeto } from './consultas';
-import { lerDosPdfs } from './pdf';
+import { lerResultado } from './ocr';
 import type { Anexo, Aparencia, CategoriaExame, Resultado, Consulta, Exame, Medicao, Pesagem, Pessoa, Plano, Prevencao, Procedimento, Remedio, Sintoma, TipoMedicao, TipoProcedimento, Vacina } from './types';
 import { SINAIS, ehPet, familia, pets } from './pets';
 import { diffPessoa, formDePessoa, lerNumeroBR, normalizarTexto, novaChave, pessoaDoForm, type ErrosPerfil, type FormPerfil, type FormPet, type LinhaAlergia, type LinhaCondicao } from './perfil';
@@ -231,33 +231,38 @@ export function useFormExame(onSalvo: () => void, inicial?: Exame) {
   const [anotacao, setAnotacao] = useState(i?.anotacao ?? '');
   const [laudo, setLaudo] = useState(i?.laudo ?? '');
   const [resultados, setResultados] = useState<Resultado[] | undefined>(undefined);
-  const [lendoPdf, setLendoPdf] = useState(false);
+  /** Leitura em andamento: null parado; 0 a 1 o quanto das fotos já foi lido (PDF com texto é quase instantâneo). */
+  const [lendo, setLendo] = useState<number | null>(null);
   const lidos = useRef(new Set<string>());
-  // Exame novo com PDF: lê o texto e preenche o resultado, os valores e a data da coleta (a pessoa confere antes de salvar).
+  // Exame novo: lê o resultado anexado (texto do PDF; fotos e PDF escaneado por OCR, no aparelho) e preenche o texto,
+  // os valores e a data da coleta. A pessoa confere antes de salvar.
   useEffect(() => {
     if (i) return;
-    const novos = arquivos.filter((a) => ehPdf(a) && !lidos.current.has(a.id));
+    const novos = arquivos.filter((a) => !lidos.current.has(a.id));
     if (!novos.length) return;
     novos.forEach((a) => lidos.current.add(a.id));
     let vivo = true;
-    setLendoPdf(true);
-    lerDosPdfs(novos)
+    setLendo(0);
+    lerResultado(novos, (p) => { if (vivo) setLendo(p); })
       .then((r) => {
         if (!vivo) return;
-        if (!r) { api.toast({ texto: 'O PDF é uma imagem escaneada, sem texto para ler.' }); return; }
+        if (!r) { api.toast({ texto: 'Não encontrei texto no resultado. Digite o que for importante.' }); return; }
         setLaudo((atual) => (atual.trim() ? `${atual.trim()}
 
 ${r.laudo}` : r.laudo));
         if (r.resultados.length) setResultados((atual) => [...(atual ?? []), ...r.resultados.filter((x) => !atual?.some((y) => y.marcador === x.marcador))]);
         if (r.dataColeta) setDataBruta(dataBR(r.dataColeta));
         const n = r.resultados.length;
-        api.toast({ texto: n ? `Resultado lido do PDF · ${n} ${n === 1 ? 'valor' : 'valores'}` : 'Resultado lido do PDF' });
+        const valores = n ? ` · ${n} ${n === 1 ? 'valor' : 'valores'}` : '';
+        api.toast({ texto: r.porImagem ? `Texto lido da imagem${valores}. Confira antes de salvar.` : `Resultado lido do PDF${valores}` });
       })
-      .catch(() => { if (vivo) api.toast({ texto: 'Não foi possível ler o texto do PDF.' }); })
-      .finally(() => { if (vivo) setLendoPdf(false); });
+      .catch(() => { if (vivo) api.toast({ texto: 'Não foi possível ler o resultado.' }); })
+      .finally(() => { if (vivo) setLendo(null); });
     return () => { vivo = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `api` não precisa reiniciar a leitura.
   }, [arquivos, i]);
+  /** Rótulo do campo de texto do resultado, com o andamento da leitura. */
+  const rotuloLaudo = lendo === null ? 'Resultado (texto do laudo)' : lendo > 0 ? `Resultado · lendo… ${Math.round(lendo * 100)}%` : 'Resultado · lendo…';
   const [consulta, setConsulta] = useState<string | undefined>(i?.consultaId);
   // Na edição, a consulta já vinculada continua na lista mesmo que tenha passado.
   const consultasDaPessoa = state.consultas.filter((c) => c.pessoaId === de && (c.data >= HOJE || c.id === i?.consultaId));
@@ -298,7 +303,7 @@ ${r.laudo}` : r.laudo));
   };
 
   return {
-    id, arquivos, setArquivos, pedido, setPedido, solicitante, setSolicitante, anotacao, setAnotacao, laudo, setLaudo, resultados, lendoPdf, editando: !!i, nome, setNome, de, setDe, cat, setCat, data, setData, lab, setLab,
+    id, arquivos, setArquivos, pedido, setPedido, solicitante, setSolicitante, anotacao, setAnotacao, laudo, setLaudo, resultados, lendoPdf: lendo !== null, rotuloLaudo, editando: !!i, nome, setNome, de, setDe, cat, setCat, data, setData, lab, setLab,
     consulta, setConsulta, consultasDaPessoa, proxConsulta, valido: !!nome.trim(), salvar,
   };
 }

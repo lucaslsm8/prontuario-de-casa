@@ -264,7 +264,7 @@ export function DNovoExame({ onClose, exame }: Props & { exame?: Exame }) {
         <DCampo label="Pedido por">
           <input className="input input--desk" value={f.solicitante} onChange={(e) => f.setSolicitante(e.target.value)} placeholder="Ex.: Dra. Marta Lins" />
         </DCampo>
-        <DCampo label={f.lendoPdf ? 'Resultado · lendo o PDF…' : 'Resultado (texto do laudo)'} span2>
+        <DCampo label={f.rotuloLaudo} span2>
           <textarea className="input input--desk input--area" style={{ minHeight: 140 }} value={f.laudo} onChange={(e) => f.setLaudo(e.target.value)} placeholder="Cole aqui o texto do laudo, ou anexe o PDF para o app ler." />
           {!!f.resultados?.length && <span style={{ fontSize: 12, color: 'var(--text-2)' }}>Valores lidos: {f.resultados.map((r) => r.marcador).join(', ')}</span>}
         </DCampo>

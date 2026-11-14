@@ -188,7 +188,7 @@ export function AdicionarExame({ onDone, exame }: { onDone?: () => void; exame?:
   const nav = useNavigate();
   const fechar = onDone ?? (() => nav('/exames'));
   const pessoas = editaveis(state);
-  const { id, arquivos, setArquivos, pedido, setPedido, solicitante, setSolicitante, editando, anotacao, setAnotacao, laudo, setLaudo, resultados, lendoPdf, nome, setNome, de, setDe, cat, setCat, data, setData, lab, setLab, consulta, proxConsulta, valido, salvar } = useFormExame(fechar, exame);
+  const { id, arquivos, setArquivos, pedido, setPedido, solicitante, setSolicitante, editando, anotacao, setAnotacao, laudo, setLaudo, resultados, rotuloLaudo, nome, setNome, de, setDe, cat, setCat, data, setData, lab, setLab, consulta, proxConsulta, valido, salvar } = useFormExame(fechar, exame);
   const c = state.consultas.find((x) => x.id === consulta);
 
   return (
@@ -227,7 +227,7 @@ export function AdicionarExame({ onDone, exame }: { onDone?: () => void; exame?:
         />
       </div>
       <SugestoesConsulta />
-      <Field label={lendoPdf ? 'Resultado · lendo o PDF…' : 'Resultado (texto do laudo)'}>
+      <Field label={rotuloLaudo}>
         <textarea className="input input--area" style={{ minHeight: 140 }} value={laudo} onChange={(e) => setLaudo(e.target.value)} placeholder="Cole o texto do laudo, ou anexe o PDF do resultado para o app ler." />
         {!!resultados?.length && <span style={{ fontSize: 12, color: 'var(--text-2)' }}>Valores lidos: {resultados.map((r) => r.marcador).join(', ')}</span>}
       </Field>

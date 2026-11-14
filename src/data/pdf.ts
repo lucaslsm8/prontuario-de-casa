@@ -3,8 +3,7 @@
 
 import type { PDFDocumentProxy, PDFWorker } from 'pdfjs-dist';
 import type { Anexo, Resultado } from './types';
-import { dataDoTexto, limparTexto, marcadoresDoTexto, textoDoLaudo } from './laudo';
-import { ehPdf } from './anexos';
+import { limparTexto } from './laudo';
 
 let trabalhador: PDFWorker | undefined;
 
@@ -91,12 +90,3 @@ export function capaDoPdf(a: Pick<Anexo, 'id' | 'dados'>, largura = 480): Promis
 
 export interface LidoDoPdf { laudo: string; resultados: Resultado[]; dataColeta?: string }
 
-/** Lê o texto dos PDFs anexados. null = nenhum PDF tem texto (escaneado). */
-export async function lerDosPdfs(anexos: Anexo[]): Promise<LidoDoPdf | null> {
-  const paginas: string[] = [];
-  for (const a of anexos.filter(ehPdf)) paginas.push(...(await paginasDoPdf(a)).filter(Boolean));
-  if (!paginas.length) return null;
-  // Valores e data saem do texto inteiro; o resultado guardado fica sem cabeçalho, rodapé e identificação.
-  const tudo = paginas.join('\n\n');
-  return { laudo: textoDoLaudo(paginas) || tudo, resultados: marcadoresDoTexto(tudo), dataColeta: dataDoTexto(tudo) };
-}
