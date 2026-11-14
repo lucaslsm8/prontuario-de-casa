@@ -1,5 +1,4 @@
-- Exames: campos separados para o pedido do exame e para o resultado (laudo, PDF ou imagens)
-- O app lê sozinho o resultado em foto ou PDF escaneado, aqui no aparelho, e preenche o texto, os valores e a data
-- Filtro completo na lista de exames: pessoa, tipo, período (ou entre datas) e ordem
-- Arquivos do exame em miniatura (toque para ampliar), com mais espaço para o resultado
-- Cada valor do exame aceita um comentário (ex.: "pedra no rim") e mostra o valor anterior e a variação; toque no nome para ver a evolução
+- Novo "Modo de uso" em Configurações: "Só informações" mostra o que cada um toma, como é o remédio e a que horas, sem marcar doses, estoque nem lembretes de dose (vale para o aparelho)
+- No modo só de informações, o Início traz os remédios em uso de cada pessoa, alergias e condições, próximas consultas e exames recentes
+- Resultado do exame formatado: títulos de seção (Técnica, Análise, Impressão…) e rótulos em negrito, e a conclusão em destaque
+- A prévia do resultado mostra primeiro a conclusão, com "Ver o laudo completo"

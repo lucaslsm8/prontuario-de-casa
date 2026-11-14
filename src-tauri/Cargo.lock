@@ -108,7 +108,7 @@ dependencies = [
 
 [[package]]
 name = "arquivo-saude"
-version = "0.5.21"
+version = "0.5.22"
 dependencies = [
  "argon2",
  "base64 0.22.1",
