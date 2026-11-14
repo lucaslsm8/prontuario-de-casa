@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { pessoa, useStore } from '../data/store';
 import { HOJE } from '../data/tempo';
 import { diaSemanaSigla, parseISO, quem } from '../data/format';
@@ -11,7 +11,19 @@ import { useAbrir } from './Shell';
 
 const COLS = '104px 52px 150px minmax(0,1.6fr) minmax(0,1.2fr) 120px';
 
-/** Consultas — todas as consultas e exames marcados da família, em lista, com filtro (a Agenda é o calendário). */
+/** Calendário × Lista no topo da Agenda (`?vista=lista`); troca sem empilhar no histórico e mantém os outros parâmetros. */
+export function VistaAgenda() {
+  const [params, setParams] = useSearchParams();
+  const vista = params.get('vista') === 'lista' ? 'lista' : 'calendario';
+  const trocar = (v: 'calendario' | 'lista') => {
+    const p = new URLSearchParams(params);
+    if (v === 'lista') p.set('vista', 'lista'); else p.delete('vista');
+    setParams(p, { replace: true });
+  };
+  return <Segmented variante="desk" opcoes={[{ id: 'calendario', nome: 'Calendário' }, { id: 'lista', nome: 'Lista' }]} valor={vista} onChange={trocar} />;
+}
+
+/** Agenda › Lista — todas as consultas e exames marcados da família, com filtro (era a aba "Consultas"). */
 export function DConsultas() {
   const { state } = useStore();
   const nav = useNavigate();
@@ -40,10 +52,13 @@ export function DConsultas() {
     <div className="desk__page" style={{ gap: 18 }}>
       <div className="hstack" style={{ justifyContent: 'space-between' }}>
         <div className="stack" style={{ gap: 4 }}>
-          <h1 className="desk-title" style={{ margin: 0 }}>Consultas</h1>
+          <h1 className="desk-title" style={{ margin: 0 }}>Agenda</h1>
           <span className="muted" style={{ fontSize: 14 }}>{futuras ? `${futuras} ${futuras === 1 ? 'marcada' : 'marcadas'} daqui pra frente, de toda a família` : 'Nada marcado daqui pra frente'}</span>
         </div>
-        <button type="button" className="btn btn--teal btn--h38" onClick={() => abrir('consulta')}>Nova consulta</button>
+        <div className="hstack" style={{ gap: 12 }}>
+          <VistaAgenda />
+          <button type="button" className="btn btn--teal btn--h38" onClick={() => abrir('consulta')}>Nova consulta</button>
+        </div>
       </div>
 
       <div className="hstack" style={{ gap: 12, flexWrap: 'wrap' }}>

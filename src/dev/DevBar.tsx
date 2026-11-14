@@ -36,7 +36,7 @@ export const TELAS: { id: string; nome: string; layout: Layout; rota: string; va
   { id: 'D03', nome: 'Exames', layout: 'desktop', rota: '/exames/lipidico' },
   { id: 'D04', nome: 'Agenda', layout: 'desktop', rota: '/agenda' },
   { id: 'D05', nome: 'Remédios', layout: 'desktop', rota: '/remedios' },
-  { id: 'D06', nome: 'Planos de saúde', layout: 'desktop', rota: '/planos' },
+  { id: 'D06', nome: 'Carteirinhas', layout: 'desktop', rota: '/planos' },
   { id: 'D07', nome: 'Configurações', layout: 'desktop', rota: '/configuracoes' },
   { id: 'D08', nome: 'Atualização disponível', layout: 'desktop', rota: '/?update=1' },
   { id: 'D·Primeiro uso', nome: 'Primeiro uso', layout: 'desktop', rota: '/boas-vindas' },

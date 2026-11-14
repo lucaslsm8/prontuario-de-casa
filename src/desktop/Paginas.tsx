@@ -13,6 +13,7 @@ import { agruparFamiliaPets, familia, opcoesPessoas } from '../data/pets';
 import type { Remedio } from '../data/types';
 import { CarteirinhaBalcao } from '../mobile/Familia';
 import { useAbrir } from './Shell';
+import { DConsultas, VistaAgenda } from './Consultas';
 import { GaleriaAnexos } from '../ui/Anexos';
 import { AcoesRegistro } from './Acoes';
 import { CardFamilia } from '../ui/Familia';
@@ -43,6 +44,8 @@ export function DAgenda() {
   const futuras = state.consultas.filter((c) => c.data >= HOJE).sort((a, b) => `${a.data}${a.hora}`.localeCompare(`${b.data}${b.hora}`));
   const prox = futuras[0];
   const em30 = futuras.filter((c) => c.data <= addDias(HOJE, 30));
+  const [params] = useSearchParams();
+  if (params.get('vista') === 'lista') return <DConsultas />;
 
   return (
     <div className="desk__page">
@@ -64,6 +67,7 @@ export function DAgenda() {
             <span className="hstack" style={{ gap: 6 }}>{dot('var(--teal)')}Consulta</span>
             <span className="hstack" style={{ gap: 6 }}>{dot('var(--warn-bar)')}Exame</span>
           </div>
+          <VistaAgenda />
           <AgendaIcs />
           <button type="button" className="btn btn--teal btn--h38" onClick={() => abrir('consulta')}>Nova consulta</button>
         </div>
@@ -202,7 +206,7 @@ export function DRemedios() {
   );
 }
 
-// ── D06 Planos de saúde ─────────────────────────────────────────────────────
+// ── D06 Carteirinhas (planos de saúde) ─────────────────────────────────────────────────────
 
 export function DPlanos() {
   const { state, api } = useStore();
@@ -223,7 +227,7 @@ export function DPlanos() {
   if (!sel) {
     return (
       <div className="desk__page">
-        <h1 className="desk-title" style={{ margin: 0 }}>Planos de saúde</h1>
+        <h1 className="desk-title" style={{ margin: 0 }}>Carteirinhas</h1>
         <div className="card card--dashed" style={{ padding: 24, gap: 6, alignItems: 'flex-start', maxWidth: 480 }}>
           <span style={{ fontSize: 15, fontWeight: 600 }}>Nenhum plano guardado</span>
           <span style={{ fontSize: 14, color: 'var(--text-2)' }}>Guarde a carteirinha para ter o número à mão no balcão.</span>
@@ -247,7 +251,7 @@ export function DPlanos() {
   return (
     <div className="desk__page" style={{ gap: 20 }}>
       <div className="hstack" style={{ justifyContent: 'space-between' }}>
-        <h1 className="desk-title" style={{ margin: 0 }}>Planos de saúde</h1>
+        <h1 className="desk-title" style={{ margin: 0 }}>Carteirinhas</h1>
         <div className="hstack" style={{ gap: 8 }}>
           <AcoesRegistro
             podeEditar={editaveis(state).some((x) => x.id === sel.pessoaId)}

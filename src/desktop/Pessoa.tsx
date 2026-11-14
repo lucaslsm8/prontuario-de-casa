@@ -242,7 +242,7 @@ function AbaPlano({ id }: { id: string }) {
         ['Operadora', plano.operadora], ['Carteirinha', plano.numero], ['Plano', `${plano.produto} · ${plano.vinculo}`], ['Validade', plano.validade],
         ['Segmentação', plano.segmentacao], ['Central 24 h', plano.central ?? '—'],
       ].map(([k, v]) => <div key={k} className="row" style={{ padding: '14px 20px' }}><span className="muted">{k}</span><span className={k === 'Carteirinha' ? 'mono' : undefined}>{v}</span></div>)}
-      <div className="row" style={{ padding: '14px 20px' }}><Link to="/planos" style={{ fontWeight: 600 }}>Ver em Planos de saúde</Link></div>
+      <div className="row" style={{ padding: '14px 20px' }}><Link to="/planos" style={{ fontWeight: 600 }}>Ver em Carteirinhas</Link></div>
     </div>
   );
 }
