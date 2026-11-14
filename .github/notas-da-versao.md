@@ -1,4 +1,4 @@
-- Simulador de reembolso: escolha o serviço (consulta, psicólogo, fisioterapia…), informe quanto pagou e veja quanto volta do plano. Na SulAmérica, a tabela por grade já vem no app
-- Botão "Simular reembolso" no plano e na ficha da consulta
-- Celular: o perfil aberto aparece no topo de cada aba; a aba Perfil abre a página com um toque
-- Celular: "Voltar" volta para a tela anterior e a barra de baixo fica visível nas telas de leitura
+- Configurações com as mesmas seções no celular e no computador: Família e compartilhamento, Privacidade e bloqueio, Backup, Aparelhos e sincronização, Atualizações e Exportar PDF
+- Computador: a Agenda ganhou a vista Lista (era a aba Consultas) e "Planos de saúde" agora se chama Carteirinhas
+- Celular: a página de cada pessoa e de cada pet ficou dividida em abas (Resumo, Saúde, Histórico ou Fotos)
+- Celular: cadastrar remédio em três etapas; nova consulta com o essencial primeiro e "Mais detalhes" para o resto
