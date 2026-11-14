@@ -1,4 +1,5 @@
-- Configurações com as mesmas seções no celular e no computador: Família e compartilhamento, Privacidade e bloqueio, Backup, Aparelhos e sincronização, Atualizações e Exportar PDF
-- Computador: a Agenda ganhou a vista Lista (era a aba Consultas) e "Planos de saúde" agora se chama Carteirinhas
-- Celular: a página de cada pessoa e de cada pet ficou dividida em abas (Resumo, Saúde, Histórico ou Fotos)
-- Celular: cadastrar remédio em três etapas; nova consulta com o essencial primeiro e "Mais detalhes" para o resto
+- Exames: campos separados para o pedido do exame e para o resultado (laudo, PDF ou imagens)
+- O app lê sozinho o resultado em foto ou PDF escaneado, aqui no aparelho, e preenche o texto, os valores e a data
+- Filtro completo na lista de exames: pessoa, tipo, período (ou entre datas) e ordem
+- Arquivos do exame em miniatura (toque para ampliar), com mais espaço para o resultado
+- Cada valor do exame aceita um comentário (ex.: "pedra no rim") e mostra o valor anterior e a variação; toque no nome para ver a evolução
