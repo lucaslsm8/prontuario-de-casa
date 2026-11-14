@@ -1,11 +1,11 @@
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
 import { AVISAR, nomeAvisar, DURACOES, FORMAS_REMEDIO, FREQUENCIAS, lerHorarios, lerQuantidade, partesDoRemedio, useFormRemedio } from '../data/formularios';
 import { editaveis, historicoAdesao, marcaDose, pessoa, useStore, type DiaAdesao } from '../data/store';
 import { addDias, descricaoDose, diaSemanaCurto, diasDeEstoque, estoqueBaixo, parseISO, pctEstoque, quem, textoEstoque } from '../data/format';
 import type { Remedio } from '../data/types';
-import { Bar, ChipGroup, Field, FieldGroup, Label, Pill, Row, SecaoLista, Segmented, Toggle, TopNav, InlineInput } from '../ui';
+import { Bar, ChipGroup, Field, FieldGroup, Label, Pill, Row, SecaoLista, Segmented, Toggle, TopNav, InlineInput, cx } from '../ui';
 import { agruparFamiliaPets, opcoesPessoas } from '../data/pets';
 import { MScreen, TabHeader } from './Shell';
 import { TopoPerfil, textoSalvar } from './Perfil';
@@ -163,6 +163,8 @@ export function EditarRemedio() {
   return <NovoRemedio remedio={r} onDone={() => nav(`/remedios/${r.id}`, { replace: true })} />;
 }
 
+const ETAPAS_REMEDIO = ['O quê e para quem', 'Quando tomar', 'Estoque e detalhes'];
+
 export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?: Remedio }) {
   const { state } = useStore();
   const nav = useNavigate();
@@ -170,10 +172,25 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
   const pessoas = editaveis(state);
   const form = useFormRemedio(fechar, remedio);
   const { nome, setNome, dosagem, setDosagem, indicacao, setIndicacao, para, setPara, freq, setFreq, duracao, setDuracao, lembrete, setLembrete, estoque, setEstoque, avisar, setAvisar, fim, unidade, id: remId, receita, setReceita, horariosTexto, setHorariosTexto, completarHorarios, horariosValidos, editando, valido, salvar } = form;
+  // Cadastro novo em três etapas; editar mostra tudo numa página (quem edita quer ir direto ao campo).
+  // O "Salvar" do topo vale em qualquer etapa, assim que o formulário é válido.
+  const [passo, setPasso] = useState(1);
+  const etapas = !editando;
+  const ver = (n: number) => !etapas || passo === n;
+  const rolagem = useRef<HTMLDivElement>(null);
+  useEffect(() => { rolagem.current?.scrollTo(0, 0); }, [passo]);
+  const podeSeguir = passo === 1 ? !!nome.trim() && form.qtdValida : passo === 2 ? horariosValidos || freq.id === 'sn' : true;
 
   return (
-    <MScreen gap={12}>
+    <MScreen gap={12} scrollRef={rolagem}>
       <TopNav voltar="Cancelar" titulo={editando ? 'Editar remédio' : 'Novo remédio'} acao="Salvar" onAcao={salvar} acaoDesativada={!valido} />
+      {etapas && (
+        <div className="stack" style={{ gap: 8 }}>
+          <div className="etapas" aria-hidden>{ETAPAS_REMEDIO.map((_, i) => <span key={i} className={cx('etapas__barra', i < passo && 'is-on')} />)}</div>
+          <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Etapa {passo} de {ETAPAS_REMEDIO.length} · {ETAPAS_REMEDIO[passo - 1]}</span>
+        </div>
+      )}
+      {ver(1) && <>
       <Field label="Remédio">
         <input className="input" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Losartana" autoFocus={!editando} />
       </Field>
@@ -198,6 +215,10 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
             </span>
           }
         />
+      </div>
+      </>}
+      {ver(2) && <>
+      <div className="card" style={{ fontSize: 15 }}>
         <Row tight label="Frequência" valor={<Ciclo valores={FREQUENCIAS} valor={freq} onChange={setFreq} render={(v) => v.nome} />} />
         {/* Os horários de verdade (o campo de baixo), não os padrões da frequência. */}
         {(lerHorarios(horariosTexto)?.length ?? 0) > 0 && (
@@ -213,9 +234,17 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
           label="Duração"
           valor={<Ciclo valores={DURACOES} valor={duracao} onChange={setDuracao} render={(v) => (v ? `${v} dias · até ${fim.slice(8, 10)}/${fim.slice(5, 7)}` : 'Uso contínuo')} />}
         />
-      </div>
-      <div className="card" style={{ fontSize: 15 }}>
         <Row tight mutedLabel={false} label="Lembrete no horário" valor={<Toggle on={lembrete} onChange={setLembrete} label="Lembrete no horário" />} />
+      </div>
+      {freq.id !== 'sn' && (
+        <Field label="Horários">
+          <input className="input input--mono" value={horariosTexto} onChange={(e) => setHorariosTexto(e.target.value)} onBlur={completarHorarios} placeholder="08:00, 20:00" />
+          {!horariosValidos && <span style={{ fontSize: 13, color: 'var(--danger)' }}>Use HH:MM separados por vírgula.</span>}
+        </Field>
+      )}
+      </>}
+      {ver(3) && <>
+      <div className="card" style={{ fontSize: 15 }}>
         <Row
           tight
           label="Estoque atual"
@@ -246,12 +275,6 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
         <input className="input" list="sug-prof" value={form.receitadoPor} onChange={(e) => form.setReceitadoPor(e.target.value)} placeholder="Ex.: Dra. Marta Lins" />
         <SugestoesConsulta />
       </Field>
-      {freq.id !== 'sn' && (
-        <Field label="Horários">
-          <input className="input input--mono" value={horariosTexto} onChange={(e) => setHorariosTexto(e.target.value)} onBlur={completarHorarios} placeholder="08:00, 20:00" />
-          {!horariosValidos && <span style={{ fontSize: 13, color: 'var(--danger)' }}>Use HH:MM separados por vírgula.</span>}
-        </Field>
-      )}
       {form.comCartela && (
         <>
           <Label style={{ marginTop: 8 }}>Como ele é</Label>
@@ -263,9 +286,20 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
           <AnexosPendentes donoId={remId} tipo="receita" lista={receita} onChange={setReceita} />
         </FieldGroup>
       )}
-      <button type="button" className="btn btn--cta" style={{ marginTop: 'auto' }} disabled={!valido} onClick={salvar}>
-        {editando ? 'Salvar alterações' : textoSalvar(state, para, 'Salvar remédio')}
-      </button>
+      </>}
+      {etapas && passo < ETAPAS_REMEDIO.length ? (
+        <div className="hstack" style={{ gap: 8, marginTop: 'auto' }}>
+          {passo > 1 && <button type="button" className="btn btn--outline btn--grow" style={{ height: 54 }} onClick={() => setPasso(passo - 1)}>Anterior</button>}
+          <button type="button" className="btn btn--cta btn--grow" disabled={!podeSeguir} onClick={() => setPasso(passo + 1)}>Continuar</button>
+        </div>
+      ) : (
+        <div className="hstack" style={{ gap: 8, marginTop: 'auto' }}>
+          {etapas && <button type="button" className="btn btn--outline" style={{ height: 54, padding: "0 18px" }} onClick={() => setPasso(passo - 1)}>Anterior</button>}
+          <button type="button" className="btn btn--cta btn--grow" disabled={!valido} onClick={salvar}>
+            {editando ? 'Salvar alterações' : textoSalvar(state, para, 'Salvar remédio')}
+          </button>
+        </div>
+      )}
     </MScreen>
   );
 }

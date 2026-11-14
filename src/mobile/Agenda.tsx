@@ -254,6 +254,7 @@ export function NovaConsulta({ onDone, consulta }: { onDone?: () => void; consul
   const form = useFormConsulta(fechar, { inicial: consulta });
   const { titulo, setTitulo, para, setPara, quando, setQuando, prof, setProf, local, setLocal, plano, setPlano, levar, setLevar, novoItem, setNovoItem, lembrar, setLembrar, paraPet, editando, valido, salvar, endereco, setEndereco, telefone, setTelefone, preparo, setPreparo, trajeto, setTrajeto, trajetoValido } = form;
   const operadora = state.planos.find((x) => x.pessoaId === para)?.operadora.split(' ')[0];
+  const [detalhes, setDetalhes] = useState(editando);
 
   return (
     <MScreen gap={14}>
@@ -267,9 +268,18 @@ export function NovaConsulta({ onDone, consulta }: { onDone?: () => void; consul
       </FieldGroup>
       <div className="card" style={{ fontSize: 15 }}>
         <Row compact style={{ padding: '12px 16px' }} label="Data e hora" valor={<InlineInput className="mono" value={quando} onChange={(e) => setQuando(e.target.value)} aria-label="Data e hora" />} />
-        <Row compact style={{ padding: '12px 16px' }} label="Profissional" valor={<InlineInput style={{ fontWeight: 400 }} list="sug-prof" value={prof} onChange={(e) => setProf(e.target.value)} aria-label="Profissional" />} />
-        <SugestoesConsulta />
         <Row compact style={{ padding: '12px 16px' }} label="Local" valor={<InlineInput style={{ fontWeight: 400 }} list="sug-local" value={local} onChange={(e) => setLocal(e.target.value)} aria-label="Local" />} />
+        <SugestoesConsulta />
+      </div>
+      {/* O essencial acima; o resto recolhido (já aberto ao editar). Os padrões (plano, lembrete) valem mesmo fechado. */}
+      <button type="button" className="mais-detalhes" aria-expanded={detalhes} onClick={() => setDetalhes(!detalhes)}>
+        <span>{detalhes ? 'Menos detalhes' : 'Mais detalhes'}</span>
+        <span className="muted" style={{ fontWeight: 400 }}>{detalhes ? '' : 'profissional, endereço, preparo, o que levar, lembrete'}</span>
+        <span className={cx('mais-detalhes__seta', detalhes && 'is-aberto')} aria-hidden>›</span>
+      </button>
+      {detalhes && <>
+      <div className="card" style={{ fontSize: 15 }}>
+        <Row compact style={{ padding: '12px 16px' }} label="Profissional" valor={<InlineInput style={{ fontWeight: 400 }} list="sug-prof" value={prof} onChange={(e) => setProf(e.target.value)} aria-label="Profissional" />} />
         <Row compact style={{ padding: '12px 16px' }} label="Endereço" valor={<InlineInput style={{ fontWeight: 400 }} value={endereco} onChange={(e) => setEndereco(e.target.value)} placeholder="Rua, número, bairro" aria-label="Endereço" />} />
         <Row compact style={{ padding: '12px 16px' }} label="Telefone" valor={<InlineInput className="mono" style={{ fontWeight: 400 }} inputMode="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="(11) 3000-0000" aria-label="Telefone" />} />
         <Row compact style={{ padding: '12px 16px' }} label="Trajeto" valor={<InlineInput style={{ fontWeight: 400, color: trajetoValido ? undefined : 'var(--danger)' }} value={trajeto} onChange={(e) => setTrajeto(e.target.value)} placeholder="30 min" aria-label="Tempo de trajeto" />} />
@@ -318,6 +328,7 @@ export function NovaConsulta({ onDone, consulta }: { onDone?: () => void; consul
       <FieldGroup label="Lembrar">
         <ChipGroup gap6 tom="teal" tamanho="md" opcoes={LEMBRAR.map((x) => ({ id: x, nome: x }))} valor={lembrar} onChange={setLembrar} />
       </FieldGroup>
+      </>}
       <button type="button" className="btn btn--cta" style={{ marginTop: 'auto' }} disabled={!valido} onClick={salvar}>
         {editando ? 'Salvar consulta' : textoSalvar(state, para, 'Salvar consulta')}
       </button>

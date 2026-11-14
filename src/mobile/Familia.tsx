@@ -6,11 +6,13 @@ import { compartilhado, editaveis, eu, pessoa, podeVer, useStore, type State } f
 import { dataBR, diaMes, idade, numBR, numCurto, quem, linhaRemedioEmergencia } from '../data/format';
 import { CATEGORIAS, type Categoria, type Medicao, type Pessoa, type Plano } from '../data/types';
 import { fmtMedicao, infoMedicao } from '../data/medicoes';
-import { Avatar, FieldGroup, Label, Pill, Row, SecaoLista, Toggle, TopNav } from '../ui';
+import { Avatar, FieldGroup, Label, Pill, Row, SecaoLista, Segmented, Toggle, TopNav } from '../ui';
+import { LinhaDoTempo } from '../ui/Busca';
+import { linhaDoTempo } from '../data/busca';
 import { descricaoPet, ehPet, equipeProcedimento, familia, pesoAtual, pets, telHref, tituloProcedimento } from '../data/pets';
 import { FotoDoPerfil } from '../ui/Foto';
 import { PetPerfil } from './Pet';
-import { TopoPerfil, useAbrirNoPerfil, usePerfil } from './Perfil';
+import { TopoPerfil, useAbaPagina, useAbrirNoPerfil, usePerfil } from './Perfil';
 import { MScreen, TabHeader } from './Shell';
 import { GaleriaAnexos } from '../ui/Anexos';
 import { ConfirmarSheet, RemoverPessoaMobile } from '../ui/Confirmar';
@@ -177,13 +179,16 @@ function Indicadores({ p }: { p: Pessoa }) {
   );
 }
 
-/** M04 — Perfil do membro. */
+const ABAS_PESSOA = ['resumo', 'saude', 'historico'] as const;
+
+/** M04 — Perfil do membro, em três abas: Resumo, Saúde e Histórico (`?aba=`). */
 export function PerfilMembro() {
   const { id } = useParams();
   const { state } = useStore();
   const nav = useNavigate();
   const abrirNoPerfil = useAbrirNoPerfil();
   const { id: aberto } = usePerfil();
+  const [aba, setAba] = useAbaPagina(ABAS_PESSOA);
   const p = pessoa(state, id ?? '');
   if (!p) return <MScreen tabs><TopNav voltar="Família" voltarPara="/familia" /><span className="muted">Pessoa não encontrada.</span></MScreen>;
   if (ehPet(p)) return <PetPerfil key={p.id} pet={p} />;
@@ -222,6 +227,12 @@ export function PerfilMembro() {
         </div>
       )}
 
+      {/* Abas internas só quando há o perfil clínico para mostrar; sem ele, sobra o Resumo (remédios, consultas, exames). */}
+      {ver('perfil') && (
+        <Segmented opcoes={[{ id: 'resumo', nome: 'Resumo' }, { id: 'saude', nome: 'Saúde' }, { id: 'historico', nome: 'Histórico' }]} valor={aba} onChange={setAba} />
+      )}
+
+      {(aba === 'resumo' || !ver('perfil')) && <>
       {ver('perfil') && (
         <>
           <Indicadores p={p} />
@@ -243,14 +254,27 @@ export function PerfilMembro() {
         </>
       )}
 
-      {/* Mesma ordem das abas da pessoa no desktop: Medições, Vacinas, Histórico, Remédios, Consultas, Exames, Plano. */}
-      {ver('perfil') && (
+      {(ver('remedios') || ver('consultas') || ver('exames')) && (
+        <div className="card" style={{ fontSize: 15 }}>
+          {ver('remedios') && <Row mutedLabel={false} label="Remédios" valor={<span className="muted">{remedios.length} em uso ›</span>} onClick={() => abrirNoPerfil(p.id, '/remedios')} />}
+          {ver('consultas') && <Row mutedLabel={false} label="Consultas" valor={<span className="muted">{prox ? `próxima ${diaMes(prox.data)}` : 'nenhuma marcada'} ›</span>} onClick={() => abrirNoPerfil(p.id, '/agenda')} />}
+          {ver('exames') && <Row mutedLabel={false} label="Exames" valor={<span className="muted">{exames.length} arquivados ›</span>} onClick={() => abrirNoPerfil(p.id, '/exames')} />}
+        </div>
+      )}
+
+      <Label>Quem cuida</Label>
+      <PapeisDaPessoa p={p} />
+      {podeDecidir(state, me?.id, p.id) && <RemoverPessoaMobile p={p} />}
+      </>}
+
+      {/* Saúde: medições, vacinas e procedimentos (as abas do desktop com o mesmo nome). */}
+      {aba === 'saude' && ver('perfil') && (
         <div className="card" style={{ fontSize: 15 }}>
           <Row mutedLabel={false} label="Medições" valor={<span className="muted">{resumoMedicoes(state.medicoes, p.id)} ›</span>} onClick={() => nav(`/pessoa/${p.id}/medicoes`)} />
         </div>
       )}
 
-      {ver('perfil') && (
+      {aba === 'saude' && ver('perfil') && (
         <div className="card" style={{ fontSize: 15 }}>
           <span className="label" style={{ padding: '12px 16px 4px' }}>Vacinas</span>
           {state.vacinas.filter((v) => v.pessoaId === p.id).sort((a, b) => b.data.localeCompare(a.data)).map((v) => (
@@ -259,7 +283,7 @@ export function PerfilMembro() {
           {podeEditar && <Row mutedLabel={false} label={<span style={{ color: 'var(--teal)', fontWeight: 600 }}>+ Registrar vacina</span>} onClick={() => nav(`/pet/${p.id}/vacina`)} style={{ padding: '10px 16px' }} />}
         </div>
       )}
-      {ver('perfil') && (
+      {aba === 'saude' && ver('perfil') && (
         <div className="card" style={{ fontSize: 15 }}>
           <span className="label" style={{ padding: '12px 16px 4px' }}>Procedimentos</span>
           {state.procedimentos.filter((x) => x.pessoaId === p.id).sort((a, b) => b.data.localeCompare(a.data)).map((x) => (
@@ -276,16 +300,11 @@ export function PerfilMembro() {
           {!podeEditar && !state.procedimentos.some((x) => x.pessoaId === p.id) && <Row mutedLabel={false} label={<span className="muted">Nenhum procedimento registrado.</span>} style={{ padding: '10px 16px' }} />}
         </div>
       )}
-      <div className="card" style={{ fontSize: 15 }}>
-        {ver('perfil') && <Row mutedLabel={false} label="Histórico" valor={<span className="muted">linha do tempo ›</span>} onClick={() => nav(`/pessoa/${p.id}/historico`)} />}
-        {ver('remedios') && <Row mutedLabel={false} label="Remédios" valor={<span className="muted">{remedios.length} em uso ›</span>} onClick={() => abrirNoPerfil(p.id, '/remedios')} />}
-        {ver('consultas') && <Row mutedLabel={false} label="Consultas" valor={<span className="muted">{prox ? `próxima ${diaMes(prox.data)}` : 'nenhuma marcada'} ›</span>} onClick={() => abrirNoPerfil(p.id, '/agenda')} />}
-        {ver('exames') && <Row mutedLabel={false} label="Exames" valor={<span className="muted">{exames.length} arquivados ›</span>} onClick={() => abrirNoPerfil(p.id, '/exames')} />}
-      </div>
 
-      <Label>Quem cuida</Label>
-      <PapeisDaPessoa p={p} />
-      {podeDecidir(state, me?.id, p.id) && <RemoverPessoaMobile p={p} />}
+      {/* Histórico: a linha do tempo (a mesma de /pessoa/:id/historico), com o que a pessoa compartilha com você. */}
+      {aba === 'historico' && ver('perfil') && (
+        <LinhaDoTempo eventos={linhaDoTempo(state, p.id, (c) => podeVer(state, p.id, c), HOJE)} />
+      )}
     </MScreen>
   );
 }

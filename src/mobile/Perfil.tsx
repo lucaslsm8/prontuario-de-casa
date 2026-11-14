@@ -2,7 +2,7 @@
 // no de quem usa o aparelho; trocar vale até fechar o app. O perfil aberto fica escrito no topo de cada aba
 // (`TopoPerfil`, toque troca) e a última aba, "Perfil", abre a página dele. Início, Agenda, Remédios e Exames mostram só o perfil.
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { dosesHoje, EscopoPerfil, pessoa, podeVer, temEu, useStore, type State } from '../data/store';
 import { ehPet, familia, pets } from '../data/pets';
 import { quem } from '../data/format';
@@ -170,6 +170,22 @@ export function TopoPerfil() {
       <BotaoConfig />
     </div>
   );
+}
+
+/**
+ * Abas internas da página de uma pessoa ou pet (`?aba=<id>`; a primeira é o padrão e não vai para a URL).
+ * Trocar de aba não empilha no histórico: "Voltar" sai da página, não volta de aba.
+ */
+export function useAbaPagina<T extends string>(abas: readonly T[]) {
+  const [params, setParams] = useSearchParams();
+  const pedida = params.get('aba') as T | null;
+  const aba = pedida && abas.includes(pedida) ? pedida : abas[0];
+  const trocar = (nova: T) => {
+    const p = new URLSearchParams(params);
+    if (nova === abas[0]) p.delete('aba'); else p.set('aba', nova);
+    setParams(p, { replace: true });
+  };
+  return [aba, trocar] as const;
 }
 
 /** "Salvar remédio" → "Salvar remédio para Roberto" quando é de outra pessoa. */

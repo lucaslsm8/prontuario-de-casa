@@ -246,3 +246,17 @@ button.row:hover { background: #F8FAFA; }
 .reembolso__resultado { padding: 14px 16px; gap: 4px; background: var(--teal-light); border-color: transparent; }
 .reembolso__resultado .label { color: var(--teal); }
 .reembolso__valor { font-size: 30px; font-weight: 600; letter-spacing: -.02em; color: var(--teal-dark); font-variant-numeric: tabular-nums; }
+
+/* Formulário em etapas (cadastro de remédio no celular): uma barra por etapa, preenchida até a atual. */
+.etapas { display: flex; gap: 6px; }
+.etapas__barra { flex: 1; height: 4px; border-radius: 2px; background: var(--segment-track); transition: background var(--t) var(--ease); }
+.etapas__barra.is-on { background: var(--teal); }
+
+/* "Mais detalhes" dos formulários do celular: abre os campos opcionais. */
+.mais-detalhes {
+  display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 16px; width: 100%; text-align: left;
+  border: 1px dashed var(--border-input); border-radius: var(--r-card); font-size: 15px; font-weight: 600; color: var(--teal);
+}
+.mais-detalhes > .muted { flex: 1; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mais-detalhes__seta { margin-left: auto; color: var(--text-3); transition: transform var(--t) var(--ease); }
+.mais-detalhes__seta.is-aberto { transform: rotate(90deg); }

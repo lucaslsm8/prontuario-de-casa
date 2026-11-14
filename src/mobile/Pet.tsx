@@ -9,11 +9,11 @@ import {
 } from '../data/pets';
 import { dataBR, diaMes, diasDeEstoque, numCurto } from '../data/format';
 import type { Pessoa } from '../data/types';
-import { Label, Pill, Row, TopNav, reticencias } from '../ui';
+import { Label, Pill, Row, Segmented, TopNav, reticencias } from '../ui';
 import { FotoDoPerfil } from '../ui/Foto';
 import { AdicionarItem } from './EditarPerfil';
 import { MScreen, TabHeader } from './Shell';
-import { TopoPerfil, useAbrirNoPerfil, usePerfil } from './Perfil';
+import { TopoPerfil, useAbaPagina, useAbrirNoPerfil, usePerfil } from './Perfil';
 import { Grafico } from '../ui/Grafico';
 import { pontosPesagem } from '../data/medicoes';
 import { RemoverPessoaMobile } from '../ui/Confirmar';
@@ -22,14 +22,18 @@ import { fotosDoPet } from '../data/anexos';
 
 const sub = { fontSize: 13, color: 'var(--text-2)' } as const;
 
+const ABAS_PET = ['resumo', 'saude', 'fotos'] as const;
+
 /**
- * Perfil do pet no celular (linguagem do M10). Pets não têm compartilhamento: todo mundo vê e edita.
+ * Perfil do pet no celular (linguagem do M10), em três abas: Resumo, Saúde (vacinas, prevenção, sintomas,
+ * procedimentos, peso) e Fotos (`?aba=`). Pets não têm compartilhamento: todo mundo vê e edita.
  * `inicio`: é o Início do perfil do pet (com a tab bar).
  */
 export function PetPerfil({ pet: p, inicio }: { pet: Pessoa; inicio?: boolean }) {
   const nav = useNavigate();
   const alergia = p.alergias[0];
   const { id: aberto } = usePerfil();
+  const [aba, setAba] = useAbaPagina(ABAS_PET);
   // No perfil do próprio pet (Início ou aba "Perfil"): barra de baixo e o topo das abas, sem "voltar".
   const naAba = inicio || aberto === p.id;
   const editar = () => nav(`/pessoa/${p.id}/editar`);
@@ -46,26 +50,33 @@ export function PetPerfil({ pet: p, inicio }: { pet: Pessoa; inicio?: boolean })
       </div>
       <button type="button" className="btn btn--outline-ink btn--h50" onClick={() => nav(`/pessoa/${p.id}/emergencia`)}>Emergência</button>
 
-      <Indicadores p={p} />
-      {alergia && (
-        <div className="card card--warn" style={{ padding: '14px 16px', gap: 4 }}>
-          <span className="mono" style={{ fontSize: 11, letterSpacing: '.1em', color: 'var(--warn-text)' }}>ALERGIA</span>
-          <span style={{ fontSize: 18, fontWeight: 600, color: 'var(--warn-strong)' }}>{p.alergias.map((a) => a.substancia).join(', ')}</span>
-          {alergia.reacao && <span style={{ fontSize: 13, color: 'var(--warn-text)' }}>{alergia.reacao}{alergia.ano ? ` (${alergia.ano})` : ''}</span>}
-        </div>
-      )}
-      <Contatos p={p} />
-      <Fotos pet={p} />
+      <Segmented opcoes={[{ id: 'resumo', nome: 'Resumo' }, { id: 'saude', nome: 'Saúde' }, { id: 'fotos', nome: 'Fotos' }]} valor={aba} onChange={setAba} />
 
-      <ProximosCuidados id={p.id} />
-      <Vacinas id={p.id} />
-      <Prevencao id={p.id} />
-      <Sintomas id={p.id} />
-      <Procedimentos id={p.id} />
-      <Peso id={p.id} />
-      <RemediosEmUso id={p.id} />
-      <ConsultasExames id={p.id} />
-      {!inicio && <RemoverPessoaMobile p={p} />}
+      {aba === 'resumo' && <>
+        <Indicadores p={p} />
+        {alergia && (
+          <div className="card card--warn" style={{ padding: '14px 16px', gap: 4 }}>
+            <span className="mono" style={{ fontSize: 11, letterSpacing: '.1em', color: 'var(--warn-text)' }}>ALERGIA</span>
+            <span style={{ fontSize: 18, fontWeight: 600, color: 'var(--warn-strong)' }}>{p.alergias.map((a) => a.substancia).join(', ')}</span>
+            {alergia.reacao && <span style={{ fontSize: 13, color: 'var(--warn-text)' }}>{alergia.reacao}{alergia.ano ? ` (${alergia.ano})` : ''}</span>}
+          </div>
+        )}
+        <ProximosCuidados id={p.id} />
+        <Contatos p={p} />
+        <RemediosEmUso id={p.id} />
+        <ConsultasExames id={p.id} />
+        {!inicio && <RemoverPessoaMobile p={p} />}
+      </>}
+
+      {aba === 'saude' && <>
+        <Vacinas id={p.id} />
+        <Prevencao id={p.id} />
+        <Sintomas id={p.id} />
+        <Procedimentos id={p.id} />
+        <Peso id={p.id} />
+      </>}
+
+      {aba === 'fotos' && <Fotos pet={p} />}
     </MScreen>
   );
 }

@@ -68,6 +68,7 @@ Stack: Tauri 2 (Rust) + React 18 + TypeScript + Vite. Leia também `README.md` e
 - Ações destrutivas sempre com confirmação. "Apagar tudo" exige digitar APAGAR.
 - Transições: 150–200 ms ease-out (`var(--t)`, `var(--ease)`).
 - Alvo de toque mínimo de 44 px no mobile.
+- Celular: a página da pessoa tem as abas Resumo · Saúde · Histórico e a do pet Resumo · Saúde · Fotos (`useAbaPagina`, `?aba=`, sem empilhar no histórico). O cadastro de remédio vai em três etapas (`ETAPAS_REMEDIO`; editar mostra tudo numa página) e a consulta mostra o essencial com "Mais detalhes" recolhido (aberto ao editar).
 - Celular: "Voltar" (`TopNav`) sempre volta pelo histórico e diz "Voltar" ("Cancelar" nos formulários); `voltarPara` é só o destino quando não há tela anterior. A barra de baixo fica em todas as telas de leitura (`MScreen tabs`); só formulários, ficha de emergência e bloqueio a escondem.
 
 ## Próximos marcos (ver docs/ARQUITETURA.md)
