@@ -219,6 +219,8 @@ export function useFormExame(onSalvo: () => void, inicial?: Exame) {
   const i = inicial;
   const [id] = useState(() => i?.id ?? `ex-${novoId()}`);
   const [arquivos, setArquivos] = useState<Anexo[]>([]);
+  /** Fotos ou PDF do pedido médico (anexos `pedido`); `arquivos` são os do resultado (anexos `exame`). */
+  const [pedido, setPedido] = useState<Anexo[]>([]);
   const [nome, setNome] = useState(i?.nome ?? ex('Hemograma completo', ''));
   const [de, setDeBruto] = useState(i?.pessoaId ?? perfil ?? eu(state).id);
   const [cat, setCat] = useState<CategoriaExame>(i?.categoria ?? 'Sangue');
@@ -289,14 +291,14 @@ ${r.laudo}` : r.laudo));
     if (i) api.editar('exames', id, diffRegistro(i, exame), `${exame.nome} atualizado`);
     else {
       api.addExame(exame);
-      api.addAnexos(arquivos);
+      api.addAnexos([...pedido, ...arquivos]);
       api.toast({ texto: `${nome.trim()} arquivado` });
     }
     onSalvo();
   };
 
   return {
-    id, arquivos, setArquivos, solicitante, setSolicitante, anotacao, setAnotacao, laudo, setLaudo, resultados, lendoPdf, editando: !!i, nome, setNome, de, setDe, cat, setCat, data, setData, lab, setLab,
+    id, arquivos, setArquivos, pedido, setPedido, solicitante, setSolicitante, anotacao, setAnotacao, laudo, setLaudo, resultados, lendoPdf, editando: !!i, nome, setNome, de, setDe, cat, setCat, data, setData, lab, setLab,
     consulta, setConsulta, consultasDaPessoa, proxConsulta, valido: !!nome.trim(), salvar,
   };
 }

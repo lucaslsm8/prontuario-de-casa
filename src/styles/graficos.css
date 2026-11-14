@@ -63,3 +63,22 @@ button.tempo__item:hover { background: var(--teal-light); }
 .tempo__ponto { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); flex: none; margin-top: 6px; }
 .tempo__tipo { font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em; color: var(--text-2); text-transform: uppercase; margin-right: 4px; }
 .tempo__sub { font-size: 12px; color: var(--text-2); }
+
+/* Valor com comentário e comparação com o exame anterior. */
+.resultado--com-nota { flex-direction: column; align-items: stretch; gap: 4px; }
+.resultado__linha { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.resultado__marcador { font-weight: 600; text-align: left; color: var(--ink); text-decoration: underline dotted var(--text-3); text-underline-offset: 3px; min-height: 28px; }
+.resultado__marcador:hover { color: var(--teal); }
+.resultado__antes { font-size: 12px; color: var(--text-2); }
+.resultado__comentar { font-size: 13px; font-weight: 600; color: var(--teal); min-height: 44px; padding: 0 6px; flex-shrink: 0; }
+.resultado__nota { font-size: 13px; color: var(--text-2); font-style: italic; padding-bottom: 4px; }
+.resultado__nota-form { display: flex; gap: 8px; padding-bottom: 6px; }
+.resultado__nota-form .inline-input { flex: 1; min-width: 0; text-align: left; font-weight: 400; height: 36px; border: 1px solid var(--border-input); border-radius: var(--r-btn); padding: 0 10px; }
+
+/* Valores embaixo do gráfico do marcador, com o comentário de cada vez. */
+.medida__notas { display: flex; flex-direction: column; border-top: 1px solid var(--divider); margin-top: 6px; }
+.medida__nota { display: grid; grid-template-columns: 86px 96px minmax(0, 1fr); gap: 8px; padding: 8px 4px; font-size: 13px; border-bottom: 1px solid var(--divider); }
+.medida__nota:last-child { border-bottom: 0; }
+.medida__nota .is-fora { color: var(--warn-text); font-weight: 600; }
+.medida__nota.is-atual { background: var(--teal-light); border-radius: 4px; }
+.medida__nota-texto { color: var(--text-2); overflow-wrap: anywhere; }

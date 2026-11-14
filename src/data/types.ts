@@ -61,7 +61,8 @@ export interface Pesagem { id: string; pessoaId: PessoaId; data: string; kg: num
  * `donoId` é o exame, o remédio (receita) ou o plano (carteirinha).
  */
 /** `foto`: álbum do pet (donoId = id do pet). `cartela` e `comprimido`: fotos do remédio (donoId = id do remédio). `profissional`: foto do médico (donoId = `chaveProfissional`, vale para todas as consultas com ele). */
-export type TipoAnexo = 'exame' | 'receita' | 'carteirinha' | 'foto' | 'cartela' | 'comprimido' | 'profissional';
+/** `exame` = arquivo do resultado (laudo, imagens); `pedido` = pedido médico do exame. */
+export type TipoAnexo = 'exame' | 'pedido' | 'receita' | 'carteirinha' | 'foto' | 'cartela' | 'comprimido' | 'profissional';
 export interface Anexo { id: string; donoId: string; tipo: TipoAnexo; nome: string; mime: string; dados: string; tamanho: number; em: string; rotulo?: string }
 
 /** Medição de uma pessoa. Pressão: valor = máxima, valor2 = mínima (mmHg). */
@@ -146,8 +147,8 @@ export interface Consulta {
 export type CategoriaExame =
   | 'Sangue' | 'Urina' | 'Fezes' | 'Imagem' | 'Coração' | 'Hormônios' | 'Ginecológico' | 'Urológico'
   | 'Oftalmológico' | 'Pele' | 'Sorologia' | 'Laudo / atestado' | 'Outro';
-/** Valor de um marcador no exame (ex.: LDL 138 mg/dL). `min`/`max`: faixa do laudo, se a pessoa digitou. */
-export interface Resultado { marcador: string; valor: number; unidade: string; min?: number; max?: number }
+/** Valor de um marcador no exame (ex.: LDL 138 mg/dL). `min`/`max`: faixa do laudo, se a pessoa digitou. `nota`: comentário sobre este valor neste exame (ex.: "pedra no rim" ao lado de uma creatinina alta). */
+export interface Resultado { marcador: string; valor: number; unidade: string; min?: number; max?: number; nota?: string }
 
 export interface Exame {
   id: string;

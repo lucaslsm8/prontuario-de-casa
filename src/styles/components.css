@@ -260,3 +260,8 @@ button.row:hover { background: #F8FAFA; }
 .mais-detalhes > .muted { flex: 1; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mais-detalhes__seta { margin-left: auto; color: var(--text-3); transition: transform var(--t) var(--ease); }
 .mais-detalhes__seta.is-aberto { transform: rotate(90deg); }
+
+/* Linha com o que está filtrado ("Roberto · Imagem · Limpar"), embaixo da busca. */
+.filtro-resumo { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-2); min-width: 0; }
+.filtro-resumo > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filtro-resumo > button { color: var(--teal); font-weight: 600; min-height: 44px; padding: 0 4px; flex-shrink: 0; }

@@ -79,3 +79,16 @@ export function serieMarcador(exames: Exame[], pessoaId: string, marcador: strin
 export const qtdForaDaFaixa = (e: Pick<Exame, 'resultados'>) => (e.resultados ?? []).filter((r) => foraDaFaixa(r)).length;
 /** "1 valor fora da faixa" / "3 valores fora da faixa" / '' */
 export const textoForaDaFaixa = (n: number) => (n ? `${n} ${n === 1 ? 'valor' : 'valores'} fora da faixa` : '');
+
+/** O mesmo marcador no exame anterior da pessoa (coletado antes deste), para comparar. */
+export function anteriorDoMarcador(exames: Exame[], exame: Pick<Exame, 'id' | 'pessoaId' | 'dataColeta'>, marcador: string) {
+  const antes = serieMarcador(exames, exame.pessoaId, marcador).filter((p) => p.exameId !== exame.id && p.data < exame.dataColeta);
+  return antes[antes.length - 1];
+}
+
+/** Variação em relação ao anterior: "↑ 26 mg/dL" / "↓ 0,3 mg/dL" / "igual". */
+export function variacao(atual: Resultado, anterior: Resultado): string {
+  const d = Math.round((atual.valor - anterior.valor) * 100) / 100;
+  if (d === 0) return 'igual';
+  return `${d > 0 ? '↑' : '↓'} ${fmtValor(Math.abs(d))} ${atual.unidade}`.trim();
+}

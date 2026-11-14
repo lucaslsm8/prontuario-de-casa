@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { foraDaFaixa, fmtValor, marcadoresDaPessoa, montarResultado, qtdForaDaFaixa, serieMarcador, textoForaDaFaixa } from './resultados';
+import { anteriorDoMarcador, variacao, foraDaFaixa, fmtValor, marcadoresDaPessoa, montarResultado, qtdForaDaFaixa, serieMarcador, textoForaDaFaixa } from './resultados';
 import { compararAgenda, gerarIcs, idDaAgenda, lerIcs } from './ics';
 import { buscar, linhaDoTempo } from './busca';
 import { estadoExemplo } from './store';
@@ -92,5 +92,23 @@ describe('valores fora da faixa na lista', () => {
     expect(textoForaDaFaixa(1)).toBe('1 valor fora da faixa');
     expect(textoForaDaFaixa(2)).toBe('2 valores fora da faixa');
     expect(textoForaDaFaixa(0)).toBe('');
+  });
+});
+
+describe('comparar um valor com o exame anterior', () => {
+  const e = (id: string, dataColeta: string, valor: number, pessoaId = 'roberto'): Exame =>
+    ({ id, pessoaId, nome: 'Função renal', categoria: 'Sangue', dataColeta, laboratorio: '', arquivo: 'PDF', paginas: 1, resultados: [{ marcador: 'Creatinina', valor, unidade: 'mg/dL' }] });
+  const exames = [e('a', '2026-01-10', 0.9), e('b', '2026-05-02', 1.6), e('c', '2026-09-20', 1.1), e('h', '2026-08-01', 0.7, 'helena')];
+  it('acha o último antes deste, da mesma pessoa', () => {
+    expect(anteriorDoMarcador(exames, exames[2], 'creatinina')?.exameId).toBe('b');
+    expect(anteriorDoMarcador(exames, exames[1], 'Creatinina')?.exameId).toBe('a');
+    expect(anteriorDoMarcador(exames, exames[0], 'Creatinina')).toBeUndefined();
+    expect(anteriorDoMarcador(exames, exames[3], 'Creatinina')).toBeUndefined();
+  });
+  it('variação com seta e unidade', () => {
+    const r = (valor: number) => ({ marcador: 'Creatinina', valor, unidade: 'mg/dL' });
+    expect(variacao(r(1.6), r(0.9))).toBe('↑ 0,7 mg/dL');
+    expect(variacao(r(1.1), r(1.6))).toBe('↓ 0,5 mg/dL');
+    expect(variacao(r(1.1), r(1.1))).toBe('igual');
   });
 });

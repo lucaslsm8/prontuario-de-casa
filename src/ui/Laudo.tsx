@@ -12,7 +12,8 @@ export function ResultadoLaudo({ exame, podeEditar, desktop }: { exame: Exame; p
   const { state, api } = useStore();
   const [aberto, setAberto] = useState(false);
   const [lendo, setLendo] = useState(false);
-  const pdfs = anexosDe(state.anexos, exame.id).filter(ehPdf);
+  // Só os PDFs do resultado: o pedido médico não tem laudo.
+  const pdfs = anexosDe(state.anexos, exame.id, 'exame').filter(ehPdf);
 
   const ler = async () => {
     setLendo(true);

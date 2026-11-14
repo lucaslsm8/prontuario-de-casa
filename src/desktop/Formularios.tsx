@@ -234,9 +234,14 @@ export function DNovoExame({ onClose, exame }: Props & { exame?: Exame }) {
     <DDialogo titulo={f.editando ? 'Editar exame' : 'Adicionar exame'} onClose={onClose} rodape={<DRodape salvar={f.editando ? 'Salvar alterações' : 'Salvar exame'} onSalvar={f.salvar} valido={f.valido} onCancelar={onClose} />}>
       <DGrade>
         {!f.editando && (
-          <DCampo label="Arquivos (fotos das páginas ou o PDF do laboratório)" span2 grupo>
-            <AnexosPendentes donoId={f.id} tipo="exame" lista={f.arquivos} onChange={f.setArquivos} />
-          </DCampo>
+          <>
+            <DCampo label="Pedido do exame (opcional)" grupo>
+              <AnexosPendentes donoId={f.id} tipo="pedido" lista={f.pedido} onChange={f.setPedido} />
+            </DCampo>
+            <DCampo label="Resultado: laudo, PDF ou imagens" grupo>
+              <AnexosPendentes donoId={f.id} tipo="exame" lista={f.arquivos} onChange={f.setArquivos} />
+            </DCampo>
+          </>
         )}
         <DCampo label="Nome do exame" span2>
           <input className="input input--desk" value={f.nome} onChange={(e) => f.setNome(e.target.value)} placeholder="Ex.: Hemograma completo" />

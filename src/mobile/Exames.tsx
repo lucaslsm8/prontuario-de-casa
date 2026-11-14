@@ -9,40 +9,43 @@ import { ChipGroup, Field, FieldGroup, Label, Row, SecaoLista, Thumb, TopNav, In
 import { agruparFamiliaPets, opcoesPessoas } from '../data/pets';
 import { MScreen, TabHeader } from './Shell';
 import { TopoPerfil, textoSalvar } from './Perfil';
-import { AnexosPendentes, GaleriaAnexos } from '../ui/Anexos';
+import { AnexosPendentes } from '../ui/Anexos';
+import { ArquivosExame } from '../ui/ArquivosExame';
+import { SugestoesConsulta } from '../ui/Sugestoes';
 import { anexosDe, ehPdf } from '../data/anexos';
 import { ConfirmarSheet } from '../ui/Confirmar';
 import { ResultadosExame } from '../ui/Resultados';
 import { ResultadoLaudo } from '../ui/Laudo';
+import { BarraFiltroExames, FolhaFiltroExames, ResumoFiltroExames } from '../ui/FiltroExames';
+import { FILTRO_EXAMES_PADRAO, filtrarExames, filtroValido, filtrosAtivos, type FiltroExames, type OrdemExame } from '../data/exames';
+import { HOJE } from '../data/tempo';
 
-/** Agrupa por mês ("SETEMBRO 2026"), mais recentes primeiro. */
-export function porMes(exames: Exame[]) {
+/** Agrupa por mês ("SETEMBRO 2026") na ordem em que a lista já vem; em ordem de nome, um grupo só ("A–Z"). */
+export function porMes(exames: Exame[], ordem: OrdemExame = 'recentes') {
+  if (ordem === 'nome') return exames.length ? [['A–Z', exames] as [string, Exame[]]] : [];
   const m = new Map<string, Exame[]>();
-  [...exames].sort((a, b) => b.dataColeta.localeCompare(a.dataColeta)).forEach((e) => {
+  exames.forEach((e) => {
     const k = mesAno(e.dataColeta);
     m.set(k, [...(m.get(k) ?? []), e]);
   });
   return [...m.entries()];
 }
 
-export function filtrarExames(exames: Exame[], busca: string, filtro: string, nomePessoa: (id: string) => string) {
-  const q = busca.trim().toLowerCase();
-  return exames.filter((e) => {
-    const okFiltro = filtro === 'todos' || e.categoria === filtro || e.pessoaId === filtro;
-    const okBusca = !q || [e.nome, e.laboratorio, e.solicitante, nomePessoa(e.pessoaId)].some((t) => t?.toLowerCase().includes(q));
-    return okFiltro && okBusca;
-  });
-}
+/** O filtro continua igual ao voltar do detalhe de um exame (vale até fechar o app). */
+let filtroGuardado: FiltroExames = FILTRO_EXAMES_PADRAO;
 
 /** M08 Exames · M21 quando vazio. */
 export function Exames() {
   const { state } = useStore();
   const nav = useNavigate();
-  const [busca, setBusca] = useState('');
-  const [filtro, setFiltro] = useState('todos');
+  const [fBruto, setFBruto] = useState(filtroGuardado);
+  // A pessoa do filtro sai quando a lista não tem exame dela (perfil trocado, pessoa removida).
+  const f = filtroValido(fBruto, state.exames);
+  const setF = (novo: FiltroExames) => { filtroGuardado = novo; setFBruto(novo); };
+  const [folha, setFolha] = useState(false);
   const lista = useMemo(
-    () => filtrarExames(state.exames, busca, filtro, (id) => quem(pessoa(state, id))),
-    [state, busca, filtro],
+    () => filtrarExames(state.exames, f, HOJE, (id) => quem(pessoa(state, id))),
+    [state, f],
   );
 
   if (state.exames.length === 0) return <ExamesVazio />;
@@ -51,12 +54,15 @@ export function Exames() {
     <MScreen tabs>
       <TopoPerfil />
       <TabHeader titulo="Exames" onAdd={() => nav('/exames/novo')} />
-      <input className="input input--search" placeholder="Buscar por nome, laboratório…" value={busca} onChange={(e) => setBusca(e.target.value)} aria-label="Buscar exames" />
-      <ChipGroup gap6 tamanho="sm" opcoes={['todos', ...CATEGORIAS_EXAME.filter((c) => state.exames.some((e) => e.categoria === c))].map((c) => ({ id: c, nome: c === 'todos' ? 'Todos' : c }))} valor={filtro} onChange={setFiltro} />
+      <div className="hstack" style={{ gap: 8 }}>
+        <input className="input input--search" style={{ flex: 1, minWidth: 0 }} placeholder="Buscar por nome, laboratório…" value={f.busca} onChange={(e) => setF({ ...f, busca: e.target.value })} aria-label="Buscar exames" />
+        <BarraFiltroExames f={f} onChange={setF} onAbrir={() => setFolha(true)} />
+      </div>
+      {filtrosAtivos(f) > 0 && <ResumoFiltroExames f={f} onChange={setF} />}
       {(() => {
         // Família por mês; depois a divisória "Pets" e os exames deles, também por mês.
         const g = agruparFamiliaPets(lista, state);
-        const meses = (xs: Exame[]) => porMes(xs).map(([mes, itens]) => (
+        const meses = (xs: Exame[]) => porMes(xs, f.ordem).map(([mes, itens]) => (
           <div key={mes} className="stack" style={{ gap: 16 }}>
             <Label>{mes}</Label>
             <div className="card">
@@ -76,15 +82,20 @@ export function Exames() {
         ));
         return <>{meses(g.familia)}{g.pets.length > 0 && <><SecaoLista rotulo="Pets" />{meses(g.pets)}</>}</>;
       })()}
-      {lista.length === 0 && <span style={{ fontSize: 14, color: 'var(--text-2)', textAlign: 'center', padding: 24 }}>Nenhum exame encontrado para “{busca}”.</span>}
+      {lista.length === 0 && (
+        <span style={{ fontSize: 14, color: 'var(--text-2)', textAlign: 'center', padding: 24 }}>
+          {f.busca.trim() ? `Nenhum exame encontrado para “${f.busca.trim()}”.` : 'Nenhum exame com esse filtro.'}
+        </span>
+      )}
+      {folha && <FolhaFiltroExames f={f} onChange={setF} onClose={() => setFolha(false)} total={lista.length} />}
     </MScreen>
   );
 }
 
-/** Miniatura do exame na lista: a primeira foto anexada, ou o ícone de PDF/foto. */
+/** Miniatura do exame na lista: o primeiro arquivo do resultado (senão o do pedido), ou o ícone de PDF/foto. */
 function MiniaturaExame({ exameId, arquivo }: { exameId: string; arquivo: string }) {
   const { state } = useStore();
-  const a = anexosDe(state.anexos, exameId)[0];
+  const a = anexosDe(state.anexos, exameId, 'exame')[0] ?? anexosDe(state.anexos, exameId, 'pedido')[0];
   if (a && !ehPdf(a)) return <img src={a.dados} alt="" style={{ width: 44, height: 54, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--border-card)', flex: 'none' }} />;
   return <Thumb tipo={a ? 'PDF' : arquivo} />;
 }
@@ -106,9 +117,7 @@ export function DetalheExame() {
         <h1 className="title title--26" style={{ margin: 0 }}>{e.nome}</h1>
         <span style={{ fontSize: 14, color: 'var(--text-2)' }}>{quem(pessoa(state, e.pessoaId))} · coletado em {dataBR(e.dataColeta)}</span>
       </div>
-      <FieldGroup label="Arquivos">
-        <GaleriaAnexos donoId={e.id} tipo="exame" podeEditar={pode} vazio="Nenhum arquivo anexado." />
-      </FieldGroup>
+      <ArquivosExame exame={e} podeEditar={pode} />
       <div className="card" style={{ fontSize: 15 }}>
         <Row label="Categoria" valor={e.categoria} />
         <Row label="Laboratório" valor={e.laboratorio || '—'} />
@@ -179,16 +188,22 @@ export function AdicionarExame({ onDone, exame }: { onDone?: () => void; exame?:
   const nav = useNavigate();
   const fechar = onDone ?? (() => nav('/exames'));
   const pessoas = editaveis(state);
-  const { id, arquivos, setArquivos, editando, anotacao, setAnotacao, laudo, setLaudo, resultados, lendoPdf, nome, setNome, de, setDe, cat, setCat, data, setData, lab, setLab, consulta, proxConsulta, valido, salvar } = useFormExame(fechar, exame);
+  const { id, arquivos, setArquivos, pedido, setPedido, solicitante, setSolicitante, editando, anotacao, setAnotacao, laudo, setLaudo, resultados, lendoPdf, nome, setNome, de, setDe, cat, setCat, data, setData, lab, setLab, consulta, proxConsulta, valido, salvar } = useFormExame(fechar, exame);
   const c = state.consultas.find((x) => x.id === consulta);
 
   return (
     <MScreen gap={14}>
       <TopNav voltar="Cancelar" titulo={editando ? 'Editar exame' : 'Novo exame'} />
+      {/* Na edição os arquivos ficam no detalhe do exame (pedido e resultado, cada um com o seu "+"). */}
       {!editando && (
-        <FieldGroup label="Fotos das páginas ou PDF">
-          <AnexosPendentes donoId={id} tipo="exame" lista={arquivos} onChange={setArquivos} />
-        </FieldGroup>
+        <>
+          <FieldGroup label="Pedido do exame (opcional)">
+            <AnexosPendentes donoId={id} tipo="pedido" lista={pedido} onChange={setPedido} />
+          </FieldGroup>
+          <FieldGroup label="Resultado: laudo, PDF ou imagens">
+            <AnexosPendentes donoId={id} tipo="exame" lista={arquivos} onChange={setArquivos} />
+          </FieldGroup>
+        </>
       )}
       <Field label="Nome do exame">
         <input className="input input--50" value={nome} onChange={(e) => setNome(e.target.value)} autoFocus />
@@ -202,6 +217,7 @@ export function AdicionarExame({ onDone, exame }: { onDone?: () => void; exame?:
       <div className="card" style={{ fontSize: 15 }}>
         <Row compact style={{ padding: '12px 16px' }} label="Data da coleta" valor={<InlineInput className="mono" value={data} onChange={(e) => setData(e.target.value)} aria-label="Data da coleta" />} />
         <Row compact style={{ padding: '12px 16px' }} label="Laboratório" valor={<InlineInput style={{ fontWeight: 400 }} value={lab} onChange={(e) => setLab(e.target.value)} aria-label="Laboratório" />} />
+        <Row compact style={{ padding: '12px 16px' }} label="Pedido por" valor={<InlineInput style={{ fontWeight: 400 }} list="sug-prof" value={solicitante} onChange={(e) => setSolicitante(e.target.value)} placeholder="Médico" aria-label="Pedido por" />} />
         <Row
           compact
           style={{ padding: '12px 16px' }}
@@ -210,8 +226,9 @@ export function AdicionarExame({ onDone, exame }: { onDone?: () => void; exame?:
           valor={<span style={{ color: c ? 'var(--teal)' : 'var(--text-3)' }}>{c ? `${c.titulo} · ${diaMes(c.data)}` : 'Nenhuma ›'}</span>}
         />
       </div>
+      <SugestoesConsulta />
       <Field label={lendoPdf ? 'Resultado · lendo o PDF…' : 'Resultado (texto do laudo)'}>
-        <textarea className="input input--area" style={{ minHeight: 140 }} value={laudo} onChange={(e) => setLaudo(e.target.value)} placeholder="Cole o texto do laudo, ou anexe o PDF para o app ler." />
+        <textarea className="input input--area" style={{ minHeight: 140 }} value={laudo} onChange={(e) => setLaudo(e.target.value)} placeholder="Cole o texto do laudo, ou anexe o PDF do resultado para o app ler." />
         {!!resultados?.length && <span style={{ fontSize: 12, color: 'var(--text-2)' }}>Valores lidos: {resultados.map((r) => r.marcador).join(', ')}</span>}
       </Field>
       <Field label="Anotação">
