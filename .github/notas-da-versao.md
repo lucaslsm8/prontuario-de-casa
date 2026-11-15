@@ -1,4 +1,4 @@
-- Novo "Modo de uso" em Configurações: "Só informações" mostra o que cada um toma, como é o remédio e a que horas, sem marcar doses, estoque nem lembretes de dose (vale para o aparelho)
-- No modo só de informações, o Início traz os remédios em uso de cada pessoa, alergias e condições, próximas consultas e exames recentes
-- Resultado do exame formatado: títulos de seção (Técnica, Análise, Impressão…) e rótulos em negrito, e a conclusão em destaque
-- A prévia do resultado mostra primeiro a conclusão, com "Ver o laudo completo"
+- Novo Início no modo "Só informações": a próxima consulta em destaque, com a hora de sair, o preparo, o que levar e as perguntas para o médico, além dos botões "Abrir a ficha" e "Como chegar"
+- "Horários dos remédios": cada horário com os remédios dele e o desenho do comprimido; os "se necessário" ficam à parte
+- "A família": idade, tipo sanguíneo, alergias e condições de cada um, e o próximo cuidado dos pets
+- As consultas seguintes em "Depois", com mais espaço, e os exames recentes mostrando se os valores ficaram na faixa
