@@ -176,35 +176,64 @@ button.numero:hover, a.card.numero:hover { background: #F8FAFA; }
 .bloqueio__ver:hover { background: rgba(255, 255, 255, .06); }
 .bloqueio__rodape { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255, 255, 255, .5); }
 
-/* Modo só de informações: remédios em uso, alergias e exames recentes. */
+/* Modo só de informações (variação C do canvas): próxima consulta, Depois, horários, família e exames. */
 .info-card { padding: 18px 22px; gap: 10px; }
 .info-card--compacto { padding: 14px 16px; gap: 8px; }
 .info-card__titulo { font-size: 18px; font-weight: 600; }
 .info-card--compacto .info-card__titulo { font-size: 16px; }
-.info-rem__grupo { display: flex; flex-direction: column; }
-.info-rem__grupo + .info-rem__grupo { border-top: 1px solid var(--divider); padding-top: 6px; }
-.info-rem__pessoa { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text-2); padding: 6px 0 2px; }
-.info-rem {
-  display: flex; align-items: center; gap: 14px; min-height: 56px; padding: 8px 0; color: inherit;
-  border-radius: var(--r-btn); transition: background var(--t) var(--ease);
-}
-.info-rem:hover { background: var(--bg); }
-.info-rem--compacto { align-items: flex-start; gap: 12px; min-height: 44px; }
+/* Peças pequenas também usadas na lista e na tela do remédio. */
 .info-rem__pilula { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--bg); }
-.info-rem--compacto .info-rem__pilula { width: 36px; height: 36px; }
-.info-rem__nome { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
-.info-rem__conc { font-weight: 400; color: var(--text-2); }
-.info-rem__det { font-size: 13px; color: var(--text-2); }
-.info-rem__para { font-size: 12px; color: var(--text-3); }
+.info-rem__pilula:empty { background: transparent; }
 .info-rem__horas { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 4px; }
-.info-rem__horas--lado { justify-content: flex-end; padding-top: 0; flex: none; max-width: 45%; }
 .info-rem__hora {
   font-family: var(--font-mono); font-size: 12px; font-weight: 500; padding: 3px 8px;
   border-radius: var(--r-pill); background: var(--teal-light); color: var(--teal);
 }
-.info-saude { display: flex; flex-direction: column; gap: 6px; color: inherit; padding: 4px 0; }
-.info-saude + .info-saude { border-top: 1px solid var(--divider); padding-top: 8px; }
-.info-saude__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.proxima { background: var(--hero-bg); color: #fff; border-radius: var(--r-card); padding: 26px 28px; display: flex; flex-direction: column; gap: 18px; }
+.proxima--compacta { padding: 18px; gap: 14px; }
+.proxima__rotulo { font-family: var(--font-mono); font-size: 12px; letter-spacing: .1em; color: var(--teal-on-dark); }
+.proxima__linha { display: flex; gap: 22px; align-items: center; }
+.proxima--compacta .proxima__linha { gap: 14px; }
+.proxima__data { width: 84px; height: 92px; flex: none; border-radius: var(--r-card); background: var(--hero-2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.proxima__data b { font-size: 38px; font-weight: 600; line-height: 1; }
+.proxima__data span { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; color: var(--hero-texto-2); white-space: nowrap; }
+.proxima--compacta .proxima__data { width: 64px; height: 70px; }
+.proxima--compacta .proxima__data b { font-size: 28px; }
+.proxima--compacta .proxima__data span { font-size: 10px; letter-spacing: .02em; }
+.proxima__titulo { font-size: 28px; font-weight: 600; letter-spacing: -.01em; }
+.proxima--compacta .proxima__titulo { font-size: 20px; }
+.proxima__sub { font-size: 15px; color: var(--hero-texto-2); }
+.proxima--compacta .proxima__sub { font-size: 13px; }
+.proxima__blocos { display: grid; gap: 12px; }
+.proxima__bloco { background: var(--hero-2); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; min-width: 0; }
+.proxima__bloco-rot { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; color: var(--hero-texto-2); }
+.proxima__bloco-grande { font-size: 20px; font-weight: 600; }
+.proxima__bloco-det { font-size: 12px; color: var(--hero-texto-2); }
+.proxima__btn { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: var(--r-btn); font-weight: 600; font-size: 14px; transition: background var(--t) var(--ease), border-color var(--t) var(--ease); }
+.proxima__btn--1 { background: #fff; color: var(--ink); }
+.proxima__btn--1:hover { background: var(--teal-light); color: var(--ink); }
+.proxima__btn--2 { border: 1px solid var(--text-2); color: #fff; }
+.proxima__btn--2:hover { border-color: var(--hero-texto-2); color: #fff; }
+
+.depois { display: grid; grid-template-columns: 110px 34px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 0; border-top: 1px solid var(--divider); color: inherit; }
+.depois--compacto { grid-template-columns: 76px 34px minmax(0, 1fr); gap: 10px; }
+.depois__titulo { font-size: 15px; }
+.depois__sub { font-size: 13px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.horario { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; padding: 10px 0; border-top: 1px solid var(--divider); }
+.horario__hora { font-family: var(--font-mono); font-size: 15px; font-weight: 500; color: var(--teal); padding-top: 8px; }
+.horario__hora--sn { font-family: var(--font-sans); font-size: 12px; font-weight: 400; color: var(--text-2); }
+.horario__item { display: flex; gap: 10px; align-items: center; background: var(--bg); border-radius: 8px; padding: 8px 10px; min-height: 44px; box-sizing: border-box; color: inherit; font-size: 14px; transition: background var(--t) var(--ease); }
+.horario__item:hover { background: var(--teal-light); }
+.horario__item--tracejado { background: none; border: 1.5px dashed var(--border-input); }
+.horario__pilula { width: 28px; flex: none; display: grid; place-items: center; }
+.horario__pilula:empty { display: none; }
+.horario__det { font-size: 12px; color: var(--text-2); }
+
+.familia-linha { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; color: inherit; }
+.familia-linha + .familia-linha { border-top: 1px solid var(--divider); }
+.familia-linha__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
 .info-exame { display: flex; align-items: center; gap: 12px; min-height: 44px; color: inherit; }
 .info-exame + .info-exame { border-top: 1px solid var(--divider); padding-top: 8px; }
-.info-rem__pilula:empty { background: transparent; }

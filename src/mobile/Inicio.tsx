@@ -6,8 +6,8 @@ import { dataLonga, diaMes, estoqueBaixo, mesSigla, quem } from '../data/format'
 import { Bar, Check, Circle, Label, SecaoLista } from '../ui';
 import { CartaoDose, LinhaDia, ListaDoses, RemedioAcabando, useDoseDaVez, useRemedioAcabando } from '../ui/Inicio';
 import { agruparFamiliaPets, ehPet, proximaConsultaDaFamilia } from '../data/pets';
-import { estadoDose, examesRecentes, proximoHorario, remediosEmUso, saudacao } from '../data/inicio';
-import { AlergiasCondicoes, ExamesRecentes, RemediosEmUso } from '../ui/InicioInfo';
+import { consultasAdiante, estadoDose, saudacao } from '../data/inicio';
+import { AFamilia, ConsultasDepois, ExamesRecentes, HorariosRemedios, ProximaConsulta } from '../ui/InicioInfo';
 import { useAgora } from '../data/useAgora';
 import type { Consulta } from '../data/types';
 import { MScreen } from './Shell';
@@ -42,22 +42,26 @@ function Topo() {
   );
 }
 
-/** Modo só de informações: o que cada um toma e quando, alergias, próximas consultas e exames recentes. */
+/**
+ * Modo só de informações (variação C do canvas, empilhada): a próxima consulta em destaque, os horários dos remédios,
+ * as consultas seguintes, a família (ou só a pessoa, no perfil dela) e os exames recentes.
+ */
 function InicioInfo() {
   const { state, perfil } = useStore();
   const nav = useNavigate();
+  const agora = useAgora();
   const meus = (pessoaId: string) => !!perfil || doMeuCuidado(state, pessoaId);
-  const remedios = state.remedios.filter((r) => meus(r.pessoaId));
+  const [proxima, ...depois] = consultasAdiante(state.consultas.filter((c) => meus(c.pessoaId)), HOJE, agora);
   // No perfil de alguém, só ele (as pessoas não passam pelo recorte do perfil, só os registros).
   const pessoas = state.pessoas.filter((p) => (perfil ? p.id === perfil : doMeuCuidado(state, p.id)));
   return (
     <MScreen tabs gap={14}>
       <Topo />
       <PedidosPendentes />
-      <RemediosEmUso remedios={remedios} compacto onCadastrar={() => nav('/remedios/novo')} />
-      <Numeros info />
-      <AlergiasCondicoes pessoas={pessoas} compacto />
-      <Proximos />
+      {proxima && <ProximaConsulta c={proxima} compacto />}
+      <HorariosRemedios remedios={state.remedios.filter((r) => meus(r.pessoaId))} compacto onCadastrar={() => nav('/remedios/novo')} />
+      <ConsultasDepois consultas={depois.slice(0, 3)} compacto />
+      <AFamilia pessoas={pessoas} compacto />
       <ExamesRecentes exames={state.exames.filter((e) => meus(e.pessoaId))} compacto />
     </MScreen>
   );
@@ -133,45 +137,8 @@ function InicioCheio() {
   );
 }
 
-/**
- * Os três números do painel do desktop (D01): doses de hoje, próxima consulta e estoque baixo, do perfil aberto.
- * No modo só de informações: remédios em uso (e o próximo horário), próxima consulta e último exame.
- */
-function Numeros({ info }: { info?: boolean }) {
-  if (info) return <NumerosInfo />;
-  return <NumerosDoses />;
-}
-
-function NumerosInfo() {
-  const { state } = useStore();
-  const nav = useNavigate();
-  const agora = useAgora();
-  const emUso = remediosEmUso(state.remedios, HOJE);
-  const proxHora = proximoHorario(emUso, agora);
-  const prox = proximaConsultaDaFamilia(state);
-  const ultimo = examesRecentes(state.exames, 1)[0];
-  return (
-    <section className="card numeros-m">
-      <button type="button" onClick={() => nav('/remedios')}>
-        <span className="numeros-m__rot">Remédios em uso</span>
-        <span className="numeros-m__valor">{emUso.length}</span>
-        <span className="numeros-m__det">{proxHora ? `próximo às ${proxHora}` : emUso.length ? 'sem horário' : 'nenhum'}</span>
-      </button>
-      <button type="button" onClick={() => nav('/agenda')}>
-        <span className="numeros-m__rot">Próxima consulta</span>
-        <span className="numeros-m__valor">{prox ? diaMes(prox.data) : '—'}</span>
-        <span className="numeros-m__det">{prox ? prox.titulo : 'Nada marcado'}</span>
-      </button>
-      <button type="button" onClick={() => nav(ultimo ? `/exames/${ultimo.id}` : '/exames')}>
-        <span className="numeros-m__rot">Último exame</span>
-        <span className="numeros-m__valor">{ultimo ? diaMes(ultimo.dataColeta) : '—'}</span>
-        <span className="numeros-m__det">{ultimo ? ultimo.nome : 'Nenhum ainda'}</span>
-      </button>
-    </section>
-  );
-}
-
-function NumerosDoses() {
+/** Os três números do painel do desktop (D01): doses de hoje, próxima consulta e estoque baixo, do perfil aberto. */
+function Numeros() {
   const { state } = useStore();
   const nav = useNavigate();
   const { doses, agora } = useDoseDaVez();

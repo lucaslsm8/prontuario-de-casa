@@ -93,3 +93,22 @@ export function proximoHorario(remedios: Pick<Remedio, 'horarios' | 'seNecessari
   const todos = [...new Set(remedios.filter((r) => !r.seNecessario).flatMap((r) => r.horarios))].sort();
   return todos.find((h) => minutos(h) >= agora) ?? todos[0];
 }
+
+/** "Horários dos remédios": um grupo por horário (na ordem do dia) e, à parte, os "se necessário". */
+export function horariosDoDia(remedios: Remedio[]): { horarios: { hora: string; remedios: Remedio[] }[]; seNecessario: Remedio[] } {
+  const mapa = new Map<string, Remedio[]>();
+  const seNecessario: Remedio[] = [];
+  for (const r of remedios) {
+    if (r.seNecessario || !r.horarios.length) { seNecessario.push(r); continue; }
+    for (const h of new Set(r.horarios)) mapa.set(h, [...(mapa.get(h) ?? []), r]);
+  }
+  const horarios = [...mapa.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([hora, rs]) => ({ hora, remedios: rs }));
+  return { horarios, seNecessario };
+}
+
+/** Consultas a partir de agora, na ordem (data e hora); as de hoje que já passaram ficam de fora. */
+export function consultasAdiante<T extends { data: string; hora: string }>(consultas: T[], hoje: string, agora: number): T[] {
+  return consultas
+    .filter((c) => c.data > hoje || (c.data === hoje && (!/^\d{1,2}:\d{2}$/.test(c.hora) || minutos(c.hora) >= agora)))
+    .sort((a, b) => `${a.data}${a.hora}`.localeCompare(`${b.data}${b.hora}`));
+}

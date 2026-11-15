@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chaveDose, doseEmFoco, estadoDose, hhmm, minutos, posDia, proximoHorario, remediosEmUso, saudacao, separarConcentracao, textoHorarios } from './inicio';
+import { chaveDose, consultasAdiante, horariosDoDia, doseEmFoco, estadoDose, hhmm, minutos, posDia, proximoHorario, remediosEmUso, saudacao, separarConcentracao, textoHorarios } from './inicio';
 import type { DoseHoje } from './store';
 import type { Pessoa, Remedio } from './types';
 
@@ -105,5 +105,17 @@ describe('modo só de informações', () => {
     expect(proximoHorario(lista, minutos('20:00'))).toBe('20:00');
     expect(proximoHorario(lista, minutos('21:00'))).toBe('08:00');
     expect(proximoHorario([], 0)).toBeUndefined();
+  });
+
+  it('horariosDoDia: um grupo por horário, na ordem, e os se necessário à parte', () => {
+    const g = horariosDoDia([r('a', ['20:00', '08:00']), r('b', ['08:00']), r('c', [], { seNecessario: true }), r('d', [])]);
+    expect(g.horarios.map((h) => [h.hora, h.remedios.map((x) => x.id)])).toEqual([['08:00', ['a', 'b']], ['20:00', ['a']]]);
+    expect(g.seNecessario.map((x) => x.id)).toEqual(['c', 'd']);
+  });
+
+  it('consultasAdiante: tira as de hoje que já passaram e ordena por data e hora', () => {
+    const c = (id: string, data: string, hora: string) => ({ id, data, hora });
+    const xs = [c('depois', '2026-11-20', '09:00'), c('cedo', '2026-11-14', '08:00'), c('tarde', '2026-11-14', '18:00'), c('amanha', '2026-11-15', '07:00')];
+    expect(consultasAdiante(xs, '2026-11-14', minutos('12:00')).map((x) => x.id)).toEqual(['tarde', 'amanha', 'depois']);
   });
 });
