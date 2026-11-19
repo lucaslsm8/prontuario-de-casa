@@ -5,6 +5,8 @@ import { Avatar, SecaoLista, cx } from '../ui';
 import { IcAgenda, IcConfig, IcCadeado, IcEmergencia, IcExame, IcInicio, IcMarcaCheia, IcPlano, IcRemedio } from '../ui/Icones';
 import { quando } from '../data/format';
 import { useVoltar } from './useVoltar';
+import { EscFecha } from './Formulario';
+import { AjudaAtalhos, useAtalhos } from './Atalhos';
 import { DEditarMedicao, DEditarPerfil, DEditarRegistroPet, DEditarVacina, DFichaEmergencia, DLerCarteira, DNovaConsulta, DNovaPessoa, DNovoExame, DNovaMedicao, DNovoPet, DNovoPlano, DNovoRemedio, DRegistroPet, REGISTROS_PET, type RegistroPet } from './Formularios';
 import { familia, pets } from '../data/pets';
 import type { TipoMedicao } from '../data/types';
@@ -139,6 +141,7 @@ function ModalAtualizacao() {
   return (
     <div className="overlay overlay--fixed">
       <div className="dialog" role="dialog" aria-label="Nova versão disponível">
+        <EscFecha onClose={() => { if (!baixando) dispensarAviso(); }} />
         <div className="stack" style={{ padding: '26px 28px 18px', gap: 8 }}>
           <span className="mono" style={{ fontSize: 12, letterSpacing: '.1em', color: 'var(--text-2)' }}>{u.instalada} → {d.versao}</span>
           <span style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-.01em' }}>Nova versão disponível</span>
@@ -220,6 +223,7 @@ export function DesktopShell() {
   const [params] = useSearchParams();
   const nav = useNavigate();
   const at = useInfoAtualizacao();
+  const atalhos = useAtalhos();
   // O aviso abre quando a verificação (ao abrir ou pelo botão) acha versão nova. ?update=1 força uma verificação (barra "Telas").
   useEffect(() => {
     if (params.get('update') !== '1') return;
@@ -236,6 +240,7 @@ export function DesktopShell() {
       </main>
       <Dialogo />
       <BuscaDesktop />
+      {atalhos.ajuda && <AjudaAtalhos onClose={() => atalhos.setAjuda(false)} />}
       {at.aviso && !params.get('abrir') && !state.bloqueado && <ModalAtualizacao />}
       {state.bloqueado && <BloqueioDesktop />}
       {toast && (

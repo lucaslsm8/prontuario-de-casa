@@ -44,6 +44,7 @@ Stack: Tauri 2 (Rust) + React 18 + TypeScript + Vite. Leia também `README.md` e
 - Vacinas editam e apagam: `useFormVacina(pet, onSalvo, vacina)`; celular `/pet/:id/vacina/:vid`, desktop `?abrir=editar-vacina:<id>`.
 - Todo registro edita e apaga (com confirmação e "Desfazer"): os hooks `useFormPrevencao|Sintoma|Procedimento|Pesagem` (`formularios.ts`) recebem `inicial`; celular `/pet/:id/<prevencao|sintoma|procedimento|pesagem>/:rid`, desktop `?abrir=editar-<registro>:<id>`. Medições: `useFormMedicao(..., inicial)`, "Ver medições" no `CartaoMedicao` abre a lista; celular `/pessoa/:id/medicoes/:mid`, desktop `?abrir=editar-medicao:<id>`.
 - Procedimentos valem para pessoas e pets (aba Procedimentos na pessoa; `/pet/:id/procedimento` aceita pessoa), com `medico` (quem realizou; "Veterinário" no pet) e `anestesista`. Tipos por espécie em `tiposProcedimento` (`pets.ts`).
+- Teclado no desktop (`src/desktop/Atalhos.tsx`): N/R/E abrem consulta/remédio/exame, `/` busca, 1–5 as páginas da barra, `?` a lista; só fora de campos e sem diálogo aberto (`temDialogoAberto`). Nos diálogos, Enter salva, Ctrl+Enter salva de dentro de um texto e Esc fecha o de cima (pilha em `Formulario.tsx`; folhas e diálogos próprios usam `useEsc`/`<EscFecha>`).
 - Componentes base em `src/ui/index.tsx` (Chip, Toggle, Segmented, Row, Bar, Pill…) e `src/ui/Backup.tsx` (folhas de senha, PIN e restaurar).
 - Rust (`src-tauri/src/`):
   - `banco.rs`: SQLite com tabelas `eventos` e `kv`, cada valor cifrado com XChaCha20-Poly1305 (id como AAD).

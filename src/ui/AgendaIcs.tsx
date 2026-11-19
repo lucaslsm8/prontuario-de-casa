@@ -8,6 +8,7 @@ import { dataBR, quem } from '../data/format';
 import { HOJE } from '../data/tempo';
 import { novoId } from '../data/persistencia';
 import { Chip, cx } from './index';
+import { EscFecha } from '../desktop/Formulario';
 import { atualizarAgenda, useInfoAgenda } from '../data/agendaConectada';
 
 export function AgendaIcs({ compacto }: { compacto?: boolean }) {
@@ -53,6 +54,7 @@ export function AgendaIcs({ compacto }: { compacto?: boolean }) {
       {lidos && createPortal(
         <div className="overlay overlay--fixed overlay--top" onMouseDown={(e) => { if (e.target === e.currentTarget) setLidos(null); }}>
           <div className="dlg" role="dialog" aria-modal="true" aria-label="Importar agenda" style={{ width: 520 }}>
+            <EscFecha onClose={() => setLidos(null)} />
             <div className="dlg__head"><h2 className="dlg__title">Importar {lidos.length} {lidos.length === 1 ? 'evento' : 'eventos'}</h2></div>
             <div className="dlg__body stack" style={{ gap: 12 }}>
               <span className="field__label">De quem são</span>
@@ -115,6 +117,7 @@ export function AgendaConectada({ compacto }: { compacto?: boolean }) {
       {aberto && createPortal(
         <div className="overlay overlay--fixed overlay--top" onMouseDown={(e) => { if (e.target === e.currentTarget) setAberto(false); }}>
           <div className="dlg" role="dialog" aria-modal="true" aria-label="Conectar agenda" style={{ width: 560 }}>
+            <EscFecha onClose={() => setAberto(false)} />
             <div className="dlg__head"><h2 className="dlg__title">{ag ? 'Agenda conectada' : 'Conectar Google Agenda'}</h2></div>
             <div className="dlg__body stack" style={{ gap: 14, fontSize: 14, lineHeight: 1.5 }}>
               <span className="muted">O app baixa a sua agenda ao abrir e quando você toca em “Atualizar”: consultas novas entram, mudanças de horário são aplicadas e o que foi cancelado sai. Nada é enviado ao Google.</span>

@@ -4,7 +4,7 @@ import { dataBR, numCurto } from '../data/format';
 import { HOJE } from '../data/tempo';
 import type { Remedio } from '../data/types';
 import { useLayout } from '../layout';
-import { DConfirmar } from '../desktop/Formulario';
+import { DConfirmar, EscFecha } from '../desktop/Formulario';
 import { Label } from '.';
 
 /** Pergunta curta: folha no celular, diálogo no desktop. */
@@ -25,6 +25,7 @@ function Pergunta({ titulo, texto, confirmar, valido, onConfirm, onClose, childr
   return (
     <>
       <div className="overlay" onClick={onClose} />
+      <EscFecha onClose={onClose} />
       <div className="sheet" role="dialog" aria-modal="true" aria-label={titulo}>
         <span style={{ fontSize: 18, fontWeight: 600 }}>{titulo}</span>
         {corpo}

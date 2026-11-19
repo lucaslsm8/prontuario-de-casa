@@ -6,7 +6,7 @@ import {
 } from '../data/reembolso';
 import type { Plano } from '../data/types';
 import { useLayout } from '../layout';
-import { DDialogo } from '../desktop/Formulario';
+import { DDialogo, EscFecha } from '../desktop/Formulario';
 import { cx } from '.';
 
 function Moldura({ titulo, desktop, onClose, children }: { titulo: string; desktop: boolean; onClose: () => void; children: ReactNode }) {
@@ -14,6 +14,7 @@ function Moldura({ titulo, desktop, onClose, children }: { titulo: string; deskt
   return (
     <>
       <div className="overlay" onClick={onClose} />
+      <EscFecha onClose={onClose} />
       <div className="sheet reembolso" role="dialog" aria-modal="true" aria-label={titulo}>
         <div className="hstack" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 18, fontWeight: 600 }}>{titulo}</span>

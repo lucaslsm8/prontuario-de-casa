@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../data/store';
 import type { Pessoa } from '../data/types';
+import { EscFecha } from '../desktop/Formulario';
 
 /** Folha de confirmação do celular para ações destrutivas (apagar, encerrar…). */
 export function ConfirmarSheet({ titulo, texto, confirmar, onConfirm, onClose }: { titulo: string; texto: string; confirmar: string; onConfirm: () => void; onClose: () => void }) {
   return (
     <>
       <div className="overlay" onClick={onClose} />
+      <EscFecha onClose={onClose} />
       <div className="sheet" role="alertdialog" aria-modal="true" aria-label={titulo}>
         <span style={{ fontSize: 18, fontWeight: 600 }}>{titulo}</span>
         <span style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.45 }}>{texto}</span>
@@ -32,6 +34,7 @@ export function RemoverPessoaMobile({ p }: { p: Pessoa }) {
       {aberto && (
         <>
           <div className="overlay" onClick={() => setAberto(false)} />
+          <EscFecha onClose={() => setAberto(false)} />
           <div className="sheet" role="alertdialog" aria-modal="true" aria-label={`Remover ${p.curto}`}>
             <span style={{ fontSize: 18, fontWeight: 600 }}>Remover {p.curto}?</span>
             <span style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.45 }}>

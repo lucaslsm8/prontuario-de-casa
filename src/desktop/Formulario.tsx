@@ -7,6 +7,14 @@ import { ChipGroup, Toggle, cx } from '../ui';
 /** Pilha dos diálogos abertos: Esc fecha só o de cima. */
 const pilha: symbol[] = [];
 
+/** Há algum diálogo (ou folha) aberto com Esc? Os atalhos de tecla esperam ele fechar. */
+export const temDialogoAberto = () => pilha.length > 0;
+
+/** Esc fecha (só o diálogo de cima). Para folhas e diálogos que não usam DDialogo. */
+export const useEsc = (onClose: () => void) => useDialogo(onClose, () => null);
+/** O mesmo, como elemento: entra junto com uma folha aberta condicionalmente. */
+export function EscFecha({ onClose }: { onClose: () => void }) { useEsc(onClose); return null; }
+
 function useDialogo(onClose: () => void, foco: () => HTMLElement | null | undefined) {
   const fecharRef = useRef(onClose);
   fecharRef.current = onClose;
@@ -74,7 +82,17 @@ export function DDialogo({
           </div>
         )}
         {/* Enter num campo aciona o botão principal do rodapé (o primeiro type="submit"; desativado, não salva). */}
-        <form className="dlg__form" onSubmit={(e) => e.preventDefault()}>
+        {/* Ctrl+Enter salva também de dentro de um texto de várias linhas. */}
+        <form
+          className="dlg__form"
+          onSubmit={(e) => e.preventDefault()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+              e.preventDefault();
+              e.currentTarget.querySelector<HTMLButtonElement>('button[type=submit]:not(:disabled)')?.click();
+            }
+          }}
+        >
           <div ref={corpo} className="dlg__body">{children}</div>
           {rodape && <div className="dlg__foot">{rodape}</div>}
         </form>
