@@ -1,6 +1,7 @@
 // "Exportar perfil em PDF": tudo de uma pessoa (ou pet) num PDF para levar a um profissional.
 // Só entram as categorias que quem exporta pode ver. O conteúdo é puro (testado em relatorio.test.ts).
 
+import { linhaHistoricoFamiliar } from './alergias';
 import type { State } from './store';
 import type { Categoria, Pessoa } from './types';
 import { dataBR, idade, numBR, numCurto } from './format';
@@ -42,8 +43,13 @@ export function blocosDoPerfil(s: State, p: Pessoa, ver: (c: Categoria) => boole
     }
 
     secao('Alergias');
-    p.alergias.forEach((a) => item(a.substancia, juntar(a.reacao, a.ano && `desde ${a.ano}`)));
+    p.alergias.forEach((a) => item(a.substancia, juntar(a.gravidade && `alergia ${a.gravidade}`, a.reacao, a.ano && `desde ${a.ano}`)));
     if (!p.alergias.length) vazio('Nenhuma alergia registrada.');
+
+    if (p.historicoFamiliar?.length) {
+      secao('Histórico familiar');
+      p.historicoFamiliar.forEach((h) => item(linhaHistoricoFamiliar(h), ''));
+    }
 
     const historico = p.condicoes.filter((c) => c.tipo !== 'vacina');
     if (!pet || historico.length) {

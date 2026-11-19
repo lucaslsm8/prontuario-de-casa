@@ -201,8 +201,8 @@ export const SECOES_PET: { id: SecaoPet; nome: string }[] = [
 ];
 
 /** "Dipirona (coceira, inchaço)" — o mesmo formato das alergias no resumo das pessoas. */
-export const linhaAlergia = (a: { substancia: string; reacao?: string }) =>
-  `${a.substancia}${a.reacao ? ` (${a.reacao.toLowerCase().replace(' e ', ', ')})` : ''}`;
+export const linhaAlergia = (a: { substancia: string; reacao?: string; gravidade?: string }) =>
+  `${a.substancia}${a.reacao || a.gravidade === 'grave' ? ` (${[a.gravidade === 'grave' ? 'grave' : '', a.reacao?.toLowerCase().replace(' e ', ', ')].filter(Boolean).join(', ')})` : ''}`;
 
 /**
  * Linhas de cada seção do resumo do pet (os remédios ficam com o documento, que mostra a adesão).

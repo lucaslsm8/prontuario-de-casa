@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { nomeAlergia } from '../data/alergias';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
 import { useStore } from '../data/store';
@@ -57,7 +58,7 @@ export function PetPerfil({ pet: p, inicio }: { pet: Pessoa; inicio?: boolean })
         {alergia && (
           <div className="card card--warn" style={{ padding: '14px 16px', gap: 4 }}>
             <span className="mono" style={{ fontSize: 11, letterSpacing: '.1em', color: 'var(--warn-text)' }}>ALERGIA</span>
-            <span style={{ fontSize: 18, fontWeight: 600, color: 'var(--warn-strong)' }}>{p.alergias.map((a) => a.substancia).join(', ')}</span>
+            <span style={{ fontSize: 18, fontWeight: 600, color: 'var(--warn-strong)' }}>{p.alergias.map(nomeAlergia).join(', ')}</span>
             {alergia.reacao && <span style={{ fontSize: 13, color: 'var(--warn-text)' }}>{alergia.reacao}{alergia.ano ? ` (${alergia.ano})` : ''}</span>}
           </div>
         )}

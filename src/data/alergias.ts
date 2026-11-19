@@ -41,6 +41,15 @@ export function alergiasDoRemedio(nomeRemedio: string, alergias: Alergia[]): Avi
 /** "Alergia a Penicilina (urticária) · Amoxicilina é da família das penicilinas." */
 export function textoAvisoAlergia(av: AvisoAlergia, nomeRemedio: string) {
   const r = av.alergia.reacao ? ` (${av.alergia.reacao})` : '';
-  const base = `Alergia a ${av.alergia.substancia}${r}`;
+  const base = `Alergia${av.alergia.gravidade === 'grave' ? ' grave' : ''} a ${av.alergia.substancia}${r}`;
   return av.porFamilia ? `${base} · ${nomeRemedio.trim().split(/\s+/)[0]} é da família das ${av.porFamilia}.` : `${base}.`;
 }
+
+/** "Penicilina (grave)"; sem gravidade grave, só o nome. Para as listas curtas (ficha de emergência, Início). */
+export const nomeAlergia = (a: Alergia) => (a.gravidade === 'grave' ? `${a.substancia} (grave)` : a.substancia);
+/** "grave", "moderada", "leve" ou vazio. */
+export const textoGravidade = (a: Alergia) => a.gravidade ?? '';
+
+/** "Pai · infarto aos 55". */
+export const linhaHistoricoFamiliar = (h: { parente: string; condicao: string; idade?: string }) =>
+  `${h.parente} · ${h.condicao.charAt(0).toLowerCase()}${h.condicao.slice(1)}${h.idade ? ` (${/^\d+$/.test(h.idade.trim()) ? `aos ${h.idade.trim()}` : h.idade.trim()})` : ''}`;

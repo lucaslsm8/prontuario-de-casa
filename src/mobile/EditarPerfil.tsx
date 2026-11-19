@@ -1,4 +1,7 @@
 import { CampoResponsavel } from '../ui/Papeis';
+import { GRAVIDADES, PARENTES } from '../data/perfil';
+import { CONDICOES_FAMILIA } from '../data/sugestoes';
+import type { GravidadeAlergia } from '../data/types';
 import { useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
@@ -41,6 +44,7 @@ function FormEditarPerfil({ p }: { p: Pessoa }) {
   // Item recém-adicionado recebe o foco.
   const [novo, setNovo] = useState<string>();
   const novaAlergia = () => setNovo(f.addAlergia());
+  const novoFamiliar = () => setNovo(f.addFamiliar());
   const novaCondicao = () => setNovo(f.addCondicao());
 
   return (
@@ -115,10 +119,11 @@ function FormEditarPerfil({ p }: { p: Pessoa }) {
                   onChange={(e) => f.setAlergia(a.chave, { substancia: e.target.value })}
                   onKeyDown={(e) => enterNaLinha(e, novaAlergia)}
                 />
+                <div className="hstack" style={{ gap: 8 }}>
                 <input
                   data-campo
                   className="inline-input"
-                  style={{ textAlign: 'left', width: '100%', height: 44, paddingBottom: 10, fontSize: 13, fontWeight: 400, color: 'var(--text-2)' }}
+                  style={{ textAlign: 'left', flex: 1, minWidth: 0, height: 44, paddingBottom: 10, fontSize: 13, fontWeight: 400, color: 'var(--text-2)' }}
                   placeholder="Reação"
               list="sug-reacao"
                   aria-label={a.substancia ? `Reação a ${a.substancia}` : 'Reação da nova alergia'}
@@ -126,6 +131,8 @@ function FormEditarPerfil({ p }: { p: Pessoa }) {
                   onChange={(e) => f.setAlergia(a.chave, { reacao: e.target.value })}
                   onKeyDown={(e) => enterNaLinha(e, novaAlergia)}
                 />
+                <SeletorGravidade valor={a.gravidade ?? ''} onChange={(g) => f.setAlergia(a.chave, { gravidade: g })} rotulo={a.substancia} />
+                </div>
               </div>
               <RemoverItem rotulo={`Remover alergia${a.substancia ? ` ${a.substancia}` : ''}`} onClick={() => f.removerAlergia(a.chave)} />
             </div>
@@ -184,6 +191,55 @@ function FormEditarPerfil({ p }: { p: Pessoa }) {
               <AdicionarItem onClick={novaCondicao}>+ Adicionar condição</AdicionarItem>
             </div>
           </FieldGroup>
+
+          <FieldGroup label="Histórico familiar">
+            <div className="card" style={{ fontSize: 15 }}>
+              {f.familia.map((h) => (
+                <div key={h.chave} data-item className="row" style={{ padding: '0 4px 0 16px', gap: 8 }}>
+                  <div className="stack" style={{ flex: 1, minWidth: 0 }}>
+                    <input
+                      data-campo
+                      className="inline-input"
+                      style={{ textAlign: 'left', width: '100%', height: 44, paddingTop: 10 }}
+                      autoFocus={h.chave === novo}
+                      placeholder="Doença (ex.: infarto, diabetes)"
+                      list="sug-condicao-familia"
+                      aria-label={h.condicao ? `Doença na família — ${h.condicao}` : 'Doença na família'}
+                      value={h.condicao}
+                      onChange={(e) => f.setFamiliar(h.chave, { condicao: e.target.value })}
+                      onKeyDown={(e) => enterNaLinha(e, novoFamiliar)}
+                    />
+                    <div className="hstack" style={{ gap: 8, fontSize: 13 }}>
+                      <input
+                        data-campo
+                        className="inline-input"
+                        style={{ textAlign: 'left', flex: 1, minWidth: 0, height: 44, paddingBottom: 10, fontWeight: 400, color: 'var(--text-2)' }}
+                        placeholder="Quem (pai, mãe…)"
+                        list="sug-parente"
+                        aria-label="Parente"
+                        value={h.parente}
+                        onChange={(e) => f.setFamiliar(h.chave, { parente: e.target.value })}
+                        onKeyDown={(e) => enterNaLinha(e, novoFamiliar)}
+                      />
+                      <input
+                        data-campo
+                        className="inline-input mono"
+                        style={{ textAlign: 'left', width: 96, height: 44, paddingBottom: 10, color: 'var(--text-2)' }}
+                        placeholder="Idade"
+                        aria-label="Com que idade"
+                        value={h.idade}
+                        onChange={(e) => f.setFamiliar(h.chave, { idade: e.target.value })}
+                        onKeyDown={(e) => enterNaLinha(e, novoFamiliar)}
+                      />
+                    </div>
+                  </div>
+                  <RemoverItem rotulo={`Remover ${h.condicao || 'item do histórico'}`} onClick={() => f.removerFamiliar(h.chave)} />
+                </div>
+              ))}
+              <AdicionarItem onClick={novoFamiliar}>+ Adicionar doença na família</AdicionarItem>
+            </div>
+          </FieldGroup>
+          <ListasFamilia />
 
           <FieldGroup label="Contato de emergência">
             <div className="card" style={{ fontSize: 15 }}>
@@ -271,5 +327,32 @@ export function AdicionarItem({ onClick, children }: { onClick: () => void; chil
     <button type="button" className="row" style={{ padding: '12px 16px', minHeight: 44, color: 'var(--teal)', fontWeight: 500, justifyContent: 'flex-start' }} onClick={onClick}>
       {children}
     </button>
+  );
+}
+
+/** Gravidade da alergia (select compacto, igual nos dois aparelhos). */
+export function SeletorGravidade({ valor, onChange, rotulo, className }: { valor: GravidadeAlergia | ''; onChange: (g: GravidadeAlergia | '') => void; rotulo?: string; className?: string }) {
+  return (
+    <select
+      data-campo
+      className={className ?? 'inline-input'}
+      style={className ? undefined : { textAlign: 'left', height: 44, paddingBottom: 10, fontSize: 13, fontWeight: valor === 'grave' ? 600 : 400, color: valor === 'grave' ? 'var(--danger)' : 'var(--text-2)', cursor: 'pointer' }}
+      aria-label={rotulo ? `Gravidade da alergia a ${rotulo}` : 'Gravidade da alergia'}
+      value={valor}
+      onChange={(e) => onChange(e.target.value as GravidadeAlergia | '')}
+    >
+      <option value="">Gravidade?</option>
+      {GRAVIDADES.map((g) => <option key={g.id} value={g.id}>{g.nome}</option>)}
+    </select>
+  );
+}
+
+/** Sugestões do histórico familiar: parentes e doenças que costumam ser perguntadas. */
+export function ListasFamilia() {
+  return (
+    <>
+      <datalist id="sug-parente">{PARENTES.map((x) => <option key={x} value={x} />)}</datalist>
+      <datalist id="sug-condicao-familia">{CONDICOES_FAMILIA.map((x) => <option key={x} value={x} />)}</datalist>
+    </>
   );
 }

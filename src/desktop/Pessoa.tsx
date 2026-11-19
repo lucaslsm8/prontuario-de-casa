@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { CalendarioVacinas, CurvaCrescimento } from '../ui/Crianca';
+import { linhaHistoricoFamiliar, nomeAlergia } from '../data/alergias';
 import { Link, useParams } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
 import { compartilhado, editaveis, eu, pessoa, podeVer, useStore } from '../data/store';
@@ -130,7 +132,7 @@ function Indicadores({ p }: { p: Pessoa }) {
       <Stat rotulo="Altura" valor={p.altura ? `${numBR(p.altura)} m` : '—'} />
       {p.pressao && <Stat rotulo="Pressão" valor={p.pressao.valor} sub={`medida em ${diaMes(p.pressao.data)}`} subTexto />}
       {primeira
-        ? <Stat rotulo="Alergias" valor={`${primeira.substancia}${outras.length ? ` +${outras.length}` : ''}`} alerta />
+        ? <Stat rotulo="Alergias" valor={`${nomeAlergia(primeira)}${outras.length ? ` +${outras.length}` : ''}`} alerta />
         : <Stat rotulo="Alergias" valor="Nenhuma" />}
       <Stat rotulo="Contato de emergência" valor={contato?.nome ?? '—'} subTexto sub={contato && (contato.relacao || contato.telefone) ? <>{contato.relacao}{contato.relacao && contato.telefone && ' · '}{contato.telefone && <span className="mono">{contato.telefone}</span>}</> : undefined} />
     </div>
@@ -155,6 +157,11 @@ function AbaPerfil({ id }: { id: string }) {
           {exames.length === 0 && <div style={linha} className="muted">Nenhum exame.</div>}
         </ListaCard>
       </div>
+      {(p.historicoFamiliar?.length ?? 0) > 0 && (
+        <ListaCard titulo="Histórico familiar">
+          {p.historicoFamiliar!.map((h, i) => <div key={i} style={linha}><span>{linhaHistoricoFamiliar(h)}</span></div>)}
+        </ListaCard>
+      )}
       {prox && (
         <div className="card" style={{ flexDirection: 'row', alignItems: 'center', gap: 20, padding: '16px 18px', fontSize: 14 }}>
           <Label>Próxima</Label>
@@ -174,6 +181,7 @@ function AbaMedicoes({ id, podeEditar }: { id: string; podeEditar: boolean }) {
   const { state } = useStore();
   const abrir = useAbrir();
   const tipos = tiposVisiveis(state.medicoes, id);
+  const p = pessoa(state, id);
   const marcadores = podeVer(state, id, 'exames') ? marcadoresDaPessoa(state.exames, id) : [];
   return (
     <>
@@ -183,6 +191,7 @@ function AbaMedicoes({ id, podeEditar }: { id: string; podeEditar: boolean }) {
           <button type="button" className="btn btn--teal btn--h38" onClick={() => abrir(`medicao:${id}`)}>Nova medição</button>
         </div>
       )}
+      {p && <CurvaCrescimento p={p} desktop />}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 16 }}>
         {tipos.map((t) => <CartaoMedicao key={t.id} pessoaId={id} tipo={t.id} onNova={podeEditar ? () => abrir(`medicao:${id}:${t.id}`) : undefined} onEditar={podeEditar ? (m) => abrir(`editar-medicao:${m.id}`) : undefined} />)}
       </div>
@@ -203,7 +212,10 @@ function AbaVacinasPessoa({ id, podeEditar }: { id: string; podeEditar: boolean 
   const abrir = useAbrir();
   const lista = state.vacinas.filter((v) => v.pessoaId === id).sort((a, b) => b.data.localeCompare(a.data));
   const antigas = (pessoa(state, id)?.condicoes ?? []).filter((c) => c.tipo === 'vacina');
+  const p = pessoa(state, id);
   return (
+    <>
+    {p && <CalendarioVacinas p={p} desktop />}
     <div className="card" style={{ fontSize: 14 }}>
       <div className="card-head card-head--20">
         <span className="label">Vacinas</span>
@@ -229,6 +241,7 @@ function AbaVacinasPessoa({ id, podeEditar }: { id: string; podeEditar: boolean 
       ))}
       {lista.length + antigas.length === 0 && <div className="row muted" style={{ padding: '14px 20px' }}>Nenhuma vacina registrada.</div>}
     </div>
+    </>
   );
 }
 

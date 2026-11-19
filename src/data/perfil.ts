@@ -1,4 +1,4 @@
-import type { Alergia, Condicao, DadosPet, Pessoa } from './types';
+import type { Alergia, Condicao, DadosPet, Pessoa, GravidadeAlergia, HistoricoFamiliar } from './types';
 import { lerNascimento } from './formularios-puro';
 
 /** Mudanças aceitas em `editarPessoa`. `null` remove o campo (undefined some no JSON do log). */
@@ -120,7 +120,10 @@ export const TIPOS_CONDICAO: { id: TipoCondicao; nome: string }[] = [
 ];
 
 /** Linhas das listas editáveis. `chave` só identifica a linha na tela; `orig` guarda os campos que o formulário não mostra. */
-export interface LinhaAlergia { chave: string; substancia: string; reacao: string; orig?: Alergia }
+export interface LinhaAlergia { chave: string; substancia: string; reacao: string; gravidade?: GravidadeAlergia | ''; orig?: Alergia }
+export interface LinhaFamiliar { chave: string; parente: string; condicao: string; idade: string }
+export const GRAVIDADES: { id: GravidadeAlergia; nome: string }[] = [{ id: 'leve', nome: 'Leve' }, { id: 'moderada', nome: 'Moderada' }, { id: 'grave', nome: 'Grave' }];
+export const PARENTES = ['Pai', 'Mãe', 'Avô paterno', 'Avó paterna', 'Avô materno', 'Avó materna', 'Irmão', 'Irmã', 'Tio', 'Tia', 'Filho', 'Filha'];
 export interface LinhaCondicao { chave: string; nome: string; tipo: TipoCondicao; desde: string; orig?: Condicao }
 
 export interface FormPerfil {
@@ -133,6 +136,7 @@ export interface FormPerfil {
   pressao: string;   // "130/80"
   alergias: LinhaAlergia[];
   condicoes: LinhaCondicao[];
+  familia: LinhaFamiliar[];
   contato: { nome: string; relacao: string; telefone: string };
   /** Responsável direto: id da pessoa, ou '' (ninguém). */
   responsavel: string;
@@ -167,7 +171,8 @@ export function formDePessoa(p: Pessoa): FormPerfil {
     peso: numTexto(p.peso),
     altura: numTexto(p.altura),
     pressao: p.pressao?.valor ?? '',
-    alergias: p.alergias.map((a) => ({ chave: novaChave(), substancia: a.substancia, reacao: a.reacao ?? '', orig: a })),
+    alergias: p.alergias.map((a) => ({ chave: novaChave(), substancia: a.substancia, reacao: a.reacao ?? '', gravidade: a.gravidade ?? '', orig: a })),
+    familia: (p.historicoFamiliar ?? []).map((h) => ({ chave: novaChave(), parente: h.parente, condicao: h.condicao, idade: h.idade ?? '' })),
     condicoes: p.condicoes.map((c) => ({ chave: novaChave(), nome: c.nome, tipo: c.tipo, desde: c.desde ?? '', orig: c })),
     contato: { nome: p.contatoEmergencia?.nome ?? '', relacao: p.contatoEmergencia?.relacao ?? '', telefone: p.contatoEmergencia?.telefone ?? '' },
     responsavel: p.responsavelId ?? '',
@@ -244,6 +249,7 @@ export function pessoaDoForm(p: Pessoa, f: FormPerfil, hoje: string): { pessoa?:
         return limpar({ ...x.orig, nome: t(x.nome), desde: ou(x.desde), tipo: x.tipo, nomeClinico }) as Condicao;
       }),
     contatoEmergencia: temContato ? limpar({ ...p.contatoEmergencia, ...c }) : undefined,
+    historicoFamiliar: familiaDoForm(f),
     responsavelId: f.responsavel && f.responsavel !== p.id ? f.responsavel : undefined,
     foto: f.foto,
   });
@@ -254,7 +260,13 @@ export function pessoaDoForm(p: Pessoa, f: FormPerfil, hoje: string): { pessoa?:
 const curtoDe = (p: Pessoa, nome: string) => (p.curto === p.nome.split(' ')[0] ? nome.split(' ')[0] : p.curto);
 
 const alergiasDoForm = (f: FormPerfil) =>
-  f.alergias.filter((a) => t(a.substancia)).map((a) => limpar({ ...a.orig, substancia: t(a.substancia), reacao: ou(a.reacao) }) as Alergia);
+  f.alergias.filter((a) => t(a.substancia)).map((a) => limpar({ ...a.orig, substancia: t(a.substancia), reacao: ou(a.reacao), gravidade: a.gravidade || undefined }) as Alergia);
+
+/** Histórico familiar: linha sem condição some; lista vazia sai da pessoa. */
+const familiaDoForm = (f: FormPerfil) => {
+  const l = (f.familia ?? []).filter((x) => t(x.condicao)).map((x) => limpar({ parente: t(x.parente) || 'Família', condicao: t(x.condicao), idade: ou(x.idade) }) as HistoricoFamiliar);
+  return l.length ? l : undefined;
+};
 
 /**
  * Ramo do pet: nome, nascimento, sexo, alergias, foto e os dados do pet. Sangue, peso, altura,

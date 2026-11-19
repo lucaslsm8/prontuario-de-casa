@@ -34,3 +34,9 @@ export const SUGESTOES_ALERGIA = [
 export const SUGESTOES_REACAO = ['Urticária', 'Coceira', 'Inchaço', 'Falta de ar', 'Anafilaxia', 'Vermelhidão', 'Vômito', 'Diarreia', 'Espirros', 'Febre'];
 
 export const LISTA_POR_TIPO: Record<TipoCondicao, string> = { condicao: 'sug-condicao', cirurgia: 'sug-cirurgia', vacina: 'sug-vacina' };
+
+/** Histórico familiar: o que o médico costuma perguntar. */
+export const CONDICOES_FAMILIA = [
+  'Infarto', 'AVC (derrame)', 'Pressão alta', 'Diabetes', 'Colesterol alto', 'Câncer de mama', 'Câncer de próstata', 'Câncer de intestino',
+  'Alzheimer', 'Depressão', 'Doença da tireoide', 'Asma', 'Glaucoma', 'Doença renal', 'Morte súbita',
+];

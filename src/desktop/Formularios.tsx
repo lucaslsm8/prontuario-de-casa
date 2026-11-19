@@ -25,6 +25,8 @@ import { DCampo, DChips, DConfirmar, DDialogo, DFechar, DGrade, DRodape, DSangue
 import { SUGESTOES_VACINA as SUGESTOES_VACINA_PESSOA } from '../data/sugestoes';
 import { CampoData } from '../ui/CampoData';
 import { CamposDias } from '../ui/DiasRemedio';
+import { ListasFamilia, SeletorGravidade } from '../mobile/EditarPerfil';
+import { nomeAlergia } from '../data/alergias';
 import { CorpoCarteira, textoAdicionar, useLerCarteira } from '../ui/CarteiraVacinas';
 
 // Formulários do desktop em diálogo largo. Estado, validação e salvar vêm dos hooks compartilhados com o mobile.
@@ -752,7 +754,7 @@ export function DFichaEmergencia({ pessoaId, onClose }: Props & { pessoaId?: str
           <div className="stack" style={{ borderRadius: 8, background: alergico ? 'var(--warn-bg)' : 'var(--bg)', padding: 14, gap: 2 }}>
             <span style={{ fontSize: 12, color: alergico ? 'var(--warn-text)' : 'var(--text-2)', fontWeight: 600 }}>{alergico ? 'ALÉRGICO A' : 'ALERGIAS'}</span>
             <span style={{ fontSize: 26, fontWeight: 700, color: alergico ? 'var(--warn-strong)' : undefined }}>
-              {alergico ? p.alergias.map((a) => a.substancia).join(', ') : 'Nenhuma conhecida'}
+              {alergico ? p.alergias.map(nomeAlergia).join(', ') : 'Nenhuma conhecida'}
             </span>
           </div>
         </div>
@@ -867,6 +869,7 @@ function CampoAlergias({ f, nova, onNova: novaAlergia }: { f: FormPerfilHook; no
               onChange={(e) => f.setAlergia(a.chave, { reacao: e.target.value })}
               onKeyDown={(e) => enterNaLinha(e, novaAlergia)}
             />
+            <SeletorGravidade className="inline-input dlista__campo dlista__tipo" valor={a.gravidade ?? ''} onChange={(g) => f.setAlergia(a.chave, { gravidade: g })} rotulo={a.substancia} />
             <button type="button" className="dlista__x" aria-label={`Remover alergia${a.substancia ? ` ${a.substancia}` : ''}`} onClick={() => f.removerAlergia(a.chave)}>×</button>
           </div>
         ))}
@@ -948,6 +951,7 @@ function EditarPerfil({ p, onClose }: Props & { p: Pessoa }) {
   const [nova, setNova] = useState<string>();
   const novaAlergia = () => setNova(f.addAlergia());
   const novaCondicao = () => setNova(f.addCondicao());
+  const novoFamiliar = () => setNova(f.addFamiliar());
 
   return (
     <DDialogo titulo="Editar perfil" largura={720} onClose={onClose} rodape={<DRodape salvar="Salvar" onSalvar={f.salvar} valido={f.valido} onCancelar={onClose} />}>
@@ -1024,6 +1028,21 @@ function EditarPerfil({ p, onClose }: Props & { p: Pessoa }) {
               </div>
             ))}
             <button type="button" className="dlista__item dlista__add" onClick={novaCondicao}>+ Adicionar condição</button>
+          </div>
+        </DCampo>
+
+        <DCampo label="Histórico familiar" span2 grupo>
+          <ListasFamilia />
+          <div className="dlista">
+            {f.familia.map((h) => (
+              <div key={h.chave} data-item className="dlista__item dlista__linha">
+                <input data-campo className="inline-input dlista__campo dlista__campo--largo" autoFocus={h.chave === nova} placeholder="Doença (ex.: infarto)" list="sug-condicao-familia" aria-label="Doença na família" value={h.condicao} onChange={(e) => f.setFamiliar(h.chave, { condicao: e.target.value })} onKeyDown={(e) => enterNaLinha(e, novoFamiliar)} />
+                <input data-campo className="inline-input dlista__campo" placeholder="Quem" list="sug-parente" aria-label="Parente" value={h.parente} onChange={(e) => f.setFamiliar(h.chave, { parente: e.target.value })} onKeyDown={(e) => enterNaLinha(e, novoFamiliar)} />
+                <input data-campo className="inline-input mono dlista__campo dlista__desde" placeholder="Idade" aria-label="Com que idade" value={h.idade} onChange={(e) => f.setFamiliar(h.chave, { idade: e.target.value })} onKeyDown={(e) => enterNaLinha(e, novoFamiliar)} />
+                <button type="button" className="dlista__x" aria-label={`Remover ${h.condicao || 'item do histórico'}`} onClick={() => f.removerFamiliar(h.chave)}>×</button>
+              </div>
+            ))}
+            <button type="button" className="dlista__item dlista__add" onClick={novoFamiliar}>+ Adicionar doença na família</button>
           </div>
         </DCampo>
 

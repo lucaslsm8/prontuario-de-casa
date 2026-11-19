@@ -12,7 +12,11 @@ export const CATEGORIAS: { id: Categoria; nome: string; detalhe?: string }[] = [
   { id: 'plano', nome: 'Plano de saúde' },
 ];
 
-export interface Alergia { substancia: string; reacao?: string; ano?: number }
+export type GravidadeAlergia = 'leve' | 'moderada' | 'grave';
+/** `gravidade`: grave = anafilaxia, edema de glote, internação (destaque na ficha de emergência). */
+export interface Alergia { substancia: string; reacao?: string; ano?: number; gravidade?: GravidadeAlergia }
+/** Doença na família (pai, mãe, avós, irmãos): o médico costuma perguntar. */
+export interface HistoricoFamiliar { parente: string; condicao: string; idade?: string }
 export interface Condicao { nome: string; desde?: string; tipo: 'condicao' | 'cirurgia' | 'vacina'; nomeClinico?: string }
 
 export interface Pessoa {
@@ -30,6 +34,7 @@ export interface Pessoa {
   alergias: Alergia[];
   condicoes: Condicao[];
   contatoEmergencia?: { nome: string; relacao: string; telefone: string };
+  historicoFamiliar?: HistoricoFamiliar[];
   souEu?: boolean;
   foto?: string;         // data URL JPEG 384×384
   tipo?: 'pessoa' | 'pet'; // ausente = pessoa

@@ -12,7 +12,7 @@ import { mascararDocumento, tipoDocumento } from './despesas';
 import { lerReais } from './reembolso';
 import type { Despesa, TipoDespesa, Anexo, Aparencia, CategoriaExame, Resultado, Consulta, Exame, Medicao, Pesagem, Pessoa, Plano, Prevencao, Procedimento, Remedio, Sintoma, TipoMedicao, TipoProcedimento, Vacina } from './types';
 import { SINAIS, ehPet, familia, pets } from './pets';
-import { diffPessoa, formDePessoa, lerNumeroBR, normalizarTexto, novaChave, pessoaDoForm, type ErrosPerfil, type FormPerfil, type FormPet, type LinhaAlergia, type LinhaCondicao } from './perfil';
+import { diffPessoa, formDePessoa, lerNumeroBR, normalizarTexto, novaChave, pessoaDoForm, type ErrosPerfil, type FormPerfil, type FormPet, type LinhaAlergia, type LinhaCondicao, type LinhaFamiliar } from './perfil';
 import {
   CORES, FORMAS_REMEDIO, FREQUENCIAS, brParaISO, lerDose, lerQuantidade, montarDose, textoQuantidade, diffRegistro, freqDoRemedio, lerHorarios, nomeComDosagem, partesDoRemedio, dataDoReforco, isoParaBR, juntarDataHora, lerDataHora, lerDataRegistro, lerIntervaloDias, lerNascimento,
   lerReforco, mascaraData, mascaraValidade, montarPlano, normalizarHora, somarDias, type AtalhoReforco, type ErrosPlano, type FormPlano, type Frequencia,
@@ -769,6 +769,9 @@ export function useFormPerfil(p: Pessoa, onSalvo: () => void) {
   const addCondicao = () => { const chave = novaChave(); setF((x) => ({ ...x, condicoes: [...x.condicoes, { chave, nome: '', tipo: 'condicao', desde: '' }] })); return chave; };
   const setCondicao = (chave: string, m: Partial<LinhaCondicao>) => setF((x) => ({ ...x, condicoes: x.condicoes.map((c) => (c.chave === chave ? { ...c, ...m } : c)) }));
   const removerCondicao = (chave: string) => setF((x) => ({ ...x, condicoes: x.condicoes.filter((c) => c.chave !== chave) }));
+  const addFamiliar = () => { const chave = novaChave(); setF((x) => ({ ...x, familia: [...x.familia, { chave, parente: '', condicao: '', idade: '' }] })); return chave; };
+  const setFamiliar = (chave: string, m: Partial<LinhaFamiliar>) => setF((x) => ({ ...x, familia: x.familia.map((c) => (c.chave === chave ? { ...c, ...m } : c)) }));
+  const removerFamiliar = (chave: string) => setF((x) => ({ ...x, familia: x.familia.filter((c) => c.chave !== chave) }));
 
   const salvar = () => {
     const r = pessoaDoForm(p, f, HOJE);
@@ -800,7 +803,7 @@ export function useFormPerfil(p: Pessoa, onSalvo: () => void) {
     setPet: (m: Partial<Omit<FormPet, 'veterinario' | 'clinica24h'>>) => f.pet && set('pet', { ...f.pet, ...m }, undefined),
     setVeterinario: (m: Partial<FormPet['veterinario']>) => f.pet && set('pet', { ...f.pet, veterinario: { ...f.pet.veterinario, ...m } }, 'veterinario'),
     setClinica24h: (m: Partial<FormPet['clinica24h']>) => f.pet && set('pet', { ...f.pet, clinica24h: { ...f.pet.clinica24h, ...m } }, 'clinica24h'),
-    addAlergia, setAlergia, removerAlergia, addCondicao, setCondicao, removerCondicao,
+    addAlergia, setAlergia, removerAlergia, addCondicao, setCondicao, removerCondicao, addFamiliar, setFamiliar, removerFamiliar,
     /** Data da pressão que fica salva: a medida anterior se o valor não mudou, senão hoje. */
     dataPressao: normalizarTexto(f.pressao) ? (normalizarTexto(f.pressao) === p.pressao?.valor ? p.pressao.data : HOJE) : undefined,
     erros, valido: !!f.nome.trim(), salvar,

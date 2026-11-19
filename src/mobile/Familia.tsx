@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { CalendarioVacinas, CurvaCrescimento } from '../ui/Crianca';
+import { linhaHistoricoFamiliar, nomeAlergia } from '../data/alergias';
 import { useNavigate, useParams } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { HOJE } from '../data/tempo';
@@ -239,7 +241,7 @@ export function PerfilMembro() {
           {alergia && (
             <div className="card card--warn" style={{ padding: '14px 16px', gap: 4 }}>
               <span className="mono" style={{ fontSize: 11, letterSpacing: '.1em', color: 'var(--warn-text)' }}>ALERGIA</span>
-              <span style={{ fontSize: 18, fontWeight: 600, color: 'var(--warn-strong)' }}>{p.alergias.map((a) => a.substancia).join(', ')}</span>
+              <span style={{ fontSize: 18, fontWeight: 600, color: 'var(--warn-strong)' }}>{p.alergias.map(nomeAlergia).join(', ')}</span>
               {alergia.reacao && <span style={{ fontSize: 13, color: 'var(--warn-text)' }}>{alergia.reacao}{alergia.ano ? ` (${alergia.ano})` : ''}</span>}
             </div>
           )}
@@ -249,6 +251,12 @@ export function PerfilMembro() {
               {historico.map((c) => (
                 <Row key={c.nome} mutedLabel={false} label={c.nome} valor={<span className="faint">{c.desde}</span>} style={{ padding: '10px 16px', fontSize: 15 }} />
               ))}
+            </div>
+          )}
+          {(p.historicoFamiliar?.length ?? 0) > 0 && (
+            <div className="card">
+              <span className="label" style={{ padding: '12px 16px 4px' }}>Histórico familiar</span>
+              {p.historicoFamiliar!.map((h, i) => <span key={i} style={{ padding: '10px 16px', fontSize: 15, borderTop: i ? '1px solid var(--divider)' : undefined }}>{linhaHistoricoFamiliar(h)}</span>)}
             </div>
           )}
         </>
@@ -273,6 +281,8 @@ export function PerfilMembro() {
           <Row mutedLabel={false} label="Medições" valor={<span className="muted">{resumoMedicoes(state.medicoes, p.id)} ›</span>} onClick={() => nav(`/pessoa/${p.id}/medicoes`)} />
         </div>
       )}
+      {aba === 'saude' && ver('perfil') && <CurvaCrescimento p={p} />}
+      {aba === 'saude' && ver('perfil') && <CalendarioVacinas p={p} />}
 
       {aba === 'saude' && ver('perfil') && (
         <div className="card" style={{ fontSize: 15 }}>
@@ -618,7 +628,7 @@ export function FichaEmergencia({ onClose, pessoaId }: { onClose?: () => void; p
           <div className="stack" style={{ borderRadius: 8, background: p.alergias.length ? 'var(--warn-bg)' : 'var(--bg)', padding: 14, gap: 2 }}>
             <span style={{ fontSize: 12, color: p.alergias.length ? 'var(--warn-text)' : 'var(--text-2)', fontWeight: 600 }}>{p.alergias.length ? 'ALÉRGICO A' : 'ALERGIAS'}</span>
             <span style={{ fontSize: 26, fontWeight: 700, color: p.alergias.length ? 'var(--warn-strong)' : undefined }}>
-              {p.alergias.length ? p.alergias.map((a) => a.substancia).join(', ') : 'Nenhuma conhecida'}
+              {p.alergias.length ? p.alergias.map(nomeAlergia).join(', ') : 'Nenhuma conhecida'}
             </span>
           </div>
         </div>
@@ -704,7 +714,7 @@ export function CorpoFichaPet({ p, colunaPeso, rotulo }: { p: Pessoa; colunaPeso
         <div className="stack" style={{ borderRadius: 8, background: alergico ? 'var(--warn-bg)' : 'var(--bg)', padding: 14, gap: 2 }}>
           <span style={{ fontSize: 12, color: alergico ? 'var(--warn-text)' : 'var(--text-2)', fontWeight: 600 }}>{alergico ? 'ALÉRGICO A' : 'ALERGIAS'}</span>
           <span style={{ fontSize: 26, fontWeight: 700, color: alergico ? 'var(--warn-strong)' : undefined }}>
-            {alergico ? p.alergias.map((a) => a.substancia).join(', ') : 'Nenhuma conhecida'}
+            {alergico ? p.alergias.map(nomeAlergia).join(', ') : 'Nenhuma conhecida'}
           </span>
         </div>
       </div>

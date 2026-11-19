@@ -178,7 +178,7 @@ export function AFamilia({ pessoas, compacto }: { pessoas: Pessoa[]; compacto?: 
               <span style={{ fontWeight: 600 }}>{quem(p)}{meta && <span style={{ fontWeight: 400, color: 'var(--text-2)', fontSize: 13 }}> · {meta}</span>}</span>
               {(p.alergias.length > 0 || condicoes.length > 0) && (
                 <span className="familia-linha__chips">
-                  {p.alergias.map((a) => <span key={`a-${a.substancia}`} className="pill pill--warn" style={{ fontWeight: 600 }} title={a.reacao}>Alergia: {a.substancia}</span>)}
+                  {p.alergias.map((a) => <span key={`a-${a.substancia}`} className="pill pill--warn" style={{ fontWeight: 600 }} title={a.reacao}>Alergia{a.gravidade === 'grave' ? ' grave' : ''}: {a.substancia}</span>)}
                   {condicoes.map((c) => <span key={`c-${c.nome}`} className="pill pill--neutral">{c.nome}</span>)}
                 </span>
               )}
