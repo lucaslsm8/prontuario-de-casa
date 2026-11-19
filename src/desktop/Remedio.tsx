@@ -16,6 +16,8 @@ import { ehLiquido } from '../data/cartela';
 import { anexosDe } from '../data/anexos';
 import { AvisoAlergia } from '../ui/AvisoAlergia';
 import { textoHorarios } from '../data/inicio';
+import { comDoseDoDia, textoDesmame, textoDias } from '../data/frequencia';
+import { AvisoReceita } from '../ui/DiasRemedio';
 
 const voltar = <Link to="/remedios" style={{ fontSize: 14, fontWeight: 600 }}>← Remédios</Link>;
 
@@ -45,12 +47,15 @@ export function DRemedio() {
   const acaba = dias != null ? addDias(HOJE, dias) : undefined;
   const { tomadas, previstas } = somaAdesao(grade);
   const pct = previstas ? Math.round((tomadas / previstas) * 100) : undefined;
-  const meta = [quem(pessoa(state, r.pessoaId)), r.dose, r.seNecessario ? 'se necessário' : r.horarios.join(', ') || 'sem horário'].filter(Boolean).join(' · ');
+  const meta = [quem(pessoa(state, r.pessoaId)), comDoseDoDia(r, HOJE).dose, r.seNecessario ? 'se necessário' : r.horarios.join(', ') || 'sem horário', textoDias(r)].filter(Boolean).join(' · ');
   const detalhes: [string, string][] = [
     ['Receitado por', r.receitadoPor ?? '—'],
     ['Para que serve', r.indicacao ?? '—'],
     ['Dosagem', partesDoRemedio(r)[1] || '—'],
     ['Desde', r.inicio ? dataBR(r.inicio) : '—'],
+    ...(textoDias(r) ? [['Dias', textoDias(r)] as [string, string]] : []),
+    ...(r.desmame?.length ? [['Desmame', `${textoDesmame(r)}${r.fim ? ` · até ${dataBR(r.fim)}` : ''}`] as [string, string]] : []),
+    ...(r.receitaValidade ? [['Receita vale até', dataBR(r.receitaValidade)] as [string, string]] : []),
     ...(info ? [] : [['Lembrete', r.lembrete && r.horarios.length ? 'ligado' : 'desligado'] as [string, string]]),
   ];
 
@@ -85,6 +90,7 @@ export function DRemedio() {
       </div>
 
       {r.ativo && <AvisoAlergia nome={r.nome} pessoaId={r.pessoaId} />}
+      <AvisoReceita r={r} />
 
       {info && (
         <div className="card">
@@ -92,7 +98,7 @@ export function DRemedio() {
           <div className="hstack" style={{ padding: '16px 18px 18px', gap: 16, alignItems: 'center' }}>
             <span className="info-rem__pilula" style={{ width: 56, height: 56 }} aria-hidden><PilulaDoRemedio r={r} tamanho={40} /></span>
             <span className="stack" style={{ gap: 6, flex: 1, minWidth: 0 }}>
-              <span style={{ fontSize: 16, fontWeight: 600 }}>{[r.doseLonga ?? r.dose, r.observacao].filter(Boolean).join(' · ')}</span>
+              <span style={{ fontSize: 16, fontWeight: 600 }}>{[comDoseDoDia(r, HOJE).doseLonga ?? r.dose, r.observacao, textoDias(r)].filter(Boolean).join(' · ')}</span>
               <span className="info-rem__horas" style={{ paddingTop: 0 }}>
                 {(r.seNecessario || !r.horarios.length ? [textoHorarios(r)] : [...r.horarios].sort()).map((h) => <span key={h} className="info-rem__hora" style={{ fontSize: 14, padding: '4px 10px' }}>{h}</span>)}
               </span>

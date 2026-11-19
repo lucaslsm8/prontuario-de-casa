@@ -12,6 +12,7 @@ import { HOJE } from '../data/tempo';
 import type { Consulta, Exame, Pessoa, Remedio } from '../data/types';
 import { Avatar, cx } from '.';
 import { PilulaDoRemedio } from './Pilula';
+import { comDoseDoDia, resumoDias } from '../data/frequencia';
 
 const DIAS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
 const DIAS_CURTOS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -107,7 +108,7 @@ export function ConsultasDepois({ consultas, compacto }: { consultas: Consulta[]
 function ItemRemedio({ r, varias, tracejado }: { r: Remedio; varias: boolean; tracejado?: boolean }) {
   const { state } = useStore();
   const [nome, conc] = separarConcentracao(r.nome);
-  const det = [varias ? quem(pessoa(state, r.pessoaId)) : '', r.doseLonga ?? r.dose, r.observacao ?? (r.indicacao && minuscula(r.indicacao))].filter(Boolean).join(' · ');
+  const det = [varias ? quem(pessoa(state, r.pessoaId)) : '', comDoseDoDia(r, HOJE).doseLonga ?? r.dose, resumoDias(r), r.observacao ?? (r.indicacao && minuscula(r.indicacao))].filter(Boolean).join(' · ');
   return (
     <Link to={`/remedios/${r.id}`} className={cx('horario__item', tracejado && 'horario__item--tracejado')}>
       <span className="horario__pilula" aria-hidden><PilulaDoRemedio r={r} tamanho={24} /></span>

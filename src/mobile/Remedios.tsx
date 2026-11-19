@@ -3,7 +3,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
 import { AVISAR, nomeAvisar, DURACOES, FORMAS_REMEDIO, FREQUENCIAS, lerHorarios, lerQuantidade, partesDoRemedio, useFormRemedio } from '../data/formularios';
 import { editaveis, historicoAdesao, marcaDose, pessoa, useStore, type DiaAdesao } from '../data/store';
-import { addDias, descricaoDose, diaSemanaCurto, diasDeEstoque, estoqueBaixo, parseISO, pctEstoque, quem, textoEstoque } from '../data/format';
+import { addDias, dataBR, descricaoDose, diaSemanaCurto, diasDeEstoque, estoqueBaixo, parseISO, pctEstoque, quem, textoEstoque } from '../data/format';
 import type { Remedio } from '../data/types';
 import { Bar, ChipGroup, Field, FieldGroup, Label, Pill, Row, SecaoLista, Segmented, Toggle, TopNav, InlineInput, cx } from '../ui';
 import { agruparFamiliaPets, opcoesPessoas } from '../data/pets';
@@ -19,6 +19,8 @@ import { SugestoesConsulta } from '../ui/Sugestoes';
 import { AvisoAlergia } from '../ui/AvisoAlergia';
 import { Cartela, DefinirTamanho, Frasco, PilulaDoRemedio, contaCartela } from '../ui/Pilula';
 import { ehLiquido } from '../data/cartela';
+import { comDoseDoDia, resumoDias, textoDesmame, textoDias } from '../data/frequencia';
+import { AvisoReceita, CamposDias } from '../ui/DiasRemedio';
 
 /** Doses tomadas e previstas na grade (o que ainda vai ser tomado hoje não conta). */
 export function somaAdesao(grade: DiaAdesao[]) {
@@ -190,7 +192,7 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
   const ver = (n: number) => !etapas || passo === n;
   const rolagem = useRef<HTMLDivElement>(null);
   useEffect(() => { rolagem.current?.scrollTo(0, 0); }, [passo]);
-  const podeSeguir = passo === 1 ? !!nome.trim() && form.qtdValida : passo === 2 ? horariosValidos || freq.id === 'sn' : true;
+  const podeSeguir = passo === 1 ? !!nome.trim() && form.qtdValida : passo === 2 ? (horariosValidos || freq.id === 'sn') && form.diasValidos && (!form.temDesmame || form.desmameValido) && form.validadeValida : true;
 
   return (
     <MScreen gap={12} scrollRef={rolagem}>
@@ -240,11 +242,11 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
             </div>
           </div>
         )}
-        <Row
+        {!form.temDesmame && <Row
           tight
           label="Duração"
           valor={<Ciclo valores={DURACOES} valor={duracao} onChange={setDuracao} render={(v) => (v ? `${v} dias · até ${fim.slice(8, 10)}/${fim.slice(5, 7)}` : 'Uso contínuo')} />}
-        />
+        />}
         {!info && <Row tight mutedLabel={false} label="Lembrete no horário" valor={<Toggle on={lembrete} onChange={setLembrete} label="Lembrete no horário" />} />}
       </div>
       {freq.id !== 'sn' && (
@@ -253,6 +255,7 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
           {!horariosValidos && <span style={{ fontSize: 13, color: 'var(--danger)' }}>Use HH:MM separados por vírgula.</span>}
         </Field>
       )}
+      <CamposDias f={form} />
       </>}
       {ver(3) && <>
       {!info && <div className="card" style={{ fontSize: 15 }}>
@@ -352,11 +355,12 @@ export function DetalheRemedio() {
           <h1 className="title" style={{ margin: 0 }}>{r.nome}</h1>
         </span>
         <span style={{ fontSize: 15, color: 'var(--text-2)' }}>
-          {r.seNecessario ? 'Sem horário fixo' : `${r.doseLonga ?? r.dose} às ${r.horarios.join(', ')}${r.observacao ? `, ${r.observacao}` : ''}`}
+          {r.seNecessario ? 'Sem horário fixo' : `${comDoseDoDia(r, HOJE).doseLonga ?? r.dose} às ${r.horarios.join(', ')}${r.observacao ? `, ${r.observacao}` : ''}${resumoDias(r) ? ` · ${textoDias(r) || 'desmame'}` : ''}`}
         </span>
       </div>
 
       {r.ativo && <AvisoAlergia nome={r.nome} pessoaId={r.pessoaId} />}
+      <AvisoReceita r={r} />
 
       {!info && r.estoque != null && (
         <div className="card" style={{ background: baixo ? 'var(--warn-bg)' : '#fff', borderColor: baixo ? 'transparent' : undefined, padding: '14px 16px', gap: 10 }}>
@@ -415,6 +419,9 @@ export function DetalheRemedio() {
       <div className="card" style={{ fontSize: 14 }}>
         {r.receitadoPor && <Row compact label="Receitado por" valor={r.receitadoPor} style={{ padding: '12px 16px' }} />}
         {r.indicacao && <Row compact label="Para que serve" valor={r.indicacao} style={{ padding: '12px 16px' }} />}
+        {textoDias(r) && <Row compact label="Dias" valor={textoDias(r)} style={{ padding: '12px 16px' }} />}
+        {r.desmame?.length ? <Row compact label="Desmame" valor={`${textoDesmame(r)}${r.fim ? ` · até ${dataBR(r.fim)}` : ''}`} style={{ padding: '12px 16px' }} /> : null}
+        {r.receitaValidade && <Row compact label="Receita vale até" valor={dataBR(r.receitaValidade)} style={{ padding: '12px 16px' }} />}
         {partesDoRemedio(r)[1] && <Row compact label="Dosagem" valor={partesDoRemedio(r)[1]} style={{ padding: '12px 16px' }} />}
         {!info && <Row compact label="Lembrete" valor={r.lembrete && r.horarios.length ? `${r.horarios.join(', ')} · ativo` : 'desligado'} style={{ padding: '12px 16px' }} />}
       </div>

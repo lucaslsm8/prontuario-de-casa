@@ -6,6 +6,7 @@ import type { State } from './store';
 import type { Pessoa } from './types';
 import { NOMES_PREVENCAO, proximaPrevencao, ultimasPrevencoes, ultimasVacinas } from './pets';
 import { noMeuCuidado } from './papeis';
+import { AVISO_RECEITA_DIAS, comDoseDoDia, tomaNoDia } from './frequencia';
 
 export interface Lembrete {
   id: string;      // "dose|<remedioId>|<previstoPara>", "consulta|<id>|<antecedência>", "vacina|<id>" ou "prevencao|<id>"
@@ -32,6 +33,7 @@ const data = (s: string) => {
 };
 const somarMin = (d: Date, min: number) => new Date(d.getTime() + min * 60_000);
 const diasEntre = (a: string, b: string) => Math.round((data(b.slice(0, 10)).getTime() - data(a.slice(0, 10)).getTime()) / 86_400_000);
+const somarDiasISO = (iso: string, n: number) => { const d = data(iso); return texto(new Date(d.getFullYear(), d.getMonth(), d.getDate() + n)).slice(0, 10); };
 const doDa = (p?: Pessoa) => (p?.sexo === 'Feminino' ? 'da' : 'do');
 
 export function proximosLembretes(s: State, agora: Date, horas = 24): Lembrete[] {
@@ -56,7 +58,8 @@ export function proximosLembretes(s: State, agora: Date, horas = 24): Lembrete[]
     const p = s.pessoas.find((x) => x.id === r.pessoaId);
     const nome = p?.curto ?? '';
     for (const dia of dias) {
-      if ((r.inicio && dia < r.inicio) || (r.fim && dia > r.fim)) continue;
+      if (!tomaNoDia(r, dia)) continue;
+      const rd = comDoseDoDia(r, dia);
       for (const h of r.horarios) {
         const quando = `${dia}T${h}`;
         if (quando < iniDose || quando > fim) continue;
@@ -65,7 +68,7 @@ export function proximosLembretes(s: State, agora: Date, horas = 24): Lembrete[]
           id: `dose|${r.id}|${quando}`,
           quando,
           titulo: esconder ? `Hora do remédio ${doDa(p)} ${nome}` : `${r.nome} · ${nome}`,
-          corpo: esconder ? `Abra para ver qual. 1 dose às ${h}.` : `${r.doseLonga ?? r.dose} às ${h}.`,
+          corpo: esconder ? `Abra para ver qual. 1 dose às ${h}.` : `${rd.doseLonga ?? rd.dose} às ${h}.`,
           acoes: true,
         });
       }
@@ -126,6 +129,19 @@ export function proximosLembretes(s: State, agora: Date, horas = 24): Lembrete[]
         corpo: [pr.produto.trim(), `a cada ${pr.intervaloDias} dias`].filter(Boolean).join(' · '),
         acoes: false,
       });
+    }
+  }
+
+  // Receita: aviso 7 dias antes de vencer e no dia, às 09:00 (vale também no modo só de informações).
+  for (const r of s.remedios) {
+    if (!r.ativo || !r.receitaValidade || !meu(r.pessoaId)) continue;
+    const p = s.pessoas.find((x) => x.id === r.pessoaId);
+    const nomeRem = esconder ? `do remédio ${doDa(p)} ${p?.curto ?? ''}`.trim() : `de ${r.nome}`;
+    const antes = somarDiasISO(r.receitaValidade, -AVISO_RECEITA_DIAS);
+    for (const [dia, quando] of [[antes, `vence em ${AVISO_RECEITA_DIAS} dias`], [r.receitaValidade, 'vence hoje']] as const) {
+      const q = quandoDia(dia);
+      if (!dentro(q)) continue;
+      out.push({ id: `receita|${r.id}|${dia}`, quando: q, titulo: `Receita ${nomeRem} ${quando}`, corpo: 'Peça uma receita nova ao médico.', acoes: false });
     }
   }
 

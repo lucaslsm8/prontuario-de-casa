@@ -7,6 +7,7 @@ import { anexosDe, tamanhoDataUrl } from './anexos';
 import { GOTAS_POR_ML, lerCartela } from './cartela';
 import { lerTrajeto } from './consultas';
 import { lerResultado } from './ocr';
+import { fimDoDesmame, textoDias } from './frequencia';
 import type { Anexo, Aparencia, CategoriaExame, Resultado, Consulta, Exame, Medicao, Pesagem, Pessoa, Plano, Prevencao, Procedimento, Remedio, Sintoma, TipoMedicao, TipoProcedimento, Vacina } from './types';
 import { SINAIS, ehPet, familia, pets } from './pets';
 import { diffPessoa, formDePessoa, lerNumeroBR, normalizarTexto, novaChave, pessoaDoForm, type ErrosPerfil, type FormPerfil, type FormPet, type LinhaAlergia, type LinhaCondicao } from './perfil';
@@ -74,9 +75,33 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
   const lidos = lerHorarios(horariosTexto);
   const horarios = freq.id === 'sn' ? [] : lidos?.length ? lidos : undefined;
 
+  // Quais dias: todo dia, dias da semana, dia sim dia não, semanal ou a cada N dias.
+  const [modoDias, setModoDias] = useState<ModoDias>(() => modoDosDias(inicial?.dias));
+  const [semana, setSemana] = useState<number[]>(() => (inicial?.dias && 'semana' in inicial.dias ? inicial.dias.semana : [1, 3, 5]));
+  const [cadaDias, setCadaDias] = useState(() => (inicial?.dias && 'cada' in inicial.dias ? String(inicial.dias.cada) : '3'));
+  const alternarDiaSemana = (d: number) => setSemana((xs) => (xs.includes(d) ? xs.filter((x) => x !== d) : [...xs, d].sort()));
+  const dias = freq.id === 'sn' ? undefined : diasDoModo(modoDias, semana, cadaDias);
+  const diasValidos = freq.id === 'sn' || dias !== null;
+  // Desmame: etapas com a quantidade (na forma da dose) e os dias.
+  const [etapas, setEtapas] = useState<{ qtd: string; dias: string }[]>(() => (inicial?.desmame ?? []).map((e) => ({ qtd: textoQuantidade(e.qtd), dias: String(e.dias) })));
+  const etapasLidas = etapas.map((e) => ({ qtd: lerQuantidade(e.qtd), dias: Number(e.dias) || 0 }));
+  const desmameValido = etapasLidas.every((e) => e.qtd != null && e.dias >= 1);
+  const desmame = freq.id === 'sn' || !etapas.length || !desmameValido ? undefined : etapasLidas.map((e) => ({ qtd: e.qtd!, dias: e.dias }));
+  const fimDesmame = desmame ? fimDoDesmame(inicio, desmame) : undefined;
+  const comecarDesmame = () => { const q = qtdNum ?? 1; setEtapas([{ qtd: textoQuantidade(q), dias: '5' }, { qtd: textoQuantidade(q >= 1 ? q / 2 : q), dias: '5' }]); };
+  const mudarEtapa = (i: number, p: Partial<{ qtd: string; dias: string }>) => setEtapas((xs) => xs.map((e, j) => (j === i ? { ...e, ...p } : e)));
+  const tirarEtapa = (i: number) => setEtapas((xs) => xs.filter((_, j) => j !== i));
+  const addEtapa = () => setEtapas((xs) => [...xs, { qtd: xs[xs.length - 1]?.qtd ?? '1', dias: xs[xs.length - 1]?.dias ?? '5' }]);
+  const nomeForma = (q: string) => { const x = FORMAS_REMEDIO.find((y) => y.id === forma)!; return (lerQuantidade(q) ?? 1) < 2 ? x.um : x.varios; };
+  const [validadeReceita, setValidadeReceitaBruta] = useState(inicial?.receitaValidade ? isoParaBR(inicial.receitaValidade) : '');
+  const setValidadeReceita = (v: string) => setValidadeReceitaBruta(mascaraData(v));
+  const receitaISO = brParaISO(validadeReceita);
+  const validadeValida = !validadeReceita.trim() || !!receitaISO;
+
   const salvar = () => {
     if (!horarios) { api.toast({ texto: 'Horários assim: 08:00, 20:00' }); return; }
     if (!cartelaValida) { api.toast({ texto: 'Cartela: quantos comprimidos (1 a 200) e fileiras' }); return; }
+    if (!diasValidos || (etapas.length && !desmameValido) || !validadeValida) { api.toast({ texto: 'Confira os dias, o desmame e a validade da receita' }); return; }
     const remedio: Remedio = {
       ...(inicial ?? { ativo: true }),
       id,
@@ -89,10 +114,13 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
       unidade,
       frequencia: freq.nome,
       horarios,
-      continuo: duracao === 0,
+      dias: dias ?? undefined,
+      desmame,
+      receitaValidade: receitaISO,
+      continuo: !desmame && duracao === 0,
       seNecessario: freq.id === 'sn' || undefined,
       inicio,
-      fim: duracao ? fim : undefined,
+      fim: fimDesmame ?? (duracao ? fim : undefined),
       estoque,
       avisarDias: avisar,
       lembrete,
@@ -123,7 +151,11 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
     /** Ao sair do campo: "22" → "22:00", "8h30, 21" → "08:30, 21:00". */
     completarHorarios: () => { if (lidos?.length) setHorariosTexto(lidos.join(', ')); },
     lembrete, setLembrete, estoque, setEstoque, avisar, setAvisar, observacao, setObservacao, receitadoPor, setReceitadoPor, fim, unidade, editando: !!inicial,
-    id, receita, setReceita, valido: !!nome.trim() && !!horarios && cartelaValida && qtdNum != null && frascoValido, salvar,
+    id, receita, setReceita, valido: !!nome.trim() && !!horarios && cartelaValida && qtdNum != null && frascoValido && diasValidos && (!etapas.length || desmameValido) && validadeValida, salvar,
+    modoDias, setModoDias, semana, alternarDiaSemana, cadaDias, setCadaDias, diasValidos,
+    textoDias: dias ? textoDias({ dias, inicio }) : '',
+    desmame: etapas, desmameValido, comecarDesmame, mudarEtapa, tirarEtapa, addEtapa, nomeForma, fimDesmameBR: fimDesmame ? dataBR(fimDesmame) : '', temDesmame: etapas.length > 0,
+    validadeReceita, setValidadeReceita, validadeValida,
     liquido, frascoMl, setFrascoMl, frascoValido,
     qtdDose, setQtdDose, forma, setForma, qtdValida: qtdNum != null, comCartela,
     aparencia, setAparencia, porCartela, setPorCartela, fileiras, setFileiras, cartelaValida,
@@ -131,6 +163,23 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
   };
 }
 export type FormRemedio = ReturnType<typeof useFormRemedio>;
+
+export type ModoDias = 'todo' | 'semana' | 'alternado' | 'semanal' | 'cada';
+/** Modo do formulário a partir do que está salvo. */
+export function modoDosDias(d: Remedio['dias']): ModoDias {
+  if (!d) return 'todo';
+  if ('semana' in d) return 'semana';
+  return d.cada === 2 ? 'alternado' : d.cada === 7 ? 'semanal' : 'cada';
+}
+/** O que salvar: `undefined` = todo dia; `null` = inválido (nenhum dia, ou N fora de 2–365). */
+export function diasDoModo(modo: ModoDias, semana: number[], cada: string): Remedio['dias'] | null {
+  if (modo === 'todo') return undefined;
+  if (modo === 'semana') return semana.length === 0 ? null : semana.length === 7 ? undefined : { semana: [...semana].sort() };
+  if (modo === 'alternado') return { cada: 2 };
+  if (modo === 'semanal') return { cada: 7 };
+  const n = Number(cada);
+  return Number.isInteger(n) && n >= 2 && n <= 365 ? { cada: n } : null;
+}
 
 // ── Consulta ────────────────────────────────────────────────────────────────
 

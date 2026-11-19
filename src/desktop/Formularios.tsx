@@ -24,6 +24,7 @@ import { enterNaLinha } from '../ui/linhas';
 import { DCampo, DChips, DConfirmar, DDialogo, DFechar, DGrade, DRodape, DSangue, DSelect, DToggle } from './Formulario';
 import { SUGESTOES_VACINA as SUGESTOES_VACINA_PESSOA } from '../data/sugestoes';
 import { CampoData } from '../ui/CampoData';
+import { CamposDias } from '../ui/DiasRemedio';
 
 // Formulários do desktop em diálogo largo. Estado, validação e salvar vêm dos hooks compartilhados com o mobile.
 
@@ -84,9 +85,10 @@ export function DNovoRemedio({ onClose, remedio }: Props & { remedio?: Remedio }
           <input className="input input--desk" list="sug-prof-rem" value={f.receitadoPor} onChange={(e) => f.setReceitadoPor(e.target.value)} placeholder="Ex.: Dra. Marta Lins" />
           <datalist id="sug-prof-rem">{[...new Set(state.consultas.map((c) => c.profissional).filter((x): x is string => !!x))].sort().map((x) => <option key={x} value={x} />)}</datalist>
         </DCampo>
-        <DCampo label="Duração">
+        {!f.temDesmame && <DCampo label="Duração">
           <DSelect opcoes={duracoes} valor={f.duracao} onChange={f.setDuracao} />
-        </DCampo>
+        </DCampo>}
+        <CamposDias f={f} desktop />
         {!info && f.liquido && (
           <DCampo label="Frasco (mL)" erro={f.frascoValido ? undefined : 'Em mL, como 20 ou 120.'}>
             <input className="input input--desk input--mono" inputMode="decimal" value={f.frascoMl} onChange={(e) => f.setFrascoMl(e.target.value.replace(/[^0-9,.]/g, ''))} placeholder="20" />

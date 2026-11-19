@@ -1,5 +1,6 @@
 import { HOJE } from './seed';
 import type { Pessoa, Remedio } from './types';
+import { diasCobertos, qtdPorDose, resumoDias } from './frequencia';
 
 const DIAS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 const DIAS_CURTOS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
@@ -74,19 +75,13 @@ export const numCurto = (n: number) => (Number.isInteger(n) ? String(n) : numBR(
 export function dosesPorDia(r: Remedio) {
   return Math.max(1, r.horarios.length);
 }
-/** Quantas unidades saem do estoque por dose: "2 comprimidos" → 2, "½ comprimido" → 0,5, "1,5 comp." → 1,5. */
-export function qtdPorDose(r: Pick<Remedio, 'dose' | 'doseLonga'>) {
-  const t = (r.doseLonga ?? r.dose).trim();
-  const fr = t.match(/^(\d+)\s*\/\s*(\d+)/);
-  if (fr && Number(fr[1]) && Number(fr[2])) return Number(fr[1]) / Number(fr[2]);
-  const m = t.match(/^(\d+(?:[.,]\d+)?)?\s*(½)?/);
-  const n = (m?.[1] ? Number(m[1].replace(',', '.')) : 0) + (m?.[2] ? 0.5 : 0);
-  return n > 0 ? n : 1;
-}
+export { qtdPorDose };
 /** Soma ou tira do estoque sem resto de ponto flutuante e sem passar de zero. */
 export const somarEstoque = (estoque: number, delta: number) => Math.max(0, Math.round((estoque + delta) * 100) / 100);
 export function diasDeEstoque(r: Remedio) {
   if (r.estoque == null) return undefined;
+  // Dias da semana, a cada N dias e desmame: conta dia a dia.
+  if (r.dias || r.desmame?.length) return diasCobertos(r, HOJE, dosesPorDia(r));
   return Math.floor(r.estoque / (dosesPorDia(r) * qtdPorDose(r)) + 1e-9);
 }
 /** "21 comprimidos", "20,5 comprimidos". */
@@ -106,7 +101,8 @@ export function pctEstoque(r: Remedio) {
 export function descricaoDose(r: Remedio) {
   if (r.seNecessario) return 'se necessário';
   const h = r.horarios.length ? ` às ${r.horarios.join(', ')}` : '';
-  return `${r.dose}${h}${r.observacao ? `, ${r.observacao}` : ''}`;
+  const dias = resumoDias(r);
+  return `${r.dose}${h}${r.observacao ? `, ${r.observacao}` : ''}${dias ? ` · ${dias}` : ''}`;
 }
 
 // ── Backup ──────────────────────────────────────────────────────────────────
@@ -161,4 +157,4 @@ export function mascararTelefone(v: string) {
 
 /** Linha do remédio na ficha de emergência: "Losartana 50 mg · 1 comprimido · 08:00 · para pressão alta". */
 export const linhaRemedioEmergencia = (r: Remedio) =>
-  [r.nome, r.doseLonga ?? r.dose, r.horarios.length ? r.horarios.join(', ') : 'se necessário', r.indicacao && `para ${r.indicacao.charAt(0).toLowerCase()}${r.indicacao.slice(1)}`].filter(Boolean).join(' · ');
+  [r.nome, r.doseLonga ?? r.dose, r.horarios.length ? r.horarios.join(', ') : 'se necessário', resumoDias(r), r.indicacao && `para ${r.indicacao.charAt(0).toLowerCase()}${r.indicacao.slice(1)}`].filter(Boolean).join(' · ');

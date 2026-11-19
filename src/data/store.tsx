@@ -12,6 +12,7 @@ import { eventosParaEnviar, migrarLog, novoAparelhoId, ordenarLog, resolverEu, u
 import type { PatchPessoa } from './perfil';
 import { medicoesDoPatch, perfilDasMedicoes } from './medicoes';
 import { qtdPorDose, somarEstoque } from './format';
+import { comDoseDoDia, qtdNoDia, tomaNoDia } from './frequencia';
 import { noMeuCuidado, pedirPapel, podeEditar, podeMarcarDose, podeMudarResponsavel, removerPapel, responderPapel, veTudo, type NivelPapel, type Papel } from './papeis';
 import type { Categoria, Config, Consulta, Dose, Exame, Pessoa, Plano, Remedio, Compartilhamento, Vacina, Prevencao, Sintoma, Procedimento, Pesagem, Medicao, Anexo, Aparelho } from './types';
 import { vistoPorAparelho, nomePadraoAparelho, plataformaDoId } from './aparelhos';
@@ -468,7 +469,7 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
         const registradoEm = horaAgora();
         const previstoPara = `${dia}T${horario}`;
         const rem = ref.current.remedios.find((x) => x.id === remedioId);
-        emitir({ type: 'dose', dose: { remedioId, previstoPara, status, registradoEm, ...(status === 'tomada' && rem ? { qtd: qtdPorDose(rem) } : {}) } });
+        emitir({ type: 'dose', dose: { remedioId, previstoPara, status, registradoEm, ...(status === 'tomada' && rem ? { qtd: qtdNoDia(rem, dia) } : {}) } });
         // Bloqueado (ação vinda da notificação): sem toast, que mostraria o nome do remédio
         // por cima do desbloqueio e deixaria "Desfazer" mudar dados sem desbloquear.
         if (ref.current.bloqueado) return;
@@ -791,11 +792,14 @@ export function dosesHoje(s: State): DoseHoje[] {
   const out: DoseHoje[] = [];
   for (const r of s.remedios) {
     if (!r.ativo || r.seNecessario) continue;
+    // Dias da semana, a cada N dias e desmame: só nos dias em que toma, com a dose do dia.
+    if ((r.dias || r.desmame?.length) && !tomaNoDia(r, HOJE)) continue;
     const p = pessoa(s, r.pessoaId);
     if (!p) continue;
+    const doDia = comDoseDoDia(r, HOJE);
     for (const h of r.horarios) {
       const dose = s.doses.find((d) => d.remedioId === r.id && d.previstoPara === `${HOJE}T${h}`);
-      out.push({ remedio: r, pessoa: p, horario: h, dose });
+      out.push({ remedio: doDia, pessoa: p, horario: h, dose });
     }
   }
   return out.sort((a, b) => a.horario.localeCompare(b.horario));
@@ -820,7 +824,7 @@ export function historicoAdesao(s: State, remedioId: string, dias: number): DiaA
   if (!r || r.seNecessario || !r.horarios.length) return [];
   return Array.from({ length: dias }, (_, i) => {
     const iso = addDiasISO(HOJE, i - dias + 1);
-    const fora = (r.inicio && iso < r.inicio) || (r.fim && iso > r.fim);
+    const fora = !tomaNoDia(r, iso);
     const tomadas = s.doses.filter((d) => d.remedioId === r.id && d.status === 'tomada' && d.previstoPara.startsWith(iso)).length;
     const previstas = fora ? 0 : r.horarios.length;
     const estado: DiaAdesao['estado'] = fora ? 'fora' : tomadas >= previstas ? 'tomada' : iso === HOJE ? 'pendente' : 'perdida';

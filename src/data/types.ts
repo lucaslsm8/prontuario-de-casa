@@ -84,6 +84,12 @@ export interface Remedio {
   unidade: string;        // "comprimidos", "cápsulas"
   frequencia?: string;
   horarios: string[];
+  /** Em que dias toma (ausente = todo dia): dias da semana ou a cada N dias desde o início. Ver frequencia.ts. */
+  dias?: { semana: number[] } | { cada: number };
+  /** Desmame: a dose diminui em etapas a partir do início (quantidade na forma do remédio, por N dias). O fim é o da última etapa. */
+  desmame?: { qtd: number; dias: number }[];
+  /** Validade da receita (ISO). O app avisa 7 dias antes. */
+  receitaValidade?: string;
   observacao?: string;    // "em jejum"
   continuo: boolean;
   seNecessario?: boolean;

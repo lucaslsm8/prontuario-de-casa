@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useState } from 'react';
+import { resumoDias } from '../data/frequencia';
 import { ModoUso } from '../ui/ModoUso';
 import { SimuladorReembolso } from '../ui/Reembolso';
 import { ExportarPdf } from '../mobile/Config';
@@ -175,7 +176,7 @@ export function DRemedios() {
                 >
                   <span className="stack" style={{ gap: 2 }}>
                     <span style={{ fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>{info && <PilulaDoRemedio r={r} tamanho={22} />}{r.nome}</span>
-                    <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{r.seNecessario ? 'se necessário' : `${r.dose}${r.observacao ? ` ${r.observacao}` : ''} · ${r.continuo ? 'contínuo' : 'tratamento'}`}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{r.seNecessario ? 'se necessário' : `${r.dose}${r.observacao ? ` ${r.observacao}` : ''} · ${resumoDias(r) || (r.continuo ? 'contínuo' : 'tratamento')}`}</span>
                   </span>
                   <span>{quem(pessoa(state, r.pessoaId))}</span>
                   <span className={r.horarios.length ? 'mono' : 'faint'}>{r.horarios.length ? r.horarios.join(' · ') : 'sem horário'}</span>
