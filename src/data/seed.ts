@@ -1,5 +1,5 @@
 import type { Papel } from './papeis';
-import type { Compartilhamento, Config, Consulta, Dose, Exame, Medicao, Pesagem, Pessoa, Plano, Prevencao, Procedimento, Remedio, Sintoma, Vacina } from './types';
+import type { Compartilhamento, Config, Consulta, Dose, Exame, Medicao, Pesagem, Pessoa, Plano, Prevencao, Procedimento, Remedio, Sintoma, Vacina, Despesa } from './types';
 import { HOJE } from './tempo';
 
 // Dados de exemplo dos mockups (hoje = quarta, 28 de outubro de 2026).
@@ -452,4 +452,12 @@ export const medicoes: Medicao[] = [
     .map(([d, v], i) => med(`gli-a${i}`, 'roberto', 'glicemia', d, v, { contexto: 'Jejum' })),
   ...([['2026-02-18', 63.2], ['2026-06-03', 62.5], ['2026-10-05', 61.8]] as const)
     .map(([d, kg], i) => med(`peso-r${i}`, 'helena', 'peso', d, kg)),
+];
+
+/** Despesas de saúde de exemplo (resumo para o IR). CPF/CNPJ fictícios, mas com dígitos válidos. */
+export const despesas: Despesa[] = [
+  { id: 'desp-cardio', pessoaId: 'roberto', data: '2026-05-11', valor: 450, tipo: 'consulta', prestador: 'Dr. Paulo Mendes', documento: '529.982.247-25', reembolso: 180 },
+  { id: 'desp-lab', pessoaId: 'roberto', data: '2026-09-12', valor: 320, tipo: 'exame', prestador: 'Lab. Central', documento: '11.222.333/0001-81' },
+  { id: 'desp-dentista', pessoaId: 'helena', data: '2026-08-20', valor: 600, tipo: 'dentista', prestador: 'Odonto Vila Mariana' },
+  { id: 'desp-farmacia', pessoaId: 'helena', data: '2026-10-02', valor: 89.9, tipo: 'remedio', prestador: 'Farmácia do bairro' },
 ];

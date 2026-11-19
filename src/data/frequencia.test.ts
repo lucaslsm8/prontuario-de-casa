@@ -95,7 +95,7 @@ describe('lembretes', () => {
     const r: Remedio = { ...base, id: 'novo', dias: { semana: [1] }, receitaValidade: '2026-11-27' };
     const st = {
       pessoas: [{ id: 'helena', nome: 'Helena', curto: 'Helena', sexo: 'Feminino', cor: '#ccc', alergias: [], condicoes: [] }],
-      remedios: [r], doses: [], consultas: [], exames: [], planos: [], vacinas: [], prevencoes: [], sintomas: [], procedimentos: [], pesagens: [], medicoes: [], anexos: [], compartilhamentos: [], papeis: [], aparelhos: [],
+      remedios: [r], doses: [], consultas: [], exames: [], planos: [], vacinas: [], prevencoes: [], sintomas: [], procedimentos: [], pesagens: [], medicoes: [], despesas: [], anexos: [], compartilhamentos: [], papeis: [], aparelhos: [],
       config: { esconderNomeNotif: true }, bloqueado: false, temSenha: false,
     } as unknown as State;
     // 19/11/2026 é quinta: nenhuma dose; a receita vence em 27/11, aviso em 20/11 às 09:00.

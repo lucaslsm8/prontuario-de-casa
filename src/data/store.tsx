@@ -14,7 +14,7 @@ import { medicoesDoPatch, perfilDasMedicoes } from './medicoes';
 import { qtdPorDose, somarEstoque } from './format';
 import { comDoseDoDia, qtdNoDia, tomaNoDia } from './frequencia';
 import { noMeuCuidado, pedirPapel, podeEditar, podeMarcarDose, podeMudarResponsavel, removerPapel, responderPapel, veTudo, type NivelPapel, type Papel } from './papeis';
-import type { Categoria, Config, Consulta, Dose, Exame, Pessoa, Plano, Remedio, Compartilhamento, Vacina, Prevencao, Sintoma, Procedimento, Pesagem, Medicao, Anexo, Aparelho } from './types';
+import type { Categoria, Config, Consulta, Dose, Exame, Pessoa, Plano, Remedio, Compartilhamento, Vacina, Prevencao, Sintoma, Procedimento, Pesagem, Medicao, Anexo, Aparelho, Despesa } from './types';
 import { vistoPorAparelho, nomePadraoAparelho, plataformaDoId } from './aparelhos';
 
 // Estado do app = projeção do log de eventos.
@@ -34,6 +34,8 @@ export interface State {
   procedimentos: Procedimento[];
   pesagens: Pesagem[];
   medicoes: Medicao[];
+  /** Despesas de saúde (resumo para o IR). Ausente nos estados antigos = nenhuma. */
+  despesas: Despesa[];
   anexos: Anexo[];
   compartilhamentos: Compartilhamento[];
   /** Cuidador e administrador (pedido e aceito). O responsável fica na pessoa (`responsavelId`). */
@@ -59,7 +61,7 @@ const CONFIG_PADRAO: Config = {
 };
 
 function estadoBase(): State {
-  return { pessoas: [], remedios: [], doses: [], consultas: [], exames: [], planos: [], vacinas: [], prevencoes: [], sintomas: [], procedimentos: [], pesagens: [], medicoes: [], anexos: [], compartilhamentos: [], papeis: [], aparelhos: [], config: clone(CONFIG_PADRAO), bloqueado: false, temSenha: false };
+  return { pessoas: [], remedios: [], doses: [], consultas: [], exames: [], planos: [], vacinas: [], prevencoes: [], sintomas: [], procedimentos: [], pesagens: [], medicoes: [], despesas: [], anexos: [], compartilhamentos: [], papeis: [], aparelhos: [], config: clone(CONFIG_PADRAO), bloqueado: false, temSenha: false };
 }
 
 export function estadoExemplo(): State {
@@ -76,6 +78,7 @@ export function estadoExemplo(): State {
     procedimentos: clone(seed.procedimentos),
     pesagens: clone(seed.pesagens),
     medicoes: clone(seed.medicoes),
+    despesas: clone(seed.despesas),
     anexos: [],
     compartilhamentos: clone(seed.compartilhamentos),
     papeis: clone(seed.papeis),
@@ -90,11 +93,11 @@ export function estadoExemplo(): State {
 export function estadoVazio(): State {
   const eu = clone(seed.pessoas.find((p) => p.souEu)!);
   eu.condicoes = [];
-  return { ...estadoExemplo(), pessoas: [eu], remedios: [], doses: [], consultas: [], exames: [], planos: [], vacinas: [], prevencoes: [], sintomas: [], procedimentos: [], pesagens: [], medicoes: [], anexos: [], compartilhamentos: [], papeis: [] };
+  return { ...estadoExemplo(), pessoas: [eu], remedios: [], doses: [], consultas: [], exames: [], planos: [], vacinas: [], prevencoes: [], sintomas: [], procedimentos: [], pesagens: [], medicoes: [], despesas: [], anexos: [], compartilhamentos: [], papeis: [] };
 }
 
 /** Coleções com edição/remoção genérica (registros com `id`). */
-export type Colecao = 'remedios' | 'consultas' | 'exames' | 'planos' | 'vacinas' | 'prevencoes' | 'sintomas' | 'procedimentos' | 'pesagens' | 'medicoes';
+export type Colecao = 'remedios' | 'consultas' | 'exames' | 'planos' | 'vacinas' | 'prevencoes' | 'sintomas' | 'procedimentos' | 'pesagens' | 'medicoes' | 'despesas';
 type Item = { id: string } & Record<string, unknown>;
 
 // Ações que viram eventos persistidos.
@@ -115,6 +118,7 @@ type Mudanca =
   | { type: 'addProcedimento'; procedimento: Procedimento }
   | { type: 'addPesagem'; pesagem: Pesagem }
   | { type: 'addMedicao'; medicao: Medicao }
+  | { type: 'addDespesa'; despesa: Despesa }
   | { type: 'desfazerMedicao'; id: string }
   | { type: 'addAnexo'; anexo: Anexo }
   | { type: 'editarRegistro'; colecao: Colecao; id: string; patch: Record<string, unknown> }
@@ -209,6 +213,8 @@ function reducer(s: State, a: Action): State {
       return { ...s, procedimentos: [...s.procedimentos, a.procedimento] };
     case 'addPesagem':
       return { ...s, pesagens: [...s.pesagens, a.pesagem] };
+    case 'addDespesa':
+      return s.despesas.some((x) => x.id === a.despesa.id) ? s : { ...s, despesas: [...s.despesas, a.despesa] };
     case 'editarRegistro':
     case 'removerRegistro':
     case 'restaurarRegistro': {
@@ -245,7 +251,7 @@ function reducer(s: State, a: Action): State {
         remedios, exames, planos,
         doses: s.doses.filter((d) => remedios.some((r) => r.id === d.remedioId)),
         consultas: dela(s.consultas), vacinas: dela(s.vacinas), prevencoes: dela(s.prevencoes), sintomas: dela(s.sintomas),
-        procedimentos: dela(s.procedimentos), pesagens: dela(s.pesagens), medicoes: dela(s.medicoes),
+        procedimentos: dela(s.procedimentos), pesagens: dela(s.pesagens), medicoes: dela(s.medicoes), despesas: dela(s.despesas),
         anexos: s.anexos.filter((x) => x.tipo === 'profissional' || donos.has(x.donoId)),
         compartilhamentos: s.compartilhamentos.filter((c) => c.de !== a.id && c.para !== a.id),
         papeis: s.papeis.filter((c) => c.de !== a.id && c.para !== a.id),
@@ -514,6 +520,7 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
       },
       addSintoma: (sintoma: Sintoma) => emitir({ type: 'addSintoma', sintoma }),
       addProcedimento: (procedimento: Procedimento) => emitir({ type: 'addProcedimento', procedimento }),
+      addDespesa: (despesa: Despesa) => emitir({ type: 'addDespesa', despesa }),
       addPesagem: (pesagem: Pesagem) => emitir({ type: 'addPesagem', pesagem }),
       editarPessoa: (pessoaId: string, patch: PatchPessoa) => {
         emitir({ type: 'editarPessoa', pessoaId, patch, por: autor() });
@@ -767,6 +774,7 @@ export function recortarPerfil(s: State, pessoaId: string): State {
     procedimentos: dela(s.procedimentos),
     pesagens: dela(s.pesagens),
     medicoes: dela(s.medicoes),
+    despesas: dela(s.despesas),
   };
 }
 

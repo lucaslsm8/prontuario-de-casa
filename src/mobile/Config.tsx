@@ -16,6 +16,8 @@ import { CardFamilia } from '../ui/Familia';
 import { RedesCasa } from '../ui/RedesCasa';
 import { Avatar, Check, Label, Lock, Pill, Row, Segmented, Toggle, TopNav } from '../ui';
 import { MScreen } from './Shell';
+import { Despesas } from '../ui/Despesas';
+import { despesaDaConsulta } from '../data/despesas';
 
 const BLOQUEIO = ['30 segundos', '1 minuto', '5 minutos', '15 minutos'];
 
@@ -43,6 +45,17 @@ export function Configuracoes() {
           mutedLabel={false}
           label={
             <span className="stack" style={{ gap: 2 }}>
+              <span>Despesas e Imposto de Renda</span>
+              <span style={{ fontSize: 12, color: 'var(--text-3)' }}>O que pagou em saúde, com o resumo para a declaração</span>
+            </span>
+          }
+          valor={<span className="faint">›</span>}
+          onClick={() => nav('/despesas')}
+        />
+        <Row
+          mutedLabel={false}
+          label={
+            <span className="stack" style={{ gap: 2 }}>
               <span>Exportar perfil em PDF</span>
               <span style={{ fontSize: 12, color: 'var(--text-3)' }}>Tudo de uma pessoa, para levar a um profissional</span>
             </span>
@@ -57,6 +70,20 @@ export function Configuracoes() {
       <Segmented opcoes={[{ id: 'texto', nome: 'Texto' }, { id: 'icones', nome: 'Ícones' }]} valor={state.config.menuIcones ? 'icones' : 'texto'} onChange={(v) => api.setConfig({ menuIcones: v === 'icones' })} />
       {exportar && <ExportarPdf onClose={() => setExportar(false)} />}
       <span style={{ fontSize: 12, color: 'var(--text-3)', textAlign: 'center' }}>Prontuário de Casa · versão {state.config.update.instalada}</span>
+    </MScreen>
+  );
+}
+
+/** /despesas: despesas de saúde e resumo do IR. `?consulta=<id>` abre a despesa já preenchida com a consulta. */
+export function DespesasTela() {
+  const { state } = useStore();
+  const [params] = useSearchParams();
+  const c = state.consultas.find((x) => x.id === params.get('consulta'));
+  return (
+    <MScreen gap={16} tabs>
+      <TopNav voltar="Voltar" voltarPara="/configuracoes" />
+      <h1 className="title" style={{ margin: 0 }}>Despesas e IR</h1>
+      <Despesas base={c ? despesaDaConsulta(c, HOJE) : undefined} />
     </MScreen>
   );
 }

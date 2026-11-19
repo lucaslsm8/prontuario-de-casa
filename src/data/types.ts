@@ -54,6 +54,9 @@ export interface Sintoma { id: string; pessoaId: PessoaId; data: string; sinais:
 export type TipoProcedimento = 'Cirurgia' | 'Castração' | 'Limpeza de tártaro' | 'Endoscopia' | 'Colonoscopia' | 'Biópsia' | 'Odontológico' | 'Exame de imagem' | 'Outro';
 /** Procedimento de pessoa ou pet. `medico`: quem realizou (o veterinário, no pet); `anestesista`, se houve. */
 export interface Procedimento { id: string; pessoaId: PessoaId; data: string; tipo: TipoProcedimento; descricao?: string; clinica?: string; medico?: string; anestesista?: string; nota?: string }
+/** Despesa de saúde (IR): `reembolso` = o que o plano devolveu. `documento` = CPF ou CNPJ do prestador. */
+export type TipoDespesa = 'consulta' | 'exame' | 'dentista' | 'terapia' | 'hospital' | 'plano' | 'remedio' | 'outro';
+export interface Despesa { id: string; pessoaId: PessoaId; data: string; valor: number; tipo: TipoDespesa; prestador: string; documento?: string; reembolso?: number; consultaId?: string; nota?: string }
 export interface Pesagem { id: string; pessoaId: PessoaId; data: string; kg: number }
 
 /**

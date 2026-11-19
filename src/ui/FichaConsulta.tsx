@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react';
 import { editaConsulta, pessoa, useStore } from '../data/store';
 import { anexosDe, tamanhoDataUrl } from '../data/anexos';
 import { chaveProfissional, destinoConsulta, distancia, horaDeSair, linkRota, textoTrajeto } from '../data/consultas';
-import { dataLonga } from '../data/format';
+import { dataBR, dataLonga } from '../data/format';
 import { telHref } from '../data/pets';
 import { LEMBRAR } from '../data/formularios-puro';
 import { novoId } from '../data/persistencia';
@@ -14,6 +14,8 @@ import { CarteirinhaBalcao } from '../mobile/Familia';
 import { useEscolherFoto } from './Foto';
 import { SimuladorReembolso } from './Reembolso';
 import { cx } from '.';
+import { useNavigate } from 'react-router-dom';
+import { reais } from '../data/reembolso';
 
 function Bloco({ rotulo, children, tom, direita }: { rotulo: string; children: ReactNode; tom?: 'warn'; direita?: ReactNode }) {
   return (
@@ -90,6 +92,10 @@ export function FichaConsulta({ c, desktop }: { c: Consulta; desktop?: boolean }
   const sair = horaDeSair(c.hora, c.trajetoMin);
   const plano = state.planos.find((x) => x.pessoaId === c.pessoaId);
   const passou = c.data < HOJE;
+  const nav = useNavigate();
+  // Pagamento (IR): consulta de pessoa que já passou ou é hoje; pet não entra no IR.
+  const pagos = state.despesas.filter((d) => d.consultaId === c.id);
+  const pagamentos = c.data <= HOJE && pessoa(state, c.pessoaId)?.tipo !== 'pet';
   const dist = distancia(c.data, HOJE);
 
   return (
@@ -164,6 +170,15 @@ export function FichaConsulta({ c, desktop }: { c: Consulta; desktop?: boolean }
             {plano && c.peloPlano && <button type="button" className="btn btn--soft btn--h40" onClick={() => setCarteirinha(true)}>Mostrar carteirinha</button>}
             {plano && <button type="button" className="btn btn--outline btn--h40" onClick={() => setSimular(true)}>Simular reembolso</button>}
           </div>
+        </Bloco>
+      )}
+
+      {pagamentos && (
+        <Bloco rotulo="Pagamento">
+          {pagos.length > 0
+            ? pagos.map((d) => <span key={d.id} className="mono" style={{ fontSize: 14 }}>{reais(d.valor)}{d.reembolso ? ` · reembolso ${reais(d.reembolso)}` : ''} · {dataBR(d.data)}</span>)
+            : <span className="muted" style={{ fontSize: 14 }}>Guarde o valor pago para o resumo do Imposto de Renda.</span>}
+          {pode && <button type="button" className="btn btn--outline btn--h40" style={{ alignSelf: 'flex-start' }} onClick={() => nav(`/despesas?consulta=${encodeURIComponent(c.id)}`)}>{pagos.length ? 'Ver despesas' : 'Registrar pagamento'}</button>}
         </Bloco>
       )}
 

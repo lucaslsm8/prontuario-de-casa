@@ -16,7 +16,7 @@ import { EditarPerfilMobile } from './mobile/EditarPerfil';
 import { NovoPet } from './mobile/NovoPet';
 import { FotosDoPerfil } from './mobile/Pet';
 import { NovaPesagem, RegistrarPrevencao, RegistrarProcedimento, RegistrarSintoma, RegistrarVacina, LerCarteiraPet } from './mobile/RegistrosPet';
-import { Atualizacoes, Configuracoes, Desbloqueio, Instalando, LembreteDose, Privacidade } from './mobile/Config';
+import { Atualizacoes, Configuracoes, DespesasTela, Desbloqueio, Instalando, LembreteDose, Privacidade } from './mobile/Config';
 import { BloqueioDesktop, DesktopShell } from './desktop/Shell';
 import { REGISTROS_PET, type RegistroPet } from './desktop/Formularios';
 import { DInicio } from './desktop/Inicio';
@@ -101,6 +101,7 @@ function RotasMobile({ frame }: { frame: boolean }) {
         <Route path="desbloqueio" element={<DesbloqueioDemo />} />
         <Route path="lembrete" element={<LembreteDose />} />
         <Route path="atualizacoes" element={<Atualizacoes />} />
+        <Route path="despesas" element={<DespesasTela />} />
         <Route path="atualizacoes/instalando" element={<Instalando />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
@@ -217,6 +218,7 @@ function RotasDesktop() {
         <Route path="pet/:id/:registro" element={<RegistroNoDesktop />} />
         <Route path="pet/:id/vacina/:vid" element={<VacinaNoDesktop />} />
         <Route path="configuracoes" element={<DConfiguracoes />} />
+        <Route path="despesas" element={<IrDespesas />} />
         <Route path="privacidade" element={<Navigate to="/configuracoes?secao=privacidade" replace />} />
         <Route path="*" element={<NaoDesenhadaNoDesktop />} />
       </Route>
@@ -322,4 +324,11 @@ export default function App() {
       {import.meta.env.DEV && MODO_EXEMPLO && <DevBar layout={layout} forcado={forcado} setForcado={setForcado} aberto={devAberto} setAberto={setDevAberto} />}
     </HashRouter>
   );
+}
+
+/** Desktop: /despesas abre Configurações › Despesas e IR (com ?consulta=<id>, a despesa preenchida). */
+function IrDespesas() {
+  const { search } = useLocation();
+  const c = new URLSearchParams(search).get('consulta');
+  return <Navigate to={`/configuracoes?secao=despesas${c ? `&consulta=${encodeURIComponent(c)}` : ''}`} replace />;
 }

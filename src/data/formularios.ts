@@ -8,7 +8,9 @@ import { GOTAS_POR_ML, lerCartela } from './cartela';
 import { lerTrajeto } from './consultas';
 import { lerResultado } from './ocr';
 import { fimDoDesmame, textoDias } from './frequencia';
-import type { Anexo, Aparencia, CategoriaExame, Resultado, Consulta, Exame, Medicao, Pesagem, Pessoa, Plano, Prevencao, Procedimento, Remedio, Sintoma, TipoMedicao, TipoProcedimento, Vacina } from './types';
+import { mascararDocumento, tipoDocumento } from './despesas';
+import { lerReais } from './reembolso';
+import type { Despesa, TipoDespesa, Anexo, Aparencia, CategoriaExame, Resultado, Consulta, Exame, Medicao, Pesagem, Pessoa, Plano, Prevencao, Procedimento, Remedio, Sintoma, TipoMedicao, TipoProcedimento, Vacina } from './types';
 import { SINAIS, ehPet, familia, pets } from './pets';
 import { diffPessoa, formDePessoa, lerNumeroBR, normalizarTexto, novaChave, pessoaDoForm, type ErrosPerfil, type FormPerfil, type FormPet, type LinhaAlergia, type LinhaCondicao } from './perfil';
 import {
@@ -839,3 +841,64 @@ export function useFormMedicao(pessoaId: string, tipoInicial: TipoMedicao, onSal
   const apagar = inicial && (() => { api.remover('medicoes', inicial, 'Medição apagada'); onSalvo(); });
   return { editando: !!inicial, f, set, erros, valido: !!f.valor.trim(), salvar, apagar };
 }
+
+// ── Despesa de saúde (IR) ───────────────────────────────────────────────────
+
+/** Nova despesa ou edição de `inicial`. `base`: valores iniciais (ex.: a consulta de onde veio). */
+export function useFormDespesa(onSalvo: () => void, inicial?: Despesa, base?: Partial<Despesa>) {
+  const { state, api, perfil } = useStore();
+  const i = inicial ?? base;
+  const [para, setPara] = useState(i?.pessoaId ?? perfil ?? eu(state).id);
+  const [data, setDataBruta] = useState(i?.data ? isoParaBR(i.data) : isoParaBR(HOJE));
+  const setData = (v: string) => setDataBruta(mascaraData(v));
+  const [valor, setValor] = useState(i?.valor != null ? String(i.valor).replace('.', ',') : '');
+  const [tipo, setTipo] = useState<TipoDespesa>(i?.tipo ?? 'consulta');
+  const [prestador, setPrestador] = useState(i?.prestador ?? '');
+  // Começa com o CPF/CNPJ usado da última vez com o mesmo prestador.
+  const [documento, setDocumentoBruto] = useState(() => i?.documento ?? [...state.despesas].reverse().find((x) => x.prestador === i?.prestador && x.documento)?.documento ?? '');
+  const setDocumento = (v: string) => setDocumentoBruto(mascararDocumento(v));
+  const [reembolso, setReembolso] = useState(i?.reembolso ? String(i.reembolso).replace('.', ',') : '');
+  const [nota, setNota] = useState(i?.nota ?? '');
+  const dataIso = brParaISO(data);
+  const valorNum = lerReais(valor);
+  const reembolsoNum = reembolso.trim() ? lerReais(reembolso) : 0;
+  const erros = {
+    data: !dataIso ? 'Data como DD/MM/AAAA' : dataIso > HOJE ? 'A data não pode ser no futuro' : undefined,
+    valor: !valorNum ? 'Valor pago, como 350,00' : undefined,
+    prestador: !prestador.trim() ? 'Quem recebeu (médico, clínica, laboratório)' : undefined,
+    documento: documento.trim() && !tipoDocumento(documento) ? 'CPF ou CNPJ não confere' : undefined,
+    reembolso: reembolsoNum == null || (valorNum != null && reembolsoNum > valorNum) ? 'Reembolso até o valor pago' : undefined,
+  };
+  const valido = Object.values(erros).every((e) => !e);
+  const salvar = () => {
+    if (!valido) return;
+    const d: Despesa = {
+      id: inicial?.id ?? `desp-${novoId()}`,
+      pessoaId: para,
+      data: dataIso!,
+      valor: valorNum!,
+      tipo,
+      prestador: prestador.trim().replace(/\s+/g, ' '),
+      ...(documento.trim() ? { documento: mascararDocumento(documento) } : {}),
+      ...(reembolsoNum ? { reembolso: reembolsoNum } : {}),
+      ...(i?.consultaId ? { consultaId: i.consultaId } : {}),
+      ...(nota.trim() ? { nota: nota.trim() } : {}),
+    };
+    if (inicial) api.editar('despesas', inicial.id, diffRegistro(inicial, d), 'Despesa atualizada');
+    else { api.addDespesa(d); api.toast({ texto: 'Despesa registrada' }); }
+    onSalvo();
+  };
+  const apagar = inicial && (() => { api.remover('despesas', inicial, 'Despesa apagada'); onSalvo(); });
+  // Prestadores já usados (despesas e consultas) para sugerir; com o documento da última vez.
+  const prestadores = [...new Set([...state.despesas.map((x) => x.prestador), ...state.consultas.flatMap((c) => [c.profissional, c.local]).filter((x): x is string => !!x)])].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const escolherPrestador = (v: string) => {
+    setPrestador(v);
+    const ultimo = [...state.despesas].reverse().find((x) => x.prestador === v && x.documento);
+    if (ultimo && !documento.trim()) setDocumentoBruto(ultimo.documento!);
+  };
+  return {
+    para, setPara, data, setData, valor, setValor, tipo, setTipo, prestador, setPrestador: escolherPrestador, documento, setDocumento,
+    reembolso, setReembolso, nota, setNota, erros, valido, salvar, apagar, editando: !!inicial, prestadores,
+  };
+}
+export type FormDespesa = ReturnType<typeof useFormDespesa>;

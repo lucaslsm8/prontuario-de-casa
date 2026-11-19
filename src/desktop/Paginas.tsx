@@ -1,4 +1,6 @@
 import { Fragment, useCallback, useState } from 'react';
+import { Despesas } from '../ui/Despesas';
+import { despesaDaConsulta } from '../data/despesas';
 import { resumoDias } from '../data/frequencia';
 import { ModoUso } from '../ui/ModoUso';
 import { SimuladorReembolso } from '../ui/Reembolso';
@@ -399,6 +401,7 @@ const SECOES_CONFIG = [
   { id: 'backup', nome: 'Backup', texto: 'O backup é um arquivo criptografado que fica com você.' },
   { id: 'aparelhos', nome: 'Aparelhos e sincronização', texto: '' },
   { id: 'atualizacoes', nome: 'Atualizações', texto: '' },
+  { id: 'despesas', nome: 'Despesas e Imposto de Renda', texto: '' },
   { id: 'exportar', nome: 'Exportar perfil em PDF', texto: '' },
 ] as const;
 
@@ -423,6 +426,8 @@ export function DConfiguracoes() {
     } catch (e) { api.toast({ texto: String(e) }); }
   };
   const [palavra, setPalavra] = useState('');
+  // ?secao=despesas&consulta=<id>: despesa já preenchida com a consulta (botão da ficha).
+  const consultaDespesa = state.consultas.find((x) => x.id === params.get('consulta'));
   // Pets são da casa: ficam fora da matriz de compartilhamento.
   const outros = familia(state).filter((p) => !p.souEu);
   const cols = '1.2fr repeat(5,minmax(0,1fr)) 120px';
@@ -516,6 +521,7 @@ export function DConfiguracoes() {
         </div>
       </div>}
       {pdf && <ExportarPdf desktop onClose={() => setPdf(false)} />}
+      {secao === 'despesas' && <div style={{ maxWidth: 760 }}><Despesas desktop base={consultaDespesa ? despesaDaConsulta(consultaDespesa, HOJE) : undefined} /></div>}
 
       {secao === 'familia' && <div className="card" style={{ fontSize: 14 }}>
         <div className="card-head card-head--20"><Label>Compartilhamento</Label></div>
