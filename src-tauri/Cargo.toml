@@ -32,6 +32,8 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "std"
 sha2 = "0.10"
 # Chave X25519 deste aparelho (a Task de remoção/rotação da chave da família a usa).
 x25519-dalek = { version = "2", features = ["static_secrets"] }
+# Assinatura dos eventos por aparelho (Ed25519): papéis, responsável e o próprio aparelho não se forjam.
+ed25519-dalek = "2"
 # Chave nova da família selada para cada aparelho (X25519 + HKDF-SHA256 + XChaCha20-Poly1305).
 hkdf = "0.12"
 # Sincronização direta pelo Wi-Fi: descoberta por mDNS e canal Noise (NNpsk0) com PSK da chave da família.

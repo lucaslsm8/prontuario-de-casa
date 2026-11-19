@@ -1,6 +1,7 @@
 #[cfg(target_os = "android")]
 mod agenda_android;
 mod aparelho;
+mod assinatura;
 mod apk;
 mod backup;
 mod banco;
@@ -823,6 +824,24 @@ async fn lan_permitida_agora(app: &tauri::AppHandle) -> bool {
     rede_casa::lan_permitida(&redes, atual.as_ref())
 }
 
+/// Chave pública Ed25519 (base64) que assina os eventos deste aparelho; cria na primeira chamada.
+#[tauri::command]
+async fn chave_assinatura(st: State<'_, Estado>) -> R<String> {
+    com_banco(&st, |b| assinatura::publica(b))
+}
+
+/// Assina o texto canônico de um evento deste aparelho.
+#[tauri::command]
+async fn assinar(st: State<'_, Estado>, texto: String) -> R<String> {
+    com_banco(&st, |b| assinatura::assinar(b, &texto))
+}
+
+/// Confere as assinaturas dos eventos (uma resposta por item, na mesma ordem).
+#[tauri::command]
+async fn verificar_assinaturas(itens: Vec<assinatura::ItemVerificar>) -> Vec<bool> {
+    itens.iter().map(assinatura::verificar).collect()
+}
+
 /// Chave pública X25519 (hex) deste aparelho; cria o par na primeira chamada.
 #[tauri::command]
 async fn chave_publica_aparelho(st: State<'_, Estado>) -> R<String> {
@@ -1115,7 +1134,10 @@ pub fn run() {
             redes_casa,
             rede_casa_adicionar,
             rede_casa_remover,
-            chave_publica_aparelho
+            chave_publica_aparelho,
+            chave_assinatura,
+            assinar,
+            verificar_assinaturas
         ])
         .run(tauri::generate_context!())
         .expect("erro ao iniciar o Prontuário de Casa");

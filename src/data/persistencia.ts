@@ -14,6 +14,8 @@ export interface Evento {
   hlc?: string;            // relógio lógico híbrido (src/data/hlc.ts); ordena o log
   tipo: string;
   dados: Record<string, unknown>;
+  /** Assinatura Ed25519 do aparelho (base64) sobre `textoAssinado` (src/data/assinatura.ts). */
+  sig?: string;
 }
 
 export interface InfoBackup {
@@ -93,6 +95,10 @@ export interface Persistencia {
   redeCasaRemover(id: string): Promise<RedeCasa[]>;
   /** Chave pública X25519 (hex) deste aparelho; o Rust cria o par na primeira chamada. Vazio no navegador. */
   chavePublicaAparelho(): Promise<string>;
+  /** Chave pública Ed25519 (base64) deste aparelho; '' no navegador. */
+  chaveAssinatura(): Promise<string>;
+  assinar(texto: string): Promise<string>;
+  verificarAssinaturas(itens: { texto: string; sig: string; chave: string }[]): Promise<boolean[]>;
 }
 
 /** `epoca`: época da chave da família (sobe a cada aparelho removido). `removido`: este aparelho foi removido. */
@@ -154,6 +160,9 @@ function tauri(): Persistencia {
     redeCasaAdicionar: ({ id, nome }) => call<RedeCasa[]>('rede_casa_adicionar', { id, nome }),
     redeCasaRemover: (id) => call<RedeCasa[]>('rede_casa_remover', { id }),
     chavePublicaAparelho: () => call<string>('chave_publica_aparelho'),
+    chaveAssinatura: () => call<string>('chave_assinatura'),
+    assinar: (texto) => call<string>('assinar', { texto }),
+    verificarAssinaturas: (itens) => (itens.length ? call<boolean[]>('verificar_assinaturas', { itens }) : Promise.resolve([])),
   };
 }
 
@@ -224,6 +233,9 @@ function memoria(): Persistencia {
     redeCasaAdicionar: async (r) => { if (!(d.redes ?? []).some((x) => x.id === r.id)) d.redes = [...(d.redes ?? []), r]; salvar(); return d.redes ?? []; },
     redeCasaRemover: async (id) => { d.redes = (d.redes ?? []).filter((x) => x.id !== id); salvar(); return d.redes; },
     chavePublicaAparelho: async () => '',
+    chaveAssinatura: async () => '',
+    assinar: async () => '',
+    verificarAssinaturas: async (itens) => itens.map(() => true),
   };
 }
 

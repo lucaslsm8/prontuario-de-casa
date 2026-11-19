@@ -1,4 +1,5 @@
 import { useAgendaCelular } from './agendaCelular';
+import { chavesDosAparelhos, filtrarAssinados, legadoDe, paraConferir, textoAssinado } from './assinatura';
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
 import * as seed from './seed';
 import { EM_TAURI, HOJE, MODO_EXEMPLO, MODO_REAL, horaAgora } from './tempo';
@@ -134,7 +135,7 @@ type Mudanca =
   | { type: 'lembrete'; consultaId: string; lembrete: string }
   | { type: 'config'; patch: Partial<Config> }
   | { type: 'compartilhar'; de: string; para: string; categorias: Categoria[] }
-  | { type: 'aparelho'; aparelhoId: string; nome: string; plataforma: 'pc' | 'cel'; chavePublica?: string; removido?: boolean; epoca?: number }
+  | { type: 'aparelho'; aparelhoId: string; nome: string; plataforma: 'pc' | 'cel'; chavePublica?: string; removido?: boolean; epoca?: number; chaveAssinatura?: string; pessoaId?: string; legado?: string[] }
   | { type: 'removerAparelho'; aparelhoId: string; epoca?: number };
 
 // Ações locais (não persistidas).
@@ -322,7 +323,7 @@ function reducer(s: State, a: Action): State {
       const antigo = s.aparelhos.find((x) => x.id === a.aparelhoId);
       const segueRemovido = !!antigo?.removido && (a.epoca ?? 0) < (antigo.removidoEpoca ?? 0);
       const removido = a.removido || segueRemovido || undefined;
-      const novo: Aparelho = { id: a.aparelhoId, nome: a.nome, plataforma: a.plataforma, chavePublica: antigo?.chavePublica ?? a.chavePublica, removido, removidoEpoca: segueRemovido ? antigo?.removidoEpoca : undefined, visto: antigo?.visto ?? '' };
+      const novo: Aparelho = { id: a.aparelhoId, nome: a.nome, plataforma: a.plataforma, chavePublica: antigo?.chavePublica ?? a.chavePublica, ...((antigo?.chaveAssinatura ?? a.chaveAssinatura) ? { chaveAssinatura: antigo?.chaveAssinatura ?? a.chaveAssinatura, pessoaId: antigo?.chaveAssinatura ? antigo.pessoaId : a.pessoaId } : {}), removido, removidoEpoca: segueRemovido ? antigo?.removidoEpoca : undefined, visto: antigo?.visto ?? '' };
       return { ...s, aparelhos: antigo ? s.aparelhos.map((x) => (x.id === a.aparelhoId ? novo : x)) : [...s.aparelhos, novo] };
     }
     // "Remover aparelho": a chave da família já foi trocada (época `epoca`) sem ele.
@@ -346,6 +347,8 @@ function acaoDoEvento(ev: Evento, aparelhoId?: string): Mudanca | null {
   if (a.type === 'aparelho' && ev.aparelho !== a.aparelhoId) return null;
   // Papéis e responsável: quem fez é o autor do evento, nunca o que veio nos dados.
   if (a.type === 'pedirPapel' || a.type === 'responderPapel' || a.type === 'removerPapel' || a.type === 'editarPessoa') return { ...a, por: ev.autor };
+  // Compartilhamento: de quem é o que se compartilha também vem do autor (desde 19/11/2026).
+  if (a.type === 'compartilhar' && ev.autor) return { ...a, de: ev.autor };
   if (a.type !== 'config' || !aparelhoId || !ev.aparelho || ev.aparelho === aparelhoId) return a;
   return { ...a, patch: Object.fromEntries(Object.entries(a.patch).filter(([k]) => CONFIG_DA_FAMILIA.includes(k))) as Partial<Config> };
 }
@@ -383,7 +386,8 @@ const plataforma = (): 'pc' | 'cel' | 'web' => (!EM_TAURI ? 'web' : /Android/i.t
 /** Abre o log lido do banco: dá HLC aos eventos antigos, resolve "eu" e guarda a identidade se mudou. */
 async function abrirLog(ini: Inicio): Promise<State> {
   const aparelhoId = ini.identidade?.aparelhoId ?? novoAparelhoId(plataforma());
-  const eventos = migrarLog(ini.eventos, aparelhoId);
+  const todos = migrarLog(ini.eventos, aparelhoId);
+  const eventos = await conferirAssinaturas(todos);
   const bruto = projetar(eventos, undefined, aparelhoId);
   const pessoaId = resolverEu(bruto.pessoas, ini.identidade ?? null);
   const identidade: Identidade = { aparelhoId, pessoaId };
@@ -396,8 +400,29 @@ async function abrirLog(ini: Inicio): Promise<State> {
     }
   }
   sessao.identidade = identidade;
-  sessao.ultimo = ultimoHlc(eventos);
+  // O relógio segue o log inteiro (inclusive o que foi recusado), para nunca andar para trás.
+  sessao.ultimo = ultimoHlc(todos);
   return marcarEu(bruto, pessoaId);
+}
+
+/** Tira do log os eventos com assinatura errada ou que deviam vir assinados (regras em assinatura.ts). */
+async function conferirAssinaturas(eventos: Evento[]): Promise<Evento[]> {
+  const chaves = chavesDosAparelhos(eventos);
+  if (!chaves.size) return eventos;
+  const itens = paraConferir(eventos, chaves);
+  let res: boolean[];
+  try {
+    res = await persistencia.verificarAssinaturas(itens.map(({ texto, sig, chave }) => ({ texto, sig, chave })));
+  } catch (e) {
+    // Sem como conferir (erro no Rust): não some nada; a próxima abertura tenta de novo.
+    console.warn('Não foi possível conferir as assinaturas', e);
+    return eventos;
+  }
+  const validos = new Set(itens.filter((_, i) => res[i]).map((x) => x.id));
+  const confiaveis = new Set([...sessao.emVoo.keys(), ...(sessao.durante ?? []).map((e) => e.id)]);
+  const ok = filtrarAssinados(eventos, chaves, validos, confiaveis);
+  if (ok.length !== eventos.length) console.warn(`${eventos.length - ok.length} evento(s) sem assinatura válida foram ignorados`);
+  return ok;
 }
 
 /** O que da configuração é preferência do usuário (vai para o log). */
@@ -432,7 +457,10 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
       const ev: Evento = { id: novoId(), em: new Date().toISOString(), autor: autor(), aparelho: h.aparelho, hlc: fmtHlc(h), tipo: type, dados };
       sessao.emVoo.set(ev.id, ev);
       sessao.durante?.push(ev);
-      persistencia.gravar(ev)
+      // Assina com a chave do aparelho (no Rust) e grava; sem chave (navegador), grava como está.
+      persistencia.assinar(textoAssinado(ev))
+        .then((sig) => { if (sig) ev.sig = sig; }, (e) => console.warn('Evento sem assinatura', e))
+        .then(() => persistencia.gravar(ev))
         .catch((e) => mostrarToast({ texto: `Não foi possível salvar: ${String(e)}` }))
         .finally(() => sessao.emVoo.delete(ev.id));
       avisarMudanca();
@@ -659,14 +687,23 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
         const eu = ref.current.pessoas.find((p) => p.souEu);
         // Removido e de volta à família (convite novo): registra de novo, na época atual.
         const registrado = () => ref.current.aparelhos.some((x) => x.id === id && !x.removido);
-        if (!MODO_REAL || !id || !eu || sessao.registrandoAparelho || registrado()) return;
+        // Já registrado, mas de antes da assinatura: anuncia a chave (uma vez).
+        const semChave = () => ref.current.aparelhos.some((x) => x.id === id && !x.removido && !x.chaveAssinatura);
+        if (!MODO_REAL || !id || !eu || sessao.registrandoAparelho || (registrado() && !semChave())) return;
         sessao.registrandoAparelho = true;
         try {
           const plat = plataformaDoId(id);
           const chavePublica = (await persistencia.chavePublicaAparelho().catch(() => '')) || undefined;
-          if (registrado()) return;
+          const chaveAssinatura = (await persistencia.chaveAssinatura().catch(() => '')) || undefined;
+          if (registrado() && (!semChave() || !chaveAssinatura)) return;
           const antigo = ref.current.aparelhos.find((x) => x.id === id);
-          emitir({ type: 'aparelho', aparelhoId: id, nome: antigo?.nome ?? nomePadraoAparelho(plat, eu.nome), plataforma: plat, chavePublica, epoca: infoSync().familia?.epoca ?? 0 });
+          // Os eventos sensíveis desta pessoa que já existem (sem assinatura) ficam atestados por este aparelho.
+          const legado = chaveAssinatura ? legadoDe(await persistencia.iniciar().then((i) => i.eventos, () => []), eu.id) : undefined;
+          emitir({
+            type: 'aparelho', aparelhoId: id, nome: antigo?.nome ?? nomePadraoAparelho(plat, eu.nome), plataforma: plat,
+            chavePublica: antigo?.chavePublica ?? chavePublica, epoca: infoSync().familia?.epoca ?? 0,
+            ...(chaveAssinatura ? { chaveAssinatura, pessoaId: eu.id, legado } : {}),
+          });
         } finally { sessao.registrandoAparelho = false; }
       },
       /** Renomeia este aparelho (novo evento `aparelho` com o mesmo id; vale o mais recente). */
@@ -675,7 +712,7 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
         const atual = ref.current.aparelhos.find((x) => x.id === id);
         const novo = nome.trim().slice(0, 40);
         if (!id || !atual || !novo || novo === atual.nome) return;
-        emitir({ type: 'aparelho', aparelhoId: id, nome: novo, plataforma: atual.plataforma, chavePublica: atual.chavePublica, epoca: infoSync().familia?.epoca ?? 0 });
+        emitir({ type: 'aparelho', aparelhoId: id, nome: novo, plataforma: atual.plataforma, chavePublica: atual.chavePublica, epoca: infoSync().familia?.epoca ?? 0, ...(atual.chaveAssinatura ? { chaveAssinatura: atual.chaveAssinatura, pessoaId: atual.pessoaId } : {}) });
       },
       /** Depois que `familiaRemoverAparelho` trocou a chave: registra a remoção no log (vai na chave nova). */
       removerAparelho(aparelhoId: string, epoca: number) {
