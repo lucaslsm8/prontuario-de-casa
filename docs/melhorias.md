@@ -119,12 +119,19 @@ Feito (0.5.13–0.5.15 e sessão noturna de 13–14/11):
 - Exames: selo "N valores fora da faixa" na lista.
 - Celular: horários reais no formulário do remédio; Google Agenda e .ics recolhidos na Agenda.
 
+Feito depois (14–19/11/2026):
+- Exames: pedido e resultado separados, comparar com o anterior, leitura por foto e laudo formatado.
+- Frasco com nível (gotas e mL); simulador de reembolso; modo só de informações.
+- Frequências: dias da semana, dia sim dia não, semanal, a cada N dias e desmame; validade da receita com aviso.
+- Pets: leitura da carteira de vacinação pela foto.
+- Teclado no desktop: atalhos (N, R, E, /, 1–5, ?) e Esc em todos os diálogos.
+- Despesas de saúde e resumo para o IR (CSV).
+- Alergia com gravidade, histórico familiar, curva de altura e calendário de vacinas do SUS para crianças.
+- Eventos assinados por aparelho (Ed25519): papéis, responsável e compartilhamento não se forjam.
+- Visual V1: Pessoa, Carteirinhas e Configurações já no visual novo; raios escritos à mão trocados por tokens.
+
 Pendente:
-- Assinar eventos por aparelho (papéis e edições não forjáveis).
-- Frequências: dias da semana, dia sim dia não, semanal, desmame. Validade da receita.
-- Exame agendado como tipo próprio; pedido médico; comparar com o anterior.
-- Condições como registros; alergia com gravidade; histórico familiar; crianças (curva, vacinas do SUS).
-- Gatos; remédio por peso; ração.
-- Reembolso, despesas para o IR.
-- Visual V1 nas telas que faltam; teclado no desktop.
-- Cartela: foto vira ilustração; conferir com a câmera; frasco com nível.
+- Condições como registros próprios (com data de início e fim).
+- Gatos (espécie, vacinas felinas); remédio por peso; ração.
+- Permissão de editar conferida pelo autor nos eventos de registros (hoje só papéis, responsável e compartilhamento).
+- Cartela: foto vira ilustração; conferir com a câmera.

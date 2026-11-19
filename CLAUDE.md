@@ -20,7 +20,7 @@ Stack: Tauri 2 (Rust) + React 18 + TypeScript + Vite. Leia também `README.md` e
 - Fontes IBM Plex Sans/Mono empacotadas localmente (`@fontsource`), nada de CDN (o app é offline).
 - Em `npm run dev`, a barra no canto inferior esquerdo ("Telas") abre cada tela pelo ID do mockup. Use-a para comparar com a referência.
 - Ícones: só na navegação e nas ações do cartão da dose (`src/ui/Icones.tsx`, traço 1,8). Nada de ícones nas listas. O cadeado antigo continua em divs (`<Lock />`).
-- Redesign "cartão escuro" (30/10/2026, `docs/superpowers/specs/2026-10-30-redesign-design.md`): raios menores, Início com cartão da dose, linha do dia e "Remédio acabando" (`src/ui/Inicio.tsx`, lógica em `src/data/inicio.ts`). As outras telas ainda não ganharam o novo layout.
+- Redesign "cartão escuro" (30/10/2026, `docs/superpowers/specs/2026-10-30-redesign-design.md`): raios menores, Início com cartão da dose, linha do dia e "Remédio acabando" (`src/ui/Inicio.tsx`, lógica em `src/data/inicio.ts`). As outras telas usam os mesmos tokens e cartões (Pessoa, Carteirinhas e Configurações conferidas em 19/11/2026).
 
 ## Arquitetura
 
@@ -84,7 +84,7 @@ Stack: Tauri 2 (Rust) + React 18 + TypeScript + Vite. Leia também `README.md` e
 
 Feito até a 0.5.0: lembretes no desktop (`lembretes.rs`) e no Android (plugin de notificações, Tomei / 15 min / Pular); atualizações no desktop (`npm run app:build`, `scripts/app-build.mjs`, tag `v*` → `.github/workflows/release.yml`) e no Android (APK pelo app); app Android (AndroidKeyStore, biometria, QR do convite, rede de casa); sincronização pelo GitHub e pelo Wi-Fi, com aparelhos da família e "Remover aparelho".
 
-1. Visual V1 nas telas que ainda têm o layout antigo (Pessoa, Planos, Privacidade, telas do celular).
-2. Pasta sincronizada com `age` (para quem mora em outra casa), se o GitHub não bastar.
+1. Pasta sincronizada com `age` (para quem mora em outra casa), se o GitHub não bastar.
+2. Pendências em `docs/melhorias.md` (condições como registros, gatos, permissão de editar pelo autor).
 
 Lista de melhorias e o que já foi feito: `docs/melhorias.md`.

@@ -96,7 +96,7 @@ export function DAgenda() {
                 const nome = e.titulo.replace('Exame ', '').replace(/^TSH e T4 livre$/, 'TSH').replace('Endocrinologista', 'Endocrino');
                 const props = {
                   title: `${e.hora} ${e.titulo} · ${pessoa(state, e.pessoaId)?.curto}`,
-                  style: { fontSize: 12, fontWeight: 500, padding: '4px 6px', borderRadius: 6, background: cons ? 'var(--teal-light)' : 'var(--warn-bg)', color: cons ? 'var(--teal-dark)' : 'var(--warn-strong)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' } as const,
+                  style: { fontSize: 12, fontWeight: 500, padding: '4px 6px', borderRadius: 'var(--r-pill)', background: cons ? 'var(--teal-light)' : 'var(--warn-bg)', color: cons ? 'var(--teal-dark)' : 'var(--warn-strong)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' } as const,
                 };
                 const texto = `${e.hora} ${nome} · ${pessoa(state, e.pessoaId)?.curto}`;
                 // Consulta abre o resumo; exame continua só informativo.
@@ -297,8 +297,8 @@ export function DPlanos() {
               key={p.id}
               className="stack plano-card"
               style={{
-                borderRadius: 8, padding: 20, gap: 18, textAlign: 'left',
-                background: dark ? (i === 0 ? 'var(--ink)' : 'var(--ink-2)') : '#fff', color: dark ? '#fff' : undefined,
+                borderRadius: 'var(--r-cta)', padding: 20, gap: 18, textAlign: 'left',
+                background: dark ? (i === 0 ? 'var(--ink)' : 'var(--ink-2)') : 'var(--surface)', color: dark ? '#fff' : undefined,
                 border: dark ? undefined : '1px solid var(--border-card)',
                 outline: on ? '2px solid var(--teal)' : '2px solid transparent', outlineOffset: 3, transition: 'outline-color 180ms',
               }}
@@ -434,7 +434,7 @@ export function DConfiguracoes() {
 
   const celula = (on: boolean, editavel: boolean, onClick: () => void) =>
     editavel ? (
-      <button type="button" onClick={onClick} aria-pressed={on} style={{ width: 28, height: 28, borderRadius: 5, border: '1px solid var(--border-input)', color: on ? 'var(--teal)' : 'var(--border-input)', background: on ? 'var(--teal-light)' : '#fff' }}>
+      <button type="button" onClick={onClick} aria-pressed={on} style={{ width: 28, height: 28, borderRadius: 'var(--r-btn)', border: '1px solid var(--border-input)', color: on ? 'var(--teal)' : 'var(--border-input)', background: on ? 'var(--teal-light)' : '#fff' }}>
         {on ? '✓' : '—'}
       </button>
     ) : (

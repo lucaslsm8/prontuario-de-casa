@@ -476,7 +476,7 @@ export function PlanoSaude() {
     <MScreen gap={18} tabs>
       <TopNav voltar={p.souEu ? 'Perfil' : p.curto} acao={podeEditarPlano ? 'Editar' : undefined} onAcao={() => nav(`/pessoa/${p.id}/plano/editar`)} />
       <h1 className="title" style={{ margin: 0 }}>Plano de saúde</h1>
-      <div className="stack" style={{ borderRadius: 12, background: 'var(--ink)', color: '#fff', padding: 20, gap: 22, boxShadow: 'var(--shadow-plan)' }}>
+      <div className="stack" style={{ borderRadius: 'var(--r-plan)', background: 'var(--ink)', color: '#fff', padding: 20, gap: 22, boxShadow: 'var(--shadow-plan)' }}>
         <div className="hstack" style={{ justifyContent: 'space-between' }}>
           <span style={{ fontSize: 18, fontWeight: 600 }}>{plano.operadora}</span>
           <span className="mono" style={{ ...mini }}>ANS {plano.registroAns}</span>
@@ -576,9 +576,9 @@ export function Compartilhar() {
       </div>
       <div className="card" style={{ padding: 16, flexDirection: 'row', gap: 16, alignItems: 'center' }}>
         {qr ? (
-          <img src={qr} alt="QR code de pareamento" width={96} height={96} style={{ borderRadius: 6, flex: 'none' }} />
+          <img src={qr} alt="QR code de pareamento" width={96} height={96} style={{ borderRadius: 'var(--r-input)', flex: 'none' }} />
         ) : (
-          <span className="ph" style={{ width: 96, height: 96, borderRadius: 6, flex: 'none', fontSize: 10 }}>QR code</span>
+          <span className="ph" style={{ width: 96, height: 96, borderRadius: 'var(--r-input)', flex: 'none', fontSize: 10 }}>QR code</span>
         )}
         <div className="stack" style={{ gap: 4 }}>
           <span style={{ fontSize: 15, fontWeight: 600 }}>{qr ? 'Código pronto' : 'Próximo passo'}</span>
@@ -621,11 +621,11 @@ export function FichaEmergencia({ onClose, pessoaId }: { onClose?: () => void; p
       </div>
       <div className="stack" style={{ flex: 1, padding: '18px 22px 30px', gap: 14 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: 10 }}>
-          <div className="stack" style={{ borderRadius: 8, background: 'var(--bg)', padding: 14, gap: 2 }}>
+          <div className="stack" style={{ borderRadius: 'var(--r-cta)', background: 'var(--bg)', padding: 14, gap: 2 }}>
             <span style={{ fontSize: 12, color: 'var(--text-2)' }}>Sangue</span>
             <span style={{ fontSize: 32, fontWeight: 700 }}>{p.sangue ?? '?'}</span>
           </div>
-          <div className="stack" style={{ borderRadius: 8, background: p.alergias.length ? 'var(--warn-bg)' : 'var(--bg)', padding: 14, gap: 2 }}>
+          <div className="stack" style={{ borderRadius: 'var(--r-cta)', background: p.alergias.length ? 'var(--warn-bg)' : 'var(--bg)', padding: 14, gap: 2 }}>
             <span style={{ fontSize: 12, color: p.alergias.length ? 'var(--warn-text)' : 'var(--text-2)', fontWeight: 600 }}>{p.alergias.length ? 'ALÉRGICO A' : 'ALERGIAS'}</span>
             <span style={{ fontSize: 26, fontWeight: 700, color: p.alergias.length ? 'var(--warn-strong)' : undefined }}>
               {p.alergias.length ? p.alergias.map(nomeAlergia).join(', ') : 'Nenhuma conhecida'}
@@ -652,7 +652,7 @@ export function FichaEmergencia({ onClose, pessoaId }: { onClose?: () => void; p
           {contato && (
             <>
               <span style={rot}>CONTATO DE EMERGÊNCIA</span>
-              <a href={`tel:${contato.telefone.replace(/\D/g, '')}`} className="hstack" style={{ height: 60, borderRadius: 6, background: 'var(--ink)', color: '#fff', justifyContent: 'space-between', padding: '0 18px' }}>
+              <a href={`tel:${contato.telefone.replace(/\D/g, '')}`} className="hstack" style={{ height: 60, borderRadius: 'var(--r-btn)', background: 'var(--ink)', color: '#fff', justifyContent: 'space-between', padding: '0 18px' }}>
                 <span className="stack">
                   <span style={{ fontSize: 16, fontWeight: 600 }}>Ligar para {contato.nome}</span>
                   <span style={{ fontSize: 13, color: 'var(--tab-inactive)' }}>{[contato.relacao, contato.telefone].filter(Boolean).join(' · ')}</span>
@@ -704,14 +704,14 @@ export function CorpoFichaPet({ p, colunaPeso, rotulo }: { p: Pessoa; colunaPeso
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: `${colunaPeso}px 1fr`, gap: 10 }}>
-        <div className="stack" style={{ borderRadius: 8, background: 'var(--bg)', padding: 14, gap: 2 }}>
+        <div className="stack" style={{ borderRadius: 'var(--r-cta)', background: 'var(--bg)', padding: 14, gap: 2 }}>
           <span style={{ fontSize: 12, color: 'var(--text-2)' }}>Peso</span>
           <span style={{ fontSize: 28, fontWeight: 700, whiteSpace: 'nowrap' }}>
             {peso ? <>{numCurto(peso.kg)}<span style={{ fontSize: 16, fontWeight: 600 }}> kg</span></> : '?'}
           </span>
           {peso && <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>em {diaMes(peso.data)}</span>}
         </div>
-        <div className="stack" style={{ borderRadius: 8, background: alergico ? 'var(--warn-bg)' : 'var(--bg)', padding: 14, gap: 2 }}>
+        <div className="stack" style={{ borderRadius: 'var(--r-cta)', background: alergico ? 'var(--warn-bg)' : 'var(--bg)', padding: 14, gap: 2 }}>
           <span style={{ fontSize: 12, color: alergico ? 'var(--warn-text)' : 'var(--text-2)', fontWeight: 600 }}>{alergico ? 'ALÉRGICO A' : 'ALERGIAS'}</span>
           <span style={{ fontSize: 26, fontWeight: 700, color: alergico ? 'var(--warn-strong)' : undefined }}>
             {alergico ? p.alergias.map(nomeAlergia).join(', ') : 'Nenhuma conhecida'}
@@ -749,7 +749,7 @@ function Ligacao({ nome, detalhe, tel }: { nome: string; detalhe?: string; tel?:
     );
   }
   return (
-    <a href={telHref(tel)} className="hstack" style={{ height: 60, borderRadius: 6, background: 'var(--ink)', color: '#fff', justifyContent: 'space-between', padding: '0 18px' }}>
+    <a href={telHref(tel)} className="hstack" style={{ height: 60, borderRadius: 'var(--r-btn)', background: 'var(--ink)', color: '#fff', justifyContent: 'space-between', padding: '0 18px' }}>
       <span className="stack" style={{ minWidth: 0 }}>
         <span style={{ fontSize: 16, fontWeight: 600 }}>Ligar para {nome}</span>
         {linha2 && <span style={{ fontSize: 13, color: 'var(--tab-inactive)' }}>{linha2}</span>}
