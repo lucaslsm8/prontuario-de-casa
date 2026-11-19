@@ -5,7 +5,7 @@ import { Avatar, SecaoLista, cx } from '../ui';
 import { IcAgenda, IcConfig, IcCadeado, IcEmergencia, IcExame, IcInicio, IcMarcaCheia, IcPlano, IcRemedio } from '../ui/Icones';
 import { quando } from '../data/format';
 import { useVoltar } from './useVoltar';
-import { DEditarMedicao, DEditarPerfil, DEditarRegistroPet, DEditarVacina, DFichaEmergencia, DNovaConsulta, DNovaPessoa, DNovoExame, DNovaMedicao, DNovoPet, DNovoPlano, DNovoRemedio, DRegistroPet, REGISTROS_PET, type RegistroPet } from './Formularios';
+import { DEditarMedicao, DEditarPerfil, DEditarRegistroPet, DEditarVacina, DFichaEmergencia, DLerCarteira, DNovaConsulta, DNovaPessoa, DNovoExame, DNovaMedicao, DNovoPet, DNovoPlano, DNovoRemedio, DRegistroPet, REGISTROS_PET, type RegistroPet } from './Formularios';
 import { familia, pets } from '../data/pets';
 import type { TipoMedicao } from '../data/types';
 import { BuscaDesktop } from '../ui/Busca';
@@ -67,6 +67,7 @@ function Dialogo() {
   }
   if (tipo === 'editar-plano') { const pl = state.planos.find((x) => x.id === arg); return pl ? <DNovoPlano key={abrir} plano={pl} onClose={fechar} /> : null; }
   if (tipo === 'plano') return <DNovoPlano key={abrir} pessoaId={arg} onClose={fechar} />;
+  if (tipo === 'carteira') return <DLerCarteira key={abrir} petId={arg} onClose={fechar} />;
   if (tipo === 'emergencia') return <DFichaEmergencia key={abrir} pessoaId={arg} onClose={fechar} />;
   if (tipo === 'perfil') return <DEditarPerfil key={abrir} pessoaId={arg} onClose={fechar} />;
   if ((REGISTROS_PET as string[]).includes(tipo)) return <DRegistroPet key={abrir} registro={tipo as RegistroPet} petId={arg} onClose={fechar} />;

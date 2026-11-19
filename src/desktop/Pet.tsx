@@ -124,12 +124,12 @@ function IndicadoresPet({ p }: { p: Pessoa }) {
 // ── Peças das abas ──────────────────────────────────────────────────────────
 
 /** Card de aba: título à esquerda e "+ Registrar …" à direita. */
-function CardAba({ titulo, acao, onAcao, children }: { titulo: string; acao?: string; onAcao: () => void; children: ReactNode }) {
+function CardAba({ titulo, acao, onAcao, extra, children }: { titulo: string; acao?: string; onAcao: () => void; extra?: ReactNode; children: ReactNode }) {
   return (
     <div className="card" style={{ fontSize: 14 }}>
       <div className="card-head card-head--20">
         <Label>{titulo}</Label>
-        {acao && <button type="button" className="btn--link" style={{ fontSize: 13 }} onClick={onAcao}>{acao}</button>}
+        <span className="hstack" style={{ gap: 16 }}>{extra}{acao && <button type="button" className="btn--link" style={{ fontSize: 13 }} onClick={onAcao}>{acao}</button>}</span>
       </div>
       {children}
     </div>
@@ -215,7 +215,7 @@ function AbaVacinas({ id }: { id: string }) {
   const abrir = useAbrir();
   const lista = vacinasDoPet(state, id);
   return (
-    <CardAba titulo="Vacinas" acao="+ Registrar vacina" onAcao={() => abrir(`vacina:${id}`)}>
+    <CardAba titulo="Vacinas" acao="+ Registrar vacina" onAcao={() => abrir(`vacina:${id}`)} extra={<button type="button" className="btn--link" style={{ fontSize: 13 }} onClick={() => abrir(`carteira:${id}`)}>Ler carteira (foto)</button>}>
       {lista.length > 0 && (
         <div className="mono" style={{ ...cabecalho, gridTemplateColumns: COLS_VACINA }}>
           <span>VACINA</span><span>DATA</span><span>LOTE</span><span>VETERINÁRIO</span><span>PRÓXIMO REFORÇO</span>

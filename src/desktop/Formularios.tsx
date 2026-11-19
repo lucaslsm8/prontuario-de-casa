@@ -25,6 +25,7 @@ import { DCampo, DChips, DConfirmar, DDialogo, DFechar, DGrade, DRodape, DSangue
 import { SUGESTOES_VACINA as SUGESTOES_VACINA_PESSOA } from '../data/sugestoes';
 import { CampoData } from '../ui/CampoData';
 import { CamposDias } from '../ui/DiasRemedio';
+import { CorpoCarteira, textoAdicionar, useLerCarteira } from '../ui/CarteiraVacinas';
 
 // Formulários do desktop em diálogo largo. Estado, validação e salvar vêm dos hooks compartilhados com o mobile.
 
@@ -1037,6 +1038,23 @@ function EditarPerfil({ p, onClose }: Props & { p: Pessoa }) {
           <CampoResponsavel p={p} valor={f.responsavel} onChange={f.setResponsavel} desktop />
         </DCampo>
       </DGrade>
+    </DDialogo>
+  );
+}
+
+// ── Carteira de vacinação do pet (foto → vacinas) ──────────────────────────
+
+export function DLerCarteira({ petId, onClose }: { petId: string; onClose: () => void }) {
+  const { state } = useStore();
+  const pet = state.pessoas.find((p) => p.id === petId);
+  if (!pet) return null;
+  return <DLerCarteiraDe pet={pet} onClose={onClose} />;
+}
+function DLerCarteiraDe({ pet, onClose }: { pet: Pessoa; onClose: () => void }) {
+  const c = useLerCarteira(pet, onClose);
+  return (
+    <DDialogo titulo="Ler carteira de vacinação" onClose={onClose} rodape={<DRodape salvar={textoAdicionar(c.marcadas.length)} onSalvar={c.salvar} valido={c.valido} onCancelar={onClose} />}>
+      <CorpoCarteira c={c} pet={pet} desktop />
     </DDialogo>
   );
 }

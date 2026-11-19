@@ -251,6 +251,7 @@ function Vacinas({ id }: { id: string }) {
       })}
       {lista.length === 0 && <Vazio>Nenhuma vacina registrada.</Vazio>}
       <AdicionarItem onClick={() => nav(`/pet/${id}/vacina`)}>+ Registrar vacina</AdicionarItem>
+      <AdicionarItem onClick={() => nav(`/pet/${id}/carteira`)}>+ Ler carteira de vacinação (foto)</AdicionarItem>
     </Secao>
   );
 }

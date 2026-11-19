@@ -15,7 +15,7 @@ import { Compartilhar, Familia, FichaEmergencia, PerfilMembro, PlanoSaude, Plano
 import { EditarPerfilMobile } from './mobile/EditarPerfil';
 import { NovoPet } from './mobile/NovoPet';
 import { FotosDoPerfil } from './mobile/Pet';
-import { NovaPesagem, RegistrarPrevencao, RegistrarProcedimento, RegistrarSintoma, RegistrarVacina } from './mobile/RegistrosPet';
+import { NovaPesagem, RegistrarPrevencao, RegistrarProcedimento, RegistrarSintoma, RegistrarVacina, LerCarteiraPet } from './mobile/RegistrosPet';
 import { Atualizacoes, Configuracoes, Desbloqueio, Instalando, LembreteDose, Privacidade } from './mobile/Config';
 import { BloqueioDesktop, DesktopShell } from './desktop/Shell';
 import { REGISTROS_PET, type RegistroPet } from './desktop/Formularios';
@@ -71,6 +71,7 @@ function RotasMobile({ frame }: { frame: boolean }) {
         <Route path="fotos" element={<FotosDoPerfil />} />
         <Route path="pet/novo" element={<NovoPet />} />
         <Route path="pet/:id/vacina" element={<RegistrarVacina />} />
+        <Route path="pet/:id/carteira" element={<LerCarteiraPet />} />
         <Route path="pet/:id/vacina/:vid" element={<RegistrarVacina />} />
         <Route path="pet/:id/prevencao" element={<RegistrarPrevencao />} />
         <Route path="pet/:id/prevencao/:rid" element={<RegistrarPrevencao />} />

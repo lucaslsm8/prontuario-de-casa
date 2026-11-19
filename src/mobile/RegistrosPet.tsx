@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { Chip, ChipGroup, Field, FieldGroup, Row, TopNav } from '../ui';
 import { LinhaCampo, erroTexto } from './EditarPerfil';
 import { MScreen } from './Shell';
+import { CorpoCarteira, textoAdicionar, useLerCarteira } from '../ui/CarteiraVacinas';
 import { SUGESTOES_VACINA as SUGESTOES_VACINA_PESSOA } from '../data/sugestoes';
 
 // Registros do pet no celular: /pet/:id/vacina|prevencao|sintoma|procedimento|pesagem; com /:rid no fim, edita o já registrado.
@@ -76,6 +77,18 @@ function comRegistro<T extends { id: string; pessoaId: string }>(
 }
 
 // ── Vacina ──────────────────────────────────────────────────────────────────
+
+/** /pet/:id/carteira: lê a foto da carteira de vacinação e registra as vacinas conferidas. */
+export const LerCarteiraPet = comPet(function TelaCarteira({ pet, voltar }) {
+  const c = useLerCarteira(pet, voltar);
+  return (
+    <MScreen gap={14}>
+      <TopNav voltar="Cancelar" onVoltar={voltar} titulo="Carteira de vacinação" acao="Salvar" onAcao={c.salvar} acaoDesativada={!c.valido} />
+      <CorpoCarteira c={c} pet={pet} />
+      {c.linhas && c.linhas.length > 0 && <Salvar texto={textoAdicionar(c.marcadas.length)} valido={c.valido} onClick={c.salvar} />}
+    </MScreen>
+  );
+});
 
 /** /pet/:id/vacina registra; /pet/:id/vacina/:vid edita (e apaga) a vacina já registrada. */
 export const RegistrarVacina = comPet(function TelaVacina({ pet, voltar }) {
