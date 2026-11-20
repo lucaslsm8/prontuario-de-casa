@@ -124,7 +124,13 @@ export interface LinhaAlergia { chave: string; substancia: string; reacao: strin
 export interface LinhaFamiliar { chave: string; parente: string; condicao: string; idade: string }
 export const GRAVIDADES: { id: GravidadeAlergia; nome: string }[] = [{ id: 'leve', nome: 'Leve' }, { id: 'moderada', nome: 'Moderada' }, { id: 'grave', nome: 'Grave' }];
 export const PARENTES = ['Pai', 'Mãe', 'Avô paterno', 'Avó paterna', 'Avô materno', 'Avó materna', 'Irmão', 'Irmã', 'Tio', 'Tia', 'Filho', 'Filha'];
-export interface LinhaCondicao { chave: string; nome: string; tipo: TipoCondicao; desde: string; orig?: Condicao }
+export interface LinhaCondicao { chave: string; nome: string; tipo: TipoCondicao; desde: string; ate?: string; orig?: Condicao }
+
+/** Condição que continua (sem "até"). Cirurgia e vacina são fatos: sempre no histórico. */
+export const condicaoAtiva = (c: Condicao) => c.tipo === 'condicao' && !c.ate?.trim();
+/** "desde 2017", "2017 – 2020", "até 2020". */
+export const periodoCondicao = (c: Pick<Condicao, 'desde' | 'ate'>) =>
+  c.ate ? (c.desde ? `${c.desde} – ${c.ate}` : `até ${c.ate}`) : c.desde ?? '';
 
 export interface FormPerfil {
   nome: string;
@@ -173,7 +179,7 @@ export function formDePessoa(p: Pessoa): FormPerfil {
     pressao: p.pressao?.valor ?? '',
     alergias: p.alergias.map((a) => ({ chave: novaChave(), substancia: a.substancia, reacao: a.reacao ?? '', gravidade: a.gravidade ?? '', orig: a })),
     familia: (p.historicoFamiliar ?? []).map((h) => ({ chave: novaChave(), parente: h.parente, condicao: h.condicao, idade: h.idade ?? '' })),
-    condicoes: p.condicoes.map((c) => ({ chave: novaChave(), nome: c.nome, tipo: c.tipo, desde: c.desde ?? '', orig: c })),
+    condicoes: p.condicoes.map((c) => ({ chave: novaChave(), nome: c.nome, tipo: c.tipo, desde: c.desde ?? '', ate: c.ate ?? '', orig: c })),
     contato: { nome: p.contatoEmergencia?.nome ?? '', relacao: p.contatoEmergencia?.relacao ?? '', telefone: p.contatoEmergencia?.telefone ?? '' },
     responsavel: p.responsavelId ?? '',
     foto: p.foto,
@@ -246,7 +252,7 @@ export function pessoaDoForm(p: Pessoa, f: FormPerfil, hoje: string): { pessoa?:
       .map((x) => {
         // Nome trocado: o nome clínico antigo deixa de valer.
         const nomeClinico = x.orig && t(x.nome) === x.orig.nome ? x.orig.nomeClinico : undefined;
-        return limpar({ ...x.orig, nome: t(x.nome), desde: ou(x.desde), tipo: x.tipo, nomeClinico }) as Condicao;
+        return limpar({ ...x.orig, nome: t(x.nome), desde: ou(x.desde), ate: x.tipo === 'condicao' ? ou(x.ate ?? '') : undefined, tipo: x.tipo, nomeClinico }) as Condicao;
       }),
     contatoEmergencia: temContato ? limpar({ ...p.contatoEmergencia, ...c }) : undefined,
     historicoFamiliar: familiaDoForm(f),

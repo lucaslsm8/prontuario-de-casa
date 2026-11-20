@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { condicaoAtiva } from '../data/perfil';
 import { editaveis, eu, paraConsultas, pessoa, useStore } from '../data/store';
 import { HOJE } from '../data/tempo';
 import { addDias, dataBR, diaMes, idade, mascararTelefone, quem, linhaRemedioEmergencia } from '../data/format';
@@ -710,7 +711,7 @@ export function DFichaEmergencia({ pessoaId, onClose }: Props & { pessoaId?: str
   if (ehPet(p)) return <DFichaEmergenciaPet p={p} onClose={onClose} />;
   const remedios = state.remedios.filter((r) => r.ativo && r.pessoaId === p.id && !r.seNecessario);
   const plano = state.planos.find((x) => x.pessoaId === p.id);
-  const condicoes = p.condicoes.filter((c) => c.tipo === 'condicao').map((c) => c.nome).join(' · ');
+  const condicoes = p.condicoes.filter(condicaoAtiva).map((c) => c.nome).join(' · ');
   const contato = p.contatoEmergencia;
   const nomeCurto = (() => { const n = p.nome.split(' '); return n.length > 2 ? `${n[0]} ${n[1][0]}. ${n[n.length - 1]}` : p.nome; })();
   const anos = idade(p);
@@ -1022,6 +1023,16 @@ function EditarPerfil({ p, onClose }: Props & { p: Pessoa }) {
                   aria-label={c.nome ? `Desde — ${c.nome}` : 'Desde — nova condição'}
                   value={c.desde}
                   onChange={(e) => f.setCondicao(c.chave, { desde: e.target.value })}
+                  onKeyDown={(e) => enterNaLinha(e, novaCondicao)}
+                />
+                <input
+                  data-campo
+                  className="inline-input mono dlista__campo dlista__desde"
+                  placeholder={c.tipo === 'condicao' ? 'Até' : ''}
+                  disabled={c.tipo !== 'condicao'}
+                  aria-label={c.nome ? `Até quando — ${c.nome}` : 'Até quando — nova condição'}
+                  value={c.tipo === 'condicao' ? c.ate ?? '' : ''}
+                  onChange={(e) => f.setCondicao(c.chave, { ate: e.target.value })}
                   onKeyDown={(e) => enterNaLinha(e, novaCondicao)}
                 />
                 <button type="button" className="dlista__x" aria-label={`Remover ${c.nome || 'condição'}`} onClick={() => f.removerCondicao(c.chave)}>×</button>

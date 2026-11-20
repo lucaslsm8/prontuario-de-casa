@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { periodoCondicao } from '../data/perfil';
 import { CalendarioVacinas, CurvaCrescimento } from '../ui/Crianca';
 import { linhaHistoricoFamiliar, nomeAlergia } from '../data/alergias';
 import { Link, useParams } from 'react-router-dom';
@@ -148,7 +149,7 @@ function AbaPerfil({ id }: { id: string }) {
     <>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 16 }}>
         <ListaCard titulo="Condições">
-          {p.condicoes.map((c) => <div key={c.nome} style={linha}><span>{c.nome}</span><span className="faint">{c.desde}</span></div>)}
+          {[...p.condicoes].sort((a, b) => Number(!!a.ate) - Number(!!b.ate)).map((c) => <div key={c.nome} style={linha}><span className={c.ate ? 'muted' : undefined}>{c.nome}</span><span className="faint">{periodoCondicao(c)}</span></div>)}
           {p.condicoes.length === 0 && <div style={linha} className="muted">Nada registrado.</div>}
         </ListaCard>
         <CardRemediosEmUso id={id} />

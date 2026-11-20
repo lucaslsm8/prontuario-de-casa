@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { condicaoAtiva, periodoCondicao } from '../data/perfil';
 import { CalendarioVacinas, CurvaCrescimento } from '../ui/Crianca';
 import { linhaHistoricoFamiliar, nomeAlergia } from '../data/alergias';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -249,7 +250,7 @@ export function PerfilMembro() {
             <div className="card">
               <span className="label" style={{ padding: '12px 16px 4px' }}>Condições e histórico</span>
               {historico.map((c) => (
-                <Row key={c.nome} mutedLabel={false} label={c.nome} valor={<span className="faint">{c.desde}</span>} style={{ padding: '10px 16px', fontSize: 15 }} />
+                <Row key={c.nome} mutedLabel={false} label={c.ate ? <span style={{ color: 'var(--text-2)' }}>{c.nome}</span> : c.nome} valor={<span className="faint">{periodoCondicao(c)}</span>} style={{ padding: '10px 16px', fontSize: 15 }} />
               ))}
             </div>
           )}
@@ -605,7 +606,7 @@ export function FichaEmergencia({ onClose, pessoaId }: { onClose?: () => void; p
   if (ehPet(p)) return <FichaEmergenciaPet p={p} onClose={fechar} />;
   const remedios = state.remedios.filter((r) => r.ativo && r.pessoaId === p.id && !r.seNecessario);
   const plano = state.planos.find((x) => x.pessoaId === p.id);
-  const condicoes = p.condicoes.filter((c) => c.tipo === 'condicao').map((c) => c.nome).join(' · ');
+  const condicoes = p.condicoes.filter(condicaoAtiva).map((c) => c.nome).join(' · ');
   const contato = p.contatoEmergencia;
   const nomeCurto = (() => { const n = p.nome.split(' '); return n.length > 2 ? `${n[0]} ${n[1][0]}. ${n[n.length - 1]}` : p.nome; })();
 

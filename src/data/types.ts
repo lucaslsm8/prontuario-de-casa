@@ -17,7 +17,8 @@ export type GravidadeAlergia = 'leve' | 'moderada' | 'grave';
 export interface Alergia { substancia: string; reacao?: string; ano?: number; gravidade?: GravidadeAlergia }
 /** Doença na família (pai, mãe, avós, irmãos): o médico costuma perguntar. */
 export interface HistoricoFamiliar { parente: string; condicao: string; idade?: string }
-export interface Condicao { nome: string; desde?: string; tipo: 'condicao' | 'cirurgia' | 'vacina'; nomeClinico?: string }
+/** `ate`: quando acabou (condição curada, tratamento encerrado); sem ele, continua. `desde`/`ate` são texto livre ("2021", "abr 2026"). */
+export interface Condicao { nome: string; desde?: string; ate?: string; tipo: 'condicao' | 'cirurgia' | 'vacina'; nomeClinico?: string }
 
 export interface Pessoa {
   id: PessoaId;

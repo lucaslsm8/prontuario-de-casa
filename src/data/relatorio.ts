@@ -2,6 +2,7 @@
 // Só entram as categorias que quem exporta pode ver. O conteúdo é puro (testado em relatorio.test.ts).
 
 import { linhaHistoricoFamiliar } from './alergias';
+import { periodoCondicao } from './perfil';
 import type { State } from './store';
 import type { Categoria, Pessoa } from './types';
 import { dataBR, idade, numBR, numCurto } from './format';
@@ -54,7 +55,7 @@ export function blocosDoPerfil(s: State, p: Pessoa, ver: (c: Categoria) => boole
     const historico = p.condicoes.filter((c) => c.tipo !== 'vacina');
     if (!pet || historico.length) {
       secao('Condições e cirurgias');
-      historico.forEach((c) => item(c.nome, juntar(c.tipo === 'cirurgia' && 'cirurgia', c.nomeClinico, c.desde && `desde ${c.desde}`)));
+      historico.forEach((c) => item(c.nome, juntar(c.tipo === 'cirurgia' && 'cirurgia', c.nomeClinico, c.ate ? `de ${periodoCondicao(c)}` : c.desde && `desde ${c.desde}`)));
       if (!historico.length) vazio('Nada registrado.');
     }
 

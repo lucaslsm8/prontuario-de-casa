@@ -183,6 +183,19 @@ function FormEditarPerfil({ p }: { p: Pessoa }) {
                         onChange={(e) => f.setCondicao(c.chave, { desde: e.target.value })}
                         onKeyDown={(e) => enterNaLinha(e, novaCondicao)}
                       />
+                      {c.tipo === 'condicao' && <>
+                        <span aria-hidden style={{ color: 'var(--text-3)' }}>–</span>
+                        <input
+                          data-campo
+                          className="inline-input mono"
+                          style={{ textAlign: 'left', flex: 1, minWidth: 0, height: 44, paddingBottom: 10, color: 'var(--text-2)' }}
+                          placeholder="Até (se acabou)"
+                          aria-label={c.nome ? `Até quando — ${c.nome}` : 'Até quando — nova condição'}
+                          value={c.ate ?? ''}
+                          onChange={(e) => f.setCondicao(c.chave, { ate: e.target.value })}
+                          onKeyDown={(e) => enterNaLinha(e, novaCondicao)}
+                        />
+                      </>}
                     </div>
                   </div>
                   <RemoverItem rotulo={`Remover ${c.nome || 'condição'}`} onClick={() => f.removerCondicao(c.chave)} />

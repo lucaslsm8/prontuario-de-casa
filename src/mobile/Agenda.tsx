@@ -1,4 +1,5 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { periodoCondicao } from '../data/perfil';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
 import { LEMBRAR, useFormConsulta } from '../data/formularios';
@@ -364,7 +365,7 @@ export function DocumentoResumo({ consulta: c, incluir, grande = false, classNam
   const pet = ehPet(p) ? resumoPet(state, p) : undefined;
   const exames = state.exames.filter((e) => e.consultaId === c.id);
   const ident = [idade(p) != null && `${idade(p)} anos`, p.sangue, p.peso && `${numCurto(p.peso)} kg`, p.altura && `${numBR(p.altura)} m`].filter(Boolean).join(' · ');
-  const condicoes = p.condicoes.filter((x) => x.tipo !== 'vacina').map((x) => `${x.nomeClinico ?? x.nome}${x.desde ? ` (${x.desde})` : ''}`).join(' · ');
+  const condicoes = p.condicoes.filter((x) => x.tipo !== 'vacina').map((x) => `${x.nomeClinico ?? x.nome}${periodoCondicao(x) ? ` (${periodoCondicao(x)})` : ''}`).join(' · ');
 
   const secao = (rotulo: string, linhas: string[], alerta?: boolean) => (
     <div className="stack" style={{ gap: 4 }}>

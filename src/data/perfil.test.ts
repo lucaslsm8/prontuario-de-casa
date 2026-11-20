@@ -216,3 +216,21 @@ describe('formulário do perfil do pet', () => {
     expect(r.erros).toEqual({ veterinario: 'Informe o nome do veterinário.', clinica24h: 'Informe nome e telefone da clínica.' });
   });
 });
+
+describe('condição com início e fim', () => {
+  it('período, ativa e o "até" salvo só na condição', async () => {
+    const { condicaoAtiva, periodoCondicao, formDePessoa, pessoaDoForm } = await import('./perfil');
+    expect(periodoCondicao({ desde: '2017', ate: '2020' })).toBe('2017 – 2020');
+    expect(periodoCondicao({ ate: '2020' })).toBe('até 2020');
+    expect(periodoCondicao({ desde: '2017' })).toBe('2017');
+    expect(condicaoAtiva({ nome: 'Asma', tipo: 'condicao', ate: '2019' })).toBe(false);
+    expect(condicaoAtiva({ nome: 'Asma', tipo: 'condicao' })).toBe(true);
+    expect(condicaoAtiva({ nome: 'Apendicite', tipo: 'cirurgia' })).toBe(false);
+    const p = { id: 'h', nome: 'Helena', curto: 'Helena', cor: '#ccc', alergias: [], condicoes: [{ nome: 'Asma', tipo: 'condicao' as const, desde: '2010' }, { nome: 'Vesícula', tipo: 'cirurgia' as const, desde: '2015' }] };
+    const f = formDePessoa(p);
+    f.condicoes[0].ate = ' 2019 ';
+    f.condicoes[1].ate = '2016';
+    const r = pessoaDoForm(p, f, '2026-11-19').pessoa!;
+    expect(r.condicoes).toEqual([{ nome: 'Asma', tipo: 'condicao', desde: '2010', ate: '2019' }, { nome: 'Vesícula', tipo: 'cirurgia', desde: '2015' }]);
+  });
+});

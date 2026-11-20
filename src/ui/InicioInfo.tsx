@@ -2,6 +2,7 @@
 // a próxima consulta num cartão escuro, as seguintes em "Depois", os horários dos remédios, a família e os exames.
 // Usado no desktop (painel da família) e no celular (perfil aberto ou "Família toda").
 import { Link } from 'react-router-dom';
+import { condicaoAtiva } from '../data/perfil';
 import { pessoa, useStore } from '../data/store';
 import { dataBR, diaMes, idade, mesSigla, parseISO, quem } from '../data/format';
 import { destinoConsulta, distancia, horaDeSair, linkRota, textoTrajeto } from '../data/consultas';
@@ -166,7 +167,7 @@ export function AFamilia({ pessoas, compacto }: { pessoas: Pessoa[]; compacto?: 
         const pet = p.tipo === 'pet';
         const anos = idade(p);
         const meta = [anos != null ? `${anos} ${anos === 1 ? 'ano' : 'anos'}` : '', pet ? p.pet?.raca : p.sangue].filter(Boolean).join(' · ');
-        const condicoes = p.condicoes.filter((c) => c.tipo === 'condicao');
+        const condicoes = p.condicoes.filter(condicaoAtiva);
         const seus = remedios.filter((r) => r.pessoaId === p.id);
         const doses = seus.reduce((n, r) => n + (r.seNecessario ? 0 : r.horarios.length), 0);
         const resumo = seus.length === 0 ? '' : doses === 0 ? 'se necessário' : doses === 1 ? '1 dose' : `${doses} doses`;
