@@ -1,6 +1,9 @@
 // Frequência além dos horários: em que dias toma, desmame e validade da receita.
 // Formulário (celular e desktop) e o aviso de receita vencendo na tela do remédio.
-import { useId, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
+import { useStore } from '../data/store';
+import { pesoAtual } from '../data/pets';
+import { avisoPeso } from '../data/porPeso';
 import { HOJE } from '../data/tempo';
 import { DIAS_CURTOS, avisoReceita, diasParaVencerReceita } from '../data/frequencia';
 import type { FormRemedio } from '../data/formularios';
@@ -103,5 +106,53 @@ export function CamposDias({ f, desktop }: { f: FormRemedio; desktop?: boolean }
         {f.validadeReceita && <span className="muted" style={{ fontSize: 13 }}>O app avisa 7 dias antes de vencer.</span>}
       </Grupo>
     </>
+  );
+}
+
+/** "Calcular pela dose por peso": mg/kg e mg por unidade → a quantidade sugerida (o botão põe na dose). Só com o peso de quem toma. */
+export function CamposPorPeso({ f, desktop }: { f: FormRemedio; desktop?: boolean }) {
+  const [aberto, setAberto] = useState(!!f.mgKg);
+  if (!f.pesoKg) return null;
+  const input = cx('input input--mono', desktop && 'input--desk');
+  const kg = String(Math.round(f.pesoKg * 10) / 10).replace('.', ',');
+  const unidade = f.forma === 'ml' ? 'mL' : f.forma === 'gota' ? 'gota' : f.forma === 'capsula' ? 'cápsula' : 'comprimido';
+  if (!aberto) {
+    return (
+      <div className={desktop ? 'dfield dfield--span2' : undefined}>
+        <button type="button" className="btn--link" style={{ fontSize: 14, minHeight: 44 }} onClick={() => setAberto(true)}>Calcular a dose pelo peso ({kg} kg)</button>
+      </div>
+    );
+  }
+  return (
+    <Grupo rotulo={`Dose por peso · ${kg} kg hoje`} desktop={desktop}>
+      <span className="hstack" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 15 }}>
+        <input className={input} style={{ width: 80 }} inputMode="decimal" value={f.mgKg} onChange={(e) => f.setMgKg(e.target.value.replace(/[^0-9,.]/g, ''))} aria-label="mg por kg" placeholder="5" />
+        mg/kg · {unidade} de
+        <input className={input} style={{ width: 80 }} inputMode="decimal" value={f.mgUnidade} onChange={(e) => f.setMgUnidade(e.target.value.replace(/[^0-9,.]/g, ''))} aria-label={`mg por ${unidade}`} placeholder="50" />
+        mg
+      </span>
+      {f.calculo && (
+        <span className="hstack" style={{ gap: 10, alignItems: 'center', flexWrap: 'wrap', fontSize: 14 }}>
+          <span>{String(f.calculo.mg).replace('.', ',')} mg = <b>{String(f.calculo.exata).replace('.', ',')}</b> {unidade}{f.calculo.exata !== f.calculo.qtd ? `, arredondando: ${String(f.calculo.qtd).replace('.', ',')}` : ''}</span>
+          <button type="button" className={cx('btn', desktop ? 'btn--outline btn--h36' : 'btn--soft btn--h36')} onClick={f.usarCalculo}>Usar na dose</button>
+        </span>
+      )}
+      <span className="muted" style={{ fontSize: 12 }}>Só uma conta para conferir a receita: a dose é a que o veterinário ou o médico passou. Se o peso mudar mais de 10%, a tela do remédio avisa.</span>
+    </Grupo>
+  );
+}
+
+/** Aviso na tela do remédio: o peso mudou desde a conta da dose. */
+export function AvisoPorPeso({ r }: { r: Remedio }) {
+  const { state, completo } = useStore();
+  const p = state.pessoas.find((x) => x.id === r.pessoaId);
+  const kg = (p?.tipo === 'pet' ? pesoAtual(completo ?? state, r.pessoaId)?.kg : undefined) ?? p?.peso;
+  const texto = avisoPeso(r, kg);
+  if (!texto) return null;
+  return (
+    <div className="card card--warn" role="status" style={{ padding: '12px 14px', gap: 4 }}>
+      <span className="mono" style={{ fontSize: 11, letterSpacing: '.1em', color: 'var(--warn-text)' }}>DOSE POR PESO</span>
+      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--warn-strong)' }}>{texto}</span>
+    </div>
   );
 }

@@ -10,8 +10,9 @@ import { lerResultado } from './ocr';
 import { fimDoDesmame, textoDias } from './frequencia';
 import { mascararDocumento, tipoDocumento } from './despesas';
 import { lerReais } from './reembolso';
+import { dosePorPeso } from './porPeso';
 import type { Despesa, TipoDespesa, Anexo, Aparencia, CategoriaExame, Resultado, Consulta, Exame, Medicao, Pesagem, Pessoa, Plano, Prevencao, Procedimento, Remedio, Sintoma, TipoMedicao, TipoProcedimento, Vacina } from './types';
-import { SINAIS, ehPet, familia, pets } from './pets';
+import { SINAIS, ehPet, familia, pesoAtual, pets } from './pets';
 import { diffPessoa, formDePessoa, lerNumeroBR, normalizarTexto, novaChave, pessoaDoForm, type ErrosPerfil, type FormPerfil, type FormPet, type LinhaAlergia, type LinhaCondicao, type LinhaFamiliar } from './perfil';
 import {
   CORES, FORMAS_REMEDIO, FREQUENCIAS, brParaISO, lerDose, lerQuantidade, montarDose, textoQuantidade, diffRegistro, freqDoRemedio, lerHorarios, nomeComDosagem, partesDoRemedio, dataDoReforco, isoParaBR, juntarDataHora, lerDataHora, lerDataRegistro, lerIntervaloDias, lerNascimento,
@@ -27,7 +28,7 @@ export * from './formularios-puro';
 
 /** Novo remédio, ou edição de `inicial` (salva só o que mudou). */
 export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
-  const { state, api, perfil } = useStore();
+  const { state, api, perfil, completo } = useStore();
   const [partes] = useState(() => (inicial ? partesDoRemedio(inicial) : ex<[string, string]>(['Amoxicilina', '500 mg'], ['', ''])));
   const [nome, setNome] = useState(partes[0]);
   const [dosagem, setDosagem] = useState(partes[1]);
@@ -95,6 +96,17 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
   const tirarEtapa = (i: number) => setEtapas((xs) => xs.filter((_, j) => j !== i));
   const addEtapa = () => setEtapas((xs) => [...xs, { qtd: xs[xs.length - 1]?.qtd ?? '1', dias: xs[xs.length - 1]?.dias ?? '5' }]);
   const nomeForma = (q: string) => { const x = FORMAS_REMEDIO.find((y) => y.id === forma)!; return (lerQuantidade(q) ?? 1) < 2 ? x.um : x.varios; };
+  // Dose por peso (opcional): mg/kg × peso de quem toma ÷ mg por unidade.
+  const quemToma = state.pessoas.find((x) => x.id === para);
+  // No celular o estado vem recortado pelo perfil aberto (as pesagens do pet podem não estar nele): cai no peso do perfil.
+  const pesoKg = (quemToma?.tipo === 'pet' ? pesoAtual(completo ?? state, para)?.kg : undefined) ?? quemToma?.peso;
+  const [mgKg, setMgKg] = useState(inicial?.porPeso ? textoQuantidade(inicial.porPeso.mgKg) : '');
+  const [mgUnidade, setMgUnidade] = useState(inicial?.porPeso?.mgUnidade ? textoQuantidade(inicial.porPeso.mgUnidade) : '');
+  const mgKgNum = mgKg.trim() ? lerQuantidade(mgKg) : undefined;
+  const mgUnidadeNum = mgUnidade.trim() ? lerQuantidade(mgUnidade) : undefined;
+  const calculo = mgKgNum && pesoKg && mgUnidadeNum ? dosePorPeso(mgKgNum, pesoKg, mgUnidadeNum, forma) : undefined;
+  const usarCalculo = () => { if (calculo) setQtdDose(textoQuantidade(calculo.qtd)); };
+  const porPeso = mgKgNum && pesoKg ? { mgKg: mgKgNum, kg: pesoKg, ...(mgUnidadeNum ? { mgUnidade: mgUnidadeNum } : {}) } : undefined;
   const [validadeReceita, setValidadeReceitaBruta] = useState(inicial?.receitaValidade ? isoParaBR(inicial.receitaValidade) : '');
   const setValidadeReceita = (v: string) => setValidadeReceitaBruta(mascaraData(v));
   const receitaISO = brParaISO(validadeReceita);
@@ -119,6 +131,8 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
       dias: dias ?? undefined,
       desmame,
       receitaValidade: receitaISO,
+      // Mesma conta de antes (só mudou outro campo): fica o peso da época; mudou a conta, vale o peso de hoje.
+      porPeso: porPeso && inicial?.porPeso && inicial.porPeso.mgKg === porPeso.mgKg && inicial.porPeso.mgUnidade === porPeso.mgUnidade ? inicial.porPeso : porPeso,
       continuo: !desmame && duracao === 0,
       seNecessario: freq.id === 'sn' || undefined,
       inicio,
@@ -158,6 +172,7 @@ export function useFormRemedio(onSalvo: () => void, inicial?: Remedio) {
     textoDias: dias ? textoDias({ dias, inicio }) : '',
     desmame: etapas, desmameValido, comecarDesmame, mudarEtapa, tirarEtapa, addEtapa, nomeForma, fimDesmameBR: fimDesmame ? dataBR(fimDesmame) : '', temDesmame: etapas.length > 0,
     validadeReceita, setValidadeReceita, validadeValida,
+    pesoKg, mgKg, setMgKg, mgUnidade, setMgUnidade, calculo, usarCalculo,
     liquido, frascoMl, setFrascoMl, frascoValido,
     qtdDose, setQtdDose, forma, setForma, qtdValida: qtdNum != null, comCartela,
     aparencia, setAparencia, porCartela, setPorCartela, fileiras, setFileiras, cartelaValida,

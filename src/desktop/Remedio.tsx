@@ -17,7 +17,8 @@ import { anexosDe } from '../data/anexos';
 import { AvisoAlergia } from '../ui/AvisoAlergia';
 import { textoHorarios } from '../data/inicio';
 import { comDoseDoDia, textoDesmame, textoDias } from '../data/frequencia';
-import { AvisoReceita } from '../ui/DiasRemedio';
+import { AvisoPorPeso, AvisoReceita } from '../ui/DiasRemedio';
+import { contaPorPeso } from '../data/porPeso';
 
 const voltar = <Link to="/remedios" style={{ fontSize: 14, fontWeight: 600 }}>← Remédios</Link>;
 
@@ -55,6 +56,7 @@ export function DRemedio() {
     ['Desde', r.inicio ? dataBR(r.inicio) : '—'],
     ...(textoDias(r) ? [['Dias', textoDias(r)] as [string, string]] : []),
     ...(r.desmame?.length ? [['Desmame', `${textoDesmame(r)}${r.fim ? ` · até ${dataBR(r.fim)}` : ''}`] as [string, string]] : []),
+    ...(r.porPeso ? [['Por peso', contaPorPeso(r.porPeso)] as [string, string]] : []),
     ...(r.receitaValidade ? [['Receita vale até', dataBR(r.receitaValidade)] as [string, string]] : []),
     ...(info ? [] : [['Lembrete', r.lembrete && r.horarios.length ? 'ligado' : 'desligado'] as [string, string]]),
   ];
@@ -91,6 +93,7 @@ export function DRemedio() {
 
       {r.ativo && <AvisoAlergia nome={r.nome} pessoaId={r.pessoaId} />}
       <AvisoReceita r={r} />
+      <AvisoPorPeso r={r} />
 
       {info && (
         <div className="card">

@@ -25,7 +25,7 @@ import { enterNaLinha } from '../ui/linhas';
 import { DCampo, DChips, DConfirmar, DDialogo, DFechar, DGrade, DRodape, DSangue, DSelect, DToggle } from './Formulario';
 import { SUGESTOES_VACINA as SUGESTOES_VACINA_PESSOA } from '../data/sugestoes';
 import { CampoData } from '../ui/CampoData';
-import { CamposDias } from '../ui/DiasRemedio';
+import { CamposDias, CamposPorPeso } from '../ui/DiasRemedio';
 import { ListasFamilia, SeletorGravidade } from '../mobile/EditarPerfil';
 import { nomeAlergia } from '../data/alergias';
 import { CorpoCarteira, textoAdicionar, useLerCarteira } from '../ui/CarteiraVacinas';
@@ -74,6 +74,7 @@ export function DNovoRemedio({ onClose, remedio }: Props & { remedio?: Remedio }
             <span style={{ flex: 1 }}><DSelect opcoes={FORMAS_REMEDIO.map((x) => ({ id: x.id, nome: (lerQuantidade(f.qtdDose) ?? 1) < 2 ? x.um : x.varios }))} valor={f.forma} onChange={f.setForma} /></span>
           </span>
         </DCampo>
+        <CamposPorPeso f={f} desktop />
         <DCampo label="Frequência">
           <DSelect opcoes={freqs.map((x) => ({ id: x, nome: x.nome }))} valor={freqs.find((x) => x.nome === f.freq.nome)!} onChange={f.setFreq} />
         </DCampo>

@@ -734,7 +734,7 @@ function useApi(state: State, dispatch: (a: Action) => void, mostrarToast: (t: O
 
 type Api = ReturnType<typeof useApi>;
 /** `perfil`: no celular, a pessoa cujo recorte do estado as telas mostram (ver `EscopoPerfil`). */
-type ValorStore = { state: State; api: Api; toast: Toast | null; fecharToast: () => void; status: Status; erro: string | null; perfil?: string };
+type ValorStore = { state: State; api: Api; toast: Toast | null; fecharToast: () => void; status: Status; erro: string | null; perfil?: string; /** Dentro de `EscopoPerfil`: o estado sem recorte (ex.: o peso do pet num remédio cadastrado do perfil de outra pessoa). */ completo?: State };
 const Ctx = createContext<ValorStore | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -827,7 +827,7 @@ export function recortarPerfil(s: State, pessoaId: string): State {
 export function EscopoPerfil({ pessoaId, children }: { pessoaId?: string; children: ReactNode }) {
   const c = useStore();
   const state = useMemo(() => (pessoaId ? recortarPerfil(c.state, pessoaId) : c.state), [c.state, pessoaId]);
-  const valor = useMemo(() => ({ ...c, state, perfil: pessoaId }), [c, state, pessoaId]);
+  const valor = useMemo(() => ({ ...c, state, perfil: pessoaId, completo: c.completo ?? c.state }), [c, state, pessoaId]);
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
 }
 

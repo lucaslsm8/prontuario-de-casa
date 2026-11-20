@@ -20,7 +20,8 @@ import { AvisoAlergia } from '../ui/AvisoAlergia';
 import { Cartela, DefinirTamanho, Frasco, PilulaDoRemedio, contaCartela } from '../ui/Pilula';
 import { ehLiquido } from '../data/cartela';
 import { comDoseDoDia, resumoDias, textoDesmame, textoDias } from '../data/frequencia';
-import { AvisoReceita, CamposDias } from '../ui/DiasRemedio';
+import { AvisoPorPeso, AvisoReceita, CamposDias, CamposPorPeso } from '../ui/DiasRemedio';
+import { contaPorPeso } from '../data/porPeso';
 
 /** Doses tomadas e previstas na grade (o que ainda vai ser tomado hoje não conta). */
 export function somaAdesao(grade: DiaAdesao[]) {
@@ -217,6 +218,7 @@ export function NovoRemedio({ onDone, remedio }: { onDone?: () => void; remedio?
         <ChipGroup largo {...opcoesPessoas(pessoas, quem)} valor={para} onChange={setPara} />
       </FieldGroup>
       <AvisoAlergia nome={nome} pessoaId={para} />
+      <CamposPorPeso f={form} />
       <div className="card" style={{ fontSize: 15 }}>
         <Row
           tight
@@ -361,6 +363,7 @@ export function DetalheRemedio() {
 
       {r.ativo && <AvisoAlergia nome={r.nome} pessoaId={r.pessoaId} />}
       <AvisoReceita r={r} />
+      <AvisoPorPeso r={r} />
 
       {!info && r.estoque != null && (
         <div className="card" style={{ background: baixo ? 'var(--warn-bg)' : '#fff', borderColor: baixo ? 'transparent' : undefined, padding: '14px 16px', gap: 10 }}>
@@ -421,6 +424,7 @@ export function DetalheRemedio() {
         {r.indicacao && <Row compact label="Para que serve" valor={r.indicacao} style={{ padding: '12px 16px' }} />}
         {textoDias(r) && <Row compact label="Dias" valor={textoDias(r)} style={{ padding: '12px 16px' }} />}
         {r.desmame?.length ? <Row compact label="Desmame" valor={`${textoDesmame(r)}${r.fim ? ` · até ${dataBR(r.fim)}` : ''}`} style={{ padding: '12px 16px' }} /> : null}
+        {r.porPeso && <Row compact label="Por peso" valor={contaPorPeso(r.porPeso)} style={{ padding: '12px 16px' }} />}
         {r.receitaValidade && <Row compact label="Receita vale até" valor={dataBR(r.receitaValidade)} style={{ padding: '12px 16px' }} />}
         {partesDoRemedio(r)[1] && <Row compact label="Dosagem" valor={partesDoRemedio(r)[1]} style={{ padding: '12px 16px' }} />}
         {!info && <Row compact label="Lembrete" valor={r.lembrete && r.horarios.length ? `${r.horarios.join(', ')} · ativo` : 'desligado'} style={{ padding: '12px 16px' }} />}

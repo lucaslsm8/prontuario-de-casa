@@ -99,6 +99,8 @@ export interface Remedio {
   desmame?: { qtd: number; dias: number }[];
   /** Validade da receita (ISO). O app avisa 7 dias antes. */
   receitaValidade?: string;
+  /** Dose calculada por peso: mg/kg, o peso usado (kg) e a concentração (mg por unidade). Avisa quando o peso muda. */
+  porPeso?: { mgKg: number; kg: number; mgUnidade?: number };
   observacao?: string;    // "em jejum"
   continuo: boolean;
   seNecessario?: boolean;
