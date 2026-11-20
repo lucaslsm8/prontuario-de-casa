@@ -406,7 +406,12 @@ async function abrirLog(ini: Inicio): Promise<State> {
 }
 
 /** Tira do log os eventos com assinatura errada ou que deviam vir assinados (regras em assinatura.ts). */
+/** Conferência das assinaturas em pausa (19/11/2026): os eventos já são assinados, mas nada é descartado até o teste
+ *  com dois aparelhos. Para ligar, `CONFERIR_ASSINATURAS = true`. */
+const CONFERIR_ASSINATURAS = false;
+
 async function conferirAssinaturas(eventos: Evento[]): Promise<Evento[]> {
+  if (!CONFERIR_ASSINATURAS) return eventos;
   const chaves = chavesDosAparelhos(eventos);
   if (!chaves.size) return eventos;
   const itens = paraConferir(eventos, chaves);
