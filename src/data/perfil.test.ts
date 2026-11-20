@@ -175,7 +175,7 @@ describe('formulário do perfil do pet', () => {
 
   it('carrega os campos do pet', () => {
     expect(formDePessoa(mel).pet).toEqual({
-      raca: 'Vira-lata', castrado: true, microchip: '985 112',
+      raca: 'Vira-lata', especie: 'cachorro', castrado: true, microchip: '985 112',
       veterinario: { nome: 'Dra. Camila', clinica: 'Vida Animal', telefone: '(11) 3456-7890' },
       clinica24h: { nome: 'Pronto Pet', telefone: '(11) 3555-0100' },
     });

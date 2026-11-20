@@ -6,7 +6,7 @@ import { useStore } from '../data/store';
 import { textoDasImagens } from '../data/ocr';
 import { POLIVALENTE, vacinasDaCarteira, type VacinaLida } from '../data/carteiraVacina';
 import { brParaISO, isoParaBR } from '../data/formularios-puro';
-import { SUGESTOES_VACINA } from '../data/pets';
+import { sugestoesVacinaPet } from '../data/pets';
 import { novoId } from '../data/persistencia';
 import type { Anexo, Pessoa, Vacina } from '../data/types';
 import { useEscolherArquivos, Miniatura } from './Anexos';
@@ -145,7 +145,7 @@ export function CorpoCarteira({ c, pet, desktop }: { c: LerCarteira; pet: Pessoa
               </div>
             );
           })}
-          <datalist id="sug-vacina-carteira">{SUGESTOES_VACINA.map((s) => <option key={s} value={s} />)}</datalist>
+          <datalist id="sug-vacina-carteira">{sugestoesVacinaPet(pet).map((s) => <option key={s} value={s} />)}</datalist>
           <button type="button" className="btn--link" style={{ alignSelf: 'flex-start', fontSize: 14, minHeight: 44 }} onClick={c.addLinha}>+ Adicionar outra vacina</button>
           {c.fotos.length > 0 && (
             <label className="hstack" style={{ gap: 10, alignItems: 'center', fontSize: 14, minHeight: 44 }}>

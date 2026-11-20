@@ -45,7 +45,7 @@ export interface Pessoa {
 }
 
 export interface DadosPet {
-  especie: 'cachorro';
+  especie: 'cachorro' | 'gato';
   raca?: string;
   castrado?: boolean;
   microchip?: string;

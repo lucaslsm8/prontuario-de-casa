@@ -1,4 +1,5 @@
 import { CampoResponsavel } from '../ui/Papeis';
+import { ESPECIES } from '../data/pets';
 import { GRAVIDADES, PARENTES } from '../data/perfil';
 import { CONDICOES_FAMILIA } from '../data/sugestoes';
 import type { GravidadeAlergia } from '../data/types';
@@ -285,6 +286,9 @@ function CamposPet({ f }: { f: Form }) {
   const castrado = rotuloCastrado({ sexo: f.sexo });
   return (
     <>
+      <FieldGroup label="Espécie">
+        <ChipGroup largo opcoes={ESPECIES} valor={fp.especie} onChange={(v) => f.setPet({ especie: v })} />
+      </FieldGroup>
       <FieldGroup label="Sexo">
         <ChipGroup largo opcoes={SEXOS_PET} valor={sexo} onChange={(v) => v && f.setSexo(sexo === v ? '' : SEXO_DO_PET[v])} />
       </FieldGroup>

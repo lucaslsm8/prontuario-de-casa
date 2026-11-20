@@ -43,6 +43,14 @@ export const tituloProcedimento = (x: Procedimento) => `${x.tipo}${x.descricao ?
 /** "Dr. Paulo · anestesia: Dra. Lia" (quem fez e o anestesista, se houver). */
 export const equipeProcedimento = (x: Procedimento) => [x.medico, x.anestesista && `anestesia: ${x.anestesista}`].filter(Boolean).join(' · ') || undefined;
 export const SUGESTOES_VACINA = ['V8', 'V10', 'Antirrábica', 'Gripe canina', 'Giárdia', 'Leishmaniose'];
+/** Vacinas do gato: V3, V4 e V5 (com FeLV, a leucemia felina) e a antirrábica. */
+export const SUGESTOES_VACINA_GATO = ['V3', 'V4', 'V5', 'Antirrábica', 'FeLV'];
+export const ESPECIES: { id: 'cachorro' | 'gato'; nome: string }[] = [{ id: 'cachorro', nome: 'Cachorro' }, { id: 'gato', nome: 'Gato' }];
+export const ehGato = (p?: Pick<Pessoa, 'pet'>) => p?.pet?.especie === 'gato';
+/** "Cachorro" ou "Gato". */
+export const nomeEspecie = (p?: Pick<Pessoa, 'pet'>) => (ehGato(p) ? 'Gato' : 'Cachorro');
+/** Sugestões de vacina pela espécie. */
+export const sugestoesVacinaPet = (p?: Pick<Pessoa, 'pet'>) => (ehGato(p) ? SUGESTOES_VACINA_GATO : SUGESTOES_VACINA);
 
 /** Última pesagem (data mais recente; em empate, a registrada depois). */
 export function pesoAtual(s: State, petId: string): Pesagem | undefined {
@@ -106,7 +114,7 @@ export function opcoesPessoas(lista: Pessoa[], nome: (p: Pessoa) => string): { o
 /** "Cachorro · Border Collie · 4 anos". */
 export function descricaoPet(p: Pessoa): string {
   const anos = idade(p);
-  return ['Cachorro', p.pet?.raca, anos != null && `${anos} ${anos === 1 ? 'ano' : 'anos'}`].filter(Boolean).join(' · ');
+  return [nomeEspecie(p), p.pet?.raca, anos != null && `${anos} ${anos === 1 ? 'ano' : 'anos'}`].filter(Boolean).join(' · ');
 }
 
 export const NOMES_PREVENCAO = { vermifugo: 'Vermífugo', antipulgas: 'Antipulgas', outro: 'Outro' } as const;
@@ -178,7 +186,7 @@ export const telHref = (tel: string) => `tel:${tel.replace(/[^\d+]/g, '')}`;
 export function linhaPet(p: Pessoa, nascimento = false): string {
   const anos = idade(p);
   return [
-    'Cachorro',
+    nomeEspecie(p),
     p.pet?.raca,
     sexoPet(p),
     anos != null && `${anos} ${anos === 1 ? 'ano' : 'anos'}`,

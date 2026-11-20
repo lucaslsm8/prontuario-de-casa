@@ -5,7 +5,7 @@ import {
   ATALHOS_INTERVALO, ATALHOS_REFORCO, TIPOS_PREVENCAO, useFormPesagem, useFormPrevencao, useFormProcedimento, useFormSintoma, useFormVacina,
   type AtalhoReforco, type TipoPrevencao,
 } from '../data/formularios';
-import { SINAIS, SUGESTOES_VACINA, ehPet, rotulosProcedimento, tiposProcedimento } from '../data/pets';
+import { SINAIS, sugestoesVacinaPet, ehPet, rotulosProcedimento, tiposProcedimento } from '../data/pets';
 import type { Pesagem as PesagemT, Pessoa, Prevencao as PrevencaoT, Procedimento as ProcedimentoT, Sintoma as SintomaT, TipoProcedimento, Vacina as VacinaT } from '../data/types';
 import { ConfirmarSheet } from '../ui/Confirmar';
 import { useState } from 'react';
@@ -103,7 +103,7 @@ function Vacina({ pet, voltar, vacina }: PropsPet & { vacina?: VacinaT }) {
   const f = useFormVacina(pet, voltar, vacina);
   const [apagar, setApagar] = useState(false);
   const animal = ehPet(pet);
-  const sugestoes = animal ? SUGESTOES_VACINA : SUGESTOES_VACINA_PESSOA.slice(0, 8);
+  const sugestoes = animal ? sugestoesVacinaPet(pet) : SUGESTOES_VACINA_PESSOA.slice(0, 8);
   return (
     <MScreen gap={14}>
       <TopNav voltar="Cancelar" onVoltar={voltar} titulo={f.editando ? 'Editar vacina' : 'Registrar vacina'} acao="Salvar" onAcao={f.salvar} acaoDesativada={!f.valido} />

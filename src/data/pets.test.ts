@@ -346,3 +346,13 @@ describe('resumo para consulta veterinária', () => {
     expect(r.procedimentos).toEqual(['Limpeza de tártaro · 02/05/2025', 'Castração · 18/03/2023 · Vida Animal']);
   });
 });
+
+describe('gatos', () => {
+  it('espécie no cabeçalho e vacinas do gato', async () => {
+    const { linhaPet, sugestoesVacinaPet, nomeEspecie } = await import('./pets');
+    const gato = { id: 'g', nome: 'Nina', curto: 'Nina', cor: '#ccc', alergias: [], condicoes: [], tipo: 'pet' as const, pet: { especie: 'gato' as const, raca: 'Siamês' } };
+    expect(linhaPet(gato).startsWith('Gato · Siamês')).toBe(true);
+    expect(nomeEspecie({})).toBe('Cachorro');
+    expect(sugestoesVacinaPet(gato)).toContain('V4');
+  });
+});

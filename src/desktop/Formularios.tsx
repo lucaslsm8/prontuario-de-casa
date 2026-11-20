@@ -8,7 +8,7 @@ import {
   ABRANGENCIAS, ACOMODACOES, SEGMENTACOES, SEXOS_PET, SEXO_DO_PET, TIPOS_PREVENCAO, sexoPetDoForm, normalizarHora, useFormConsulta, useFormExame, useFormPerfil, useFormPesagem, useFormPessoa, useFormPet,
   useFormPrevencao, useFormMedicao, useFormProcedimento, useFormPlano, useFormRemedio, useFormSintoma, useFormVacina, type AtalhoReforco, type TipoPrevencao,
 } from '../data/formularios';
-import { SINAIS, SUGESTOES_VACINA, descricaoPet, ehPet, opcoesPessoas, rotuloCastrado, rotulosProcedimento, tiposProcedimento } from '../data/pets';
+import { ESPECIES, SINAIS, sugestoesVacinaPet, descricaoPet, ehPet, opcoesPessoas, rotuloCastrado, rotulosProcedimento, tiposProcedimento } from '../data/pets';
 import { CorpoFichaPet } from '../mobile/Familia';
 import { TIPOS_CONDICAO, type TipoCondicao } from '../data/perfil';
 import { LISTA_POR_TIPO } from '../data/sugestoes';
@@ -457,8 +457,11 @@ export function DNovoPet({ onClose }: Props) {
         <DCampo label="Nome" span2>
           <input className="input input--desk" value={f.nome} onChange={(e) => f.setNome(e.target.value)} autoComplete="off" />
         </DCampo>
+        <DCampo label="Espécie" span2 grupo>
+          <DChips opcoes={ESPECIES} valor={f.especie} onChange={f.setEspecie} />
+        </DCampo>
         <DCampo label="Raça">
-          <input className="input input--desk" value={f.raca} onChange={(e) => f.setRaca(e.target.value)} placeholder="Ex.: Border Collie" autoComplete="off" />
+          <input className="input input--desk" value={f.raca} onChange={(e) => f.setRaca(e.target.value)} placeholder={f.especie === 'gato' ? 'Ex.: Siamês' : 'Ex.: Border Collie'} autoComplete="off" />
         </DCampo>
         <DCampo label="Sexo" grupo>
           <DChips opcoes={SEXOS_PET} valor={f.sexo as 'Macho' | 'Fêmea'} onChange={(v) => f.setSexo(f.sexo === v ? '' : v)} />
@@ -554,7 +557,7 @@ function DVacina({ pet, onClose, vacina }: PropsPet & { vacina?: Vacina }) {
   const f = useFormVacina(pet, onClose, vacina);
   const [apagar, setApagar] = useState(false);
   const animal = ehPet(pet);
-  const sugestoes = animal ? SUGESTOES_VACINA : SUGESTOES_VACINA_PESSOA.slice(0, 8);
+  const sugestoes = animal ? sugestoesVacinaPet(pet) : SUGESTOES_VACINA_PESSOA.slice(0, 8);
   const rodape = (
     <>
       {f.apagar && <button type="button" className="btn btn--h40d btn--danger-link" style={{ marginRight: 'auto' }} onClick={() => setApagar(true)}>Apagar vacina</button>}
@@ -916,8 +919,11 @@ function EditarPerfilPet({ p, onClose }: Props & { p: Pessoa }) {
         <DCampo label="Sexo" grupo>
           <DChips opcoes={SEXOS_PET} valor={sexo} onChange={(v) => v && f.setSexo(sexo === v ? '' : SEXO_DO_PET[v])} />
         </DCampo>
+        <DCampo label="Espécie" grupo>
+          <DChips opcoes={ESPECIES} valor={fp.especie} onChange={(v) => f.setPet({ especie: v })} />
+        </DCampo>
         <DCampo label="Raça">
-          <input className="input input--desk" value={fp.raca} onChange={(e) => f.setPet({ raca: e.target.value })} placeholder="Ex.: Border Collie" autoComplete="off" />
+          <input className="input input--desk" value={fp.raca} onChange={(e) => f.setPet({ raca: e.target.value })} placeholder={fp.especie === 'gato' ? 'Ex.: Siamês' : 'Ex.: Border Collie'} autoComplete="off" />
         </DCampo>
         <DCampo label="Microchip">
           <input className="input input--desk input--mono" value={fp.microchip} onChange={(e) => f.setPet({ microchip: e.target.value })} placeholder="15 dígitos" autoComplete="off" />

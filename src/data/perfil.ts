@@ -153,6 +153,7 @@ export interface FormPerfil {
 
 export interface FormPet {
   raca: string;
+  especie: 'cachorro' | 'gato';
   castrado: boolean;
   microchip: string;
   veterinario: { nome: string; clinica: string; telefone: string };
@@ -190,6 +191,7 @@ export function formDePessoa(p: Pessoa): FormPerfil {
 function formDoPet(d?: DadosPet): FormPet {
   return {
     raca: d?.raca ?? '',
+    especie: d?.especie ?? 'cachorro',
     castrado: !!d?.castrado,
     microchip: d?.microchip ?? '',
     veterinario: { nome: d?.veterinario?.nome ?? '', clinica: d?.veterinario?.clinica ?? '', telefone: d?.veterinario?.telefone ?? '' },
@@ -290,7 +292,7 @@ function petDoForm(p: Pessoa, f: FormPerfil, nome: string, nascimento: string | 
 
   const dados: DadosPet = limpar({
     ...p.pet,
-    especie: 'cachorro' as const,
+    especie: fp.especie ?? 'cachorro',
     raca: ou(fp.raca),
     // Sem a informação antes e toggle desligado: continua sem a informação.
     castrado: fp.castrado ? true : p.pet?.castrado === undefined ? undefined : false,

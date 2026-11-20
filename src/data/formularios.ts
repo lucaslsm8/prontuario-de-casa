@@ -460,6 +460,7 @@ export function useFormPet(onSalvo: (id: string) => void) {
   const n = pets(state).length;
   const [nome, setNome] = useState('');
   const [raca, setRaca] = useState('');
+  const [especie, setEspecie] = useState<'cachorro' | 'gato'>('cachorro');
   const [sexo, setSexo] = useState<SexoPet | ''>('');
   const [nasc, setNascBruto] = useState('');
   const [peso, setPesoBruto] = useState('');
@@ -488,7 +489,7 @@ export function useFormPet(onSalvo: (id: string) => void) {
       alergias: [],
       condicoes: [],
       tipo: 'pet',
-      pet: { especie: 'cachorro', raca: raca.trim() || undefined, castrado },
+      pet: { especie, raca: raca.trim() || undefined, castrado },
     });
     if (kg !== undefined) api.addPesagem({ id: `pes-${novoId()}`, pessoaId: id, data: HOJE, kg });
     api.toast({ texto: `${limpo.split(' ')[0]} ${sexo === 'Fêmea' ? 'adicionada' : sexo === 'Macho' ? 'adicionado' : 'adicionado(a)'}` });
@@ -496,7 +497,7 @@ export function useFormPet(onSalvo: (id: string) => void) {
   };
 
   return {
-    nome, setNome, raca, setRaca, sexo, setSexo, nasc, setNasc, peso, setPeso, castrado, setCastrado,
+    nome, setNome, raca, setRaca, especie, setEspecie, sexo, setSexo, nasc, setNasc, peso, setPeso, castrado, setCastrado,
     erros, valido: !!nome.trim(), salvar,
   };
 }

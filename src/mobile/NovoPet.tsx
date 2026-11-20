@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { ESPECIES } from '../data/pets';
 import { SEXOS_PET, useFormPet } from '../data/formularios';
 import { ChipGroup, Field, FieldGroup, Row, Toggle, TopNav } from '../ui';
 import { LinhaCampo, erroTexto } from './EditarPerfil';
@@ -18,8 +19,11 @@ export function NovoPet() {
       <Field label="Nome">
         <input className="input input--50" value={f.nome} onChange={(e) => f.setNome(e.target.value)} autoComplete="off" autoFocus />
       </Field>
+      <FieldGroup label="Espécie">
+        <ChipGroup largo opcoes={ESPECIES} valor={f.especie} onChange={f.setEspecie} />
+      </FieldGroup>
       <Field label="Raça">
-        <input className="input input--50" value={f.raca} onChange={(e) => f.setRaca(e.target.value)} placeholder="Ex.: Border Collie" autoComplete="off" />
+        <input className="input input--50" value={f.raca} onChange={(e) => f.setRaca(e.target.value)} placeholder={f.especie === 'gato' ? 'Ex.: Siamês' : 'Ex.: Border Collie'} autoComplete="off" />
       </Field>
       <FieldGroup label="Sexo">
         <ChipGroup largo opcoes={SEXOS_PET} valor={f.sexo as 'Macho' | 'Fêmea'} onChange={(v) => f.setSexo(f.sexo === v ? '' : v)} />
