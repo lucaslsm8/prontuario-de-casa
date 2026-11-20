@@ -1,4 +1,5 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
+import { CartaoRacao } from '../ui/Racao';
 import { HOJE } from '../data/tempo';
 import { useStore } from '../data/store';
 import { novoId } from '../data/persistencia';
@@ -160,6 +161,7 @@ function AbaResumo({ id }: { id: string }) {
   const { state } = useStore();
   const cuidados = proximosCuidados(state, id);
   const sintomas = sintomasRecentes(state, id, 30);
+  const pet = state.pessoas.find((x) => x.id === id);
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 16 }}>
       <ListaCard titulo="Próximos cuidados">
@@ -177,6 +179,7 @@ function AbaResumo({ id }: { id: string }) {
         {cuidados.length === 0 && <div style={linha} className="muted">Nada programado.</div>}
       </ListaCard>
       <CardRemediosEmUso id={id} />
+      {pet && <CartaoRacao p={pet} desktop />}
       <ListaCard titulo="Sintomas recentes">
         {sintomas.map((s) => (
           <div key={s.id} className="stack" style={{ padding: '12px 18px', gap: 4 }}>

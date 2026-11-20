@@ -51,7 +51,10 @@ export interface DadosPet {
   microchip?: string;
   veterinario?: { nome: string; clinica?: string; telefone?: string };
   clinica24h?: { nome: string; telefone: string };
+  /** Ração: gramas por dia, tamanho do saco e quando o saco atual foi aberto (ISO). */
+  racao?: Racao;
 }
+export interface Racao { marca: string; gramasDia: number; refeicoes?: number; sacoKg?: number; abertoEm?: string }
 
 export interface Vacina { id: string; pessoaId: PessoaId; nome: string; data: string; lote?: string; veterinario?: string; proxima?: string }
 export interface Prevencao { id: string; pessoaId: PessoaId; tipo: 'vermifugo' | 'antipulgas' | 'outro'; produto: string; data: string; intervaloDias: number }

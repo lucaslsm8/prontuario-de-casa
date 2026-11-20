@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { CartaoRacao } from '../ui/Racao';
 import { nomeAlergia } from '../data/alergias';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { HOJE } from '../data/tempo';
@@ -63,6 +64,7 @@ export function PetPerfil({ pet: p, inicio }: { pet: Pessoa; inicio?: boolean })
           </div>
         )}
         <ProximosCuidados id={p.id} />
+        <CartaoRacao p={p} />
         <Contatos p={p} />
         <RemediosEmUso id={p.id} />
         <ConsultasExames id={p.id} />

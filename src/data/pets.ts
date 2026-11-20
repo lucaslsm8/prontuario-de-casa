@@ -1,4 +1,5 @@
 import type { State } from './store';
+import { fimDoSaco } from './racao';
 import type { Consulta, Pessoa, Prevencao, Pesagem, Procedimento, Sintoma, TipoProcedimento, Vacina } from './types';
 import { HOJE } from './tempo';
 import { dataBR, diaMes, diasEntre, idade, numBR, numCurto } from './format';
@@ -149,7 +150,11 @@ export function proximosCuidados(s: State, petId: string, hoje = HOJE): Cuidado[
     sub: p.tipo === 'outro' ? 'Prevenção' : NOMES_PREVENCAO[p.tipo],
     data: proximaPrevencao(p),
   }));
-  return [...vacinas, ...prevencoes].map((c) => ({ ...c, vencido: c.data < hoje })).sort((a, b) => a.data.localeCompare(b.data));
+  // Ração: quando o saco aberto acaba.
+  const pet = s.pessoas.find((p) => p.id === petId)?.pet;
+  const fim = pet?.racao ? fimDoSaco(pet.racao, hoje) : undefined;
+  const racao = fim ? [{ chave: `racao|${petId}`, titulo: `Ração ${pet!.racao!.marca}`.trim(), sub: 'Acaba o saco: comprar mais', data: fim.data }] : [];
+  return [...vacinas, ...prevencoes, ...racao].map((c) => ({ ...c, vencido: c.data < hoje })).sort((a, b) => a.data.localeCompare(b.data));
 }
 
 /** "vencida há 3 dias" / "vencida há 1 dia". */

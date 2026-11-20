@@ -6,6 +6,7 @@ import type { State } from './store';
 import type { Pessoa } from './types';
 import { NOMES_PREVENCAO, proximaPrevencao, ultimasPrevencoes, ultimasVacinas } from './pets';
 import { noMeuCuidado } from './papeis';
+import { AVISO_RACAO_DIAS, fimDoSaco } from './racao';
 import { AVISO_RECEITA_DIAS, comDoseDoDia, tomaNoDia } from './frequencia';
 
 export interface Lembrete {
@@ -130,6 +131,16 @@ export function proximosLembretes(s: State, agora: Date, horas = 24): Lembrete[]
         acoes: false,
       });
     }
+  }
+
+  // Ração: aviso às 09:00, 5 dias antes de o saco acabar.
+  for (const p of s.pessoas) {
+    const r = p.pet?.racao;
+    const fimSaco = r ? fimDoSaco(r, texto(agora).slice(0, 10)) : undefined;
+    if (!r || !fimSaco) continue;
+    const q = quandoDia(somarDiasISO(fimSaco.data, -AVISO_RACAO_DIAS));
+    if (!dentro(q)) continue;
+    out.push({ id: `racao|${p.id}|${fimSaco.data}`, quando: q, titulo: `Ração ${doDa(p)} ${p.curto} acaba em ${AVISO_RACAO_DIAS} dias`, corpo: r.marca, acoes: false });
   }
 
   // Receita: aviso 7 dias antes de vencer e no dia, às 09:00 (vale também no modo só de informações).
