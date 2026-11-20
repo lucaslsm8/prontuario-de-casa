@@ -1,4 +1,6 @@
-- Novo Início no modo "Só informações": a próxima consulta em destaque, com a hora de sair, o preparo, o que levar e as perguntas para o médico, além dos botões "Abrir a ficha" e "Como chegar"
-- "Horários dos remédios": cada horário com os remédios dele e o desenho do comprimido; os "se necessário" ficam à parte
-- "A família": idade, tipo sanguíneo, alergias e condições de cada um, e o próximo cuidado dos pets
-- As consultas seguintes em "Depois", com mais espaço, e os exames recentes mostrando se os valores ficaram na faixa
+- Remédios em dias da semana, dia sim dia não, 1x por semana ou a cada N dias, e desmame com a dose de cada dia; validade da receita com aviso 7 dias antes
+- Dose por peso: a conta mg/kg × peso sugere a dose do pet (ou de quem tem peso no perfil) e avisa quando o peso muda
+- Pets: leitura da carteira de vacinação pela foto (você confere antes de salvar), gatos com as vacinas felinas e a ração com aviso de quando o saco acaba
+- Despesas de saúde e resumo para o Imposto de Renda por pessoa e prestador, com CSV; "Registrar pagamento" na ficha da consulta
+- Perfil: gravidade da alergia, histórico familiar, condições com início e fim e, para crianças, curva de altura e calendário de vacinas do SUS
+- Desenho do comprimido sugerido pela foto, atalhos de teclado no computador (N, R, E, /, 1–5, ?) e Esc fechando todos os diálogos
