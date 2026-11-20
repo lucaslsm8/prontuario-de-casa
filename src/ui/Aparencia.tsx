@@ -1,5 +1,6 @@
 // "Como ele é": a seção do formulário de remédio com o desenho do comprimido, a cartela e as fotos.
-import { useId, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
+import { sugerirAparencia } from '../data/fotoPilula';
 import { CORES_PILULA, FORMAS_PILULA, descricaoAparencia } from '../data/cartela';
 import type { FormRemedio } from '../data/formularios';
 import type { Aparencia, CorPilula } from '../data/types';
@@ -91,6 +92,7 @@ export function CamposAparencia({ f, desktop }: { f: FormRemedio; desktop?: bool
           <button type="button" className={cx('btn btn--soft', desktop ? 'btn--h40d' : 'btn--h40')} onClick={foto.abrir}>{f.fotoComprimido ? 'Trocar foto' : 'Fotografar comprimido'}</button>
           {f.fotoComprimido && <button type="button" className="btn btn--h40" style={{ color: 'var(--text-2)' }} onClick={() => f.setFotoComprimido(null)}>Tirar</button>}
         </span>
+        {f.fotoComprimido && <SugerirPelaFoto f={f} desktop={desktop} />}
         {foto.elemento}
       </Grupo>
       <Grupo rotulo="Foto da cartela (opcional)" desktop={desktop}>
@@ -101,5 +103,26 @@ export function CamposAparencia({ f, desktop }: { f: FormRemedio; desktop?: bool
         )}
       </Grupo>
     </>
+  );
+}
+
+/** Sugere forma e cor pela foto (contorno e cor média, no aparelho); a pessoa confere nos campos acima. */
+function SugerirPelaFoto({ f, desktop }: { f: FormRemedio; desktop?: boolean }) {
+  const [msg, setMsg] = useState<string>();
+  const [lendo, setLendo] = useState(false);
+  const sugerir = async () => {
+    if (!f.fotoComprimido) return;
+    setLendo(true);
+    try {
+      const a = await sugerirAparencia(f.fotoComprimido);
+      if (a) { f.setAparencia(a); setMsg(`Sugestão: ${descricaoAparencia(a).toLowerCase()}. Confira a forma e a cor acima.`); }
+      else setMsg('Não deu para separar o comprimido do fundo. Fotografe sobre um fundo liso ou escolha a forma e a cor acima.');
+    } catch { setMsg('Não foi possível ler a foto.'); } finally { setLendo(false); }
+  };
+  return (
+    <span className="stack" style={{ gap: 4 }}>
+      <button type="button" className={cx('btn btn--outline', desktop ? 'btn--h36' : 'btn--h40')} style={{ alignSelf: 'flex-start' }} onClick={() => void sugerir()} disabled={lendo}>{lendo ? 'Olhando a foto…' : 'Sugerir o desenho pela foto'}</button>
+      {msg && <span className="muted" style={{ fontSize: 13 }} role="status">{msg}</span>}
+    </span>
   );
 }

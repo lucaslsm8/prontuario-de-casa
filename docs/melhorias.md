@@ -130,8 +130,12 @@ Feito depois (14–19/11/2026):
 - Eventos assinados por aparelho (Ed25519): papéis, responsável e compartilhamento não se forjam.
 - Visual V1: Pessoa, Carteirinhas e Configurações já no visual novo; raios escritos à mão trocados por tokens.
 
+Feito em 19/11/2026 (tarde):
+- Condições com início e fim ("até"); a ficha de emergência e o Início mostram só as que continuam.
+- Gatos (espécie e vacinas felinas); dose por peso no remédio, com aviso quando o peso muda; ração do pet com aviso de fim do saco.
+- Cartela: a foto do comprimido sugere o desenho (forma e cor).
+
 Pendente:
-- Condições como registros próprios (com data de início e fim).
-- Gatos (espécie, vacinas felinas); remédio por peso; ração.
-- Permissão de editar conferida pelo autor nos eventos de registros (hoje só papéis, responsável e compartilhamento).
-- Cartela: foto vira ilustração; conferir com a câmera.
+- Assinatura dos eventos: conferência em pausa (`CONFERIR_ASSINATURAS`); falta o teste com dois aparelhos (`npm run app:teste -- a|b`, família num repositório de teste).
+- Permissão de editar conferida pelo autor nos eventos de registros (depende da assinatura).
+- Cartela: conferir com a câmera (o comprimido na mão bate com o cadastrado).
