@@ -19,8 +19,6 @@ export const SENSIVEIS = new Set(['pedirPapel', 'responderPapel', 'removerPapel'
 
 /** JSON com as chaves em ordem (o Rust pode devolver o objeto em outra ordem). */
 export function canonico(v: unknown): string {
-  // Número com casas: 15 dígitos significativos (um último dígito diferente ao reler o JSON no Rust não muda o texto).
-  if (typeof v === 'number') return Number.isFinite(v) && !Number.isInteger(v) ? JSON.stringify(Number(v.toPrecision(15))) : JSON.stringify(v);
   if (v === null || typeof v !== 'object') return JSON.stringify(v ?? null);
   if (Array.isArray(v)) return `[${v.map(canonico).join(',')}]`;
   const o = v as Record<string, unknown>;

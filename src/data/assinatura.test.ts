@@ -12,11 +12,6 @@ describe('texto canônico', () => {
     const e = ev({ id: '1', hlc: 'h1', aparelho: 'pc-a', dados: { z: 1, a: 61.8 } });
     expect(textoAssinado({ ...e, sig: 'qualquer' })).toBe(textoAssinado({ ...e, dados: { a: 61.8, z: 1 } }));
   });
-  it('número relido com o último dígito diferente dá o mesmo texto', () => {
-    expect(canonico(0.1 + 0.2)).toBe(canonico(0.30000000000000004));
-    expect(canonico(0.1 + 0.2)).toBe('0.3');
-    expect(canonico(42)).toBe('42');
-  });
 });
 
 describe('filtrarAssinados', () => {

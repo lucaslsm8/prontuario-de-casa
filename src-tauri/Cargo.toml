@@ -16,7 +16,8 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+# float_roundtrip: o número relido é exatamente o gravado (a assinatura dos eventos depende disso).
+serde_json = { version = "1", features = ["float_roundtrip"] }
 # SQLite compilado junto (sem dependências do sistema). Os dados vão cifrados pelo app.
 rusqlite = { version = "0.32", features = ["bundled"] }
 chacha20poly1305 = "0.10"

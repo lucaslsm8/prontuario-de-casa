@@ -86,6 +86,21 @@ mod testes {
         assert!(!verificar(&ItemVerificar { texto: "x".into(), sig: "não é base64".into(), chave }));
     }
 
+    /// Ida e volta pelo banco (gravar e reler), como no app: `ASSINATURA_IDA` (JSON com eventos) → `ASSINATURA_VOLTA`.
+    /// O teste do front (`npm test` com as variáveis) confere que o texto assinado continua igual.
+    #[test]
+    #[ignore]
+    fn ida_e_volta_pelo_banco() {
+        let (Ok(ida), Ok(volta)) = (std::env::var("ASSINATURA_IDA"), std::env::var("ASSINATURA_VOLTA")) else { return };
+        let evs: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(ida).unwrap()).unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let b = Banco::abrir(&dir.path().join("t.db"), &aleatorio::<32>()).unwrap();
+        for ev in &evs {
+            b.gravar(ev).unwrap();
+        }
+        std::fs::write(volta, serde_json::to_string(&b.eventos().unwrap()).unwrap()).unwrap();
+    }
+
     #[test]
     fn semente_nao_fica_em_claro() {
         let dir = tempfile::tempdir().unwrap();
